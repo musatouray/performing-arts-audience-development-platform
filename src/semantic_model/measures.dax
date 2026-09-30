@@ -1,0 +1,174 @@
+// =============================================================================
+// sm_audience_development — DAX measures
+// Model: Direct Lake on OneLake over wh_gold (see src/semantic_model/model.md)
+// Paste into the web modeling view (New measure) or apply with Tabular Editor.
+// Conventions: measures live in a hidden-column "_Measures" table, grouped by
+// display folder; people are counted by patron_id (the PERSON), never by
+// patron_key (an SCD2 VERSION).
+// =============================================================================
+
+// ---------------------------------------------------------------- Ticketing
+// Display folder: Ticketing
+Tickets Sold =
+CALCULATE ( SUM ( fact_ticket_sales[quantity] ), fact_ticket_sales[is_returned] = FALSE () )
+
+Net Ticket Revenue =
+CALCULATE ( SUM ( fact_ticket_sales[net_amount] ), fact_ticket_sales[is_returned] = FALSE () )
+
+Gross Ticket Revenue =
+CALCULATE ( SUM ( fact_ticket_sales[gross_amount] ), fact_ticket_sales[is_returned] = FALSE () )
+
+// Capacity comes from the performance dimension, so it also counts shows with ZERO sales.
+// dim_performance is not related to dim_date -> apply the date filter with TREATAS.
+Capacity =
+CALCULATE (
+    SUM ( dim_performance[capacity] ),
+    TREATAS ( VALUES ( dim_date[date_key] ), dim_performance[performance_date_key] ),
+    dim_performance[status] <> "Cancelled",
+    dim_performance[performance_key] > 0
+)
+
+Sell-Through % =
+DIVIDE ( [Tickets Sold], [Capacity] )
+
+Revenue per Available Seat =
+DIVIDE ( [Net Ticket Revenue], [Capacity] )
+
+Average Ticket Price =
+DIVIDE ( [Net Ticket Revenue], [Tickets Sold] )
+
+Comp % =
+DIVIDE (
+    CALCULATE ( [Tickets Sold], fact_ticket_sales[is_comp] = TRUE () ),
+    [Tickets Sold]
+)
+
+Return Rate % =
+DIVIDE (
+    CALCULATE ( SUM ( fact_ticket_sales[quantity] ), fact_ticket_sales[is_returned] = TRUE () ),
+    SUM ( fact_ticket_sales[quantity] )
+)
+
+// Role-playing date: the ACTIVE relationship is performance date (what season/show);
+// this measure re-points the calendar to ORDER date for sales-pacing visuals.
+Tickets Sold by Order Date =
+CALCULATE (
+    [Tickets Sold],
+    USERELATIONSHIP ( fact_ticket_sales[order_date_key], dim_date[date_key] )
+)
+
+Avg Days Booked Ahead =
+CALCULATE (
+    AVERAGE ( fact_ticket_sales[days_before_show] ),
+    fact_ticket_sales[is_returned] = FALSE ()
+)
+
+Ticket Buyers =
+CALCULATE ( DISTINCTCOUNT ( dim_patron[patron_id] ), fact_ticket_sales )
+
+First-Time Buyers =
+VAR PeriodStart = MIN ( dim_date[date] )
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( dim_patron[patron_id] ),
+        fact_ticket_sales,
+        dim_patron[first_seen_date] >= PeriodStart
+    )
+
+// ---------------------------------------------------------------- Fundraising
+// Display folder: Fundraising
+Gift Revenue =
+SUM ( fact_gifts[amount] )
+
+Donors =
+CALCULATE ( DISTINCTCOUNT ( dim_patron[patron_id] ), CALCULATETABLE ( fact_gifts, fact_gifts[amount] > 0 ) )
+
+Average Gift =
+DIVIDE ( [Gift Revenue], CALCULATE ( COUNTROWS ( fact_gifts ), fact_gifts[amount] > 0 ) )
+
+Campaign Goal =
+SUM ( dim_campaign[goal_amount] )
+
+% of Campaign Goal =
+DIVIDE ( [Gift Revenue], [Campaign Goal] )
+
+// Donor sets for the selected fiscal year (FY = MAX of current filter) and the prior year.
+Retained Donors =
+VAR FY = MAX ( dim_date[fiscal_year] )
+VAR ThisYear =
+    CALCULATETABLE ( SUMMARIZE ( fact_gifts, dim_patron[patron_id] ), REMOVEFILTERS ( dim_date ), dim_date[fiscal_year] = FY, fact_gifts[amount] > 0 )
+VAR LastYear =
+    CALCULATETABLE ( SUMMARIZE ( fact_gifts, dim_patron[patron_id] ), REMOVEFILTERS ( dim_date ), dim_date[fiscal_year] = FY - 1, fact_gifts[amount] > 0 )
+RETURN
+    COUNTROWS ( INTERSECT ( ThisYear, LastYear ) )
+
+Donors Last Year =
+VAR FY = MAX ( dim_date[fiscal_year] )
+RETURN
+    CALCULATE ( [Donors], REMOVEFILTERS ( dim_date ), dim_date[fiscal_year] = FY - 1 )
+
+Donor Retention % =
+DIVIDE ( [Retained Donors], [Donors Last Year] )
+
+// LYBUNT = gave Last Year But Unfortunately Not This year -> the development team's call list.
+LYBUNT Donors =
+VAR FY = MAX ( dim_date[fiscal_year] )
+VAR ThisYear =
+    CALCULATETABLE ( SUMMARIZE ( fact_gifts, dim_patron[patron_id] ), REMOVEFILTERS ( dim_date ), dim_date[fiscal_year] = FY, fact_gifts[amount] > 0 )
+VAR LastYear =
+    CALCULATETABLE ( SUMMARIZE ( fact_gifts, dim_patron[patron_id] ), REMOVEFILTERS ( dim_date ), dim_date[fiscal_year] = FY - 1, fact_gifts[amount] > 0 )
+RETURN
+    COUNTROWS ( EXCEPT ( LastYear, ThisYear ) )
+
+LYBUNT Revenue at Risk =
+VAR FY = MAX ( dim_date[fiscal_year] )
+VAR ThisYear =
+    CALCULATETABLE ( SUMMARIZE ( fact_gifts, dim_patron[patron_id] ), REMOVEFILTERS ( dim_date ), dim_date[fiscal_year] = FY, fact_gifts[amount] > 0 )
+VAR LastYear =
+    CALCULATETABLE ( SUMMARIZE ( fact_gifts, dim_patron[patron_id] ), REMOVEFILTERS ( dim_date ), dim_date[fiscal_year] = FY - 1, fact_gifts[amount] > 0 )
+RETURN
+    CALCULATE ( [Gift Revenue], REMOVEFILTERS ( dim_date ), dim_date[fiscal_year] = FY - 1, TREATAS ( EXCEPT ( LastYear, ThisYear ), dim_patron[patron_id] ) )
+
+// ---------------------------------------------------------------- Audience x Development
+// Display folder: Cross-functional
+// The question leadership actually asks: "how many of our ticket buyers also give?"
+Buyers Who Also Give =
+VAR Buyers = CALCULATETABLE ( SUMMARIZE ( fact_ticket_sales, dim_patron[patron_id] ), fact_ticket_sales[is_returned] = FALSE () )
+VAR Givers = CALCULATETABLE ( SUMMARIZE ( fact_gifts, dim_patron[patron_id] ), REMOVEFILTERS ( dim_date ), fact_gifts[amount] > 0 )
+RETURN
+    COUNTROWS ( INTERSECT ( Buyers, Givers ) )
+
+Buyer-to-Donor Conversion % =
+DIVIDE ( [Buyers Who Also Give], [Ticket Buyers] )
+
+// ---------------------------------------------------------------- Subscriptions
+// Display folder: Subscriptions   (season = fact_subscriptions[fiscal_year])
+Subscribers =
+CALCULATE ( DISTINCTCOUNT ( dim_patron[patron_id] ), fact_subscriptions )
+
+Renewing Subscribers =
+CALCULATE ( [Subscribers], fact_subscriptions[is_renewal] = TRUE () )
+
+Prior Season Subscribers =
+VAR FY = MAX ( fact_subscriptions[fiscal_year] )
+RETURN
+    CALCULATE ( [Subscribers], REMOVEFILTERS ( fact_subscriptions[fiscal_year] ), REMOVEFILTERS ( dim_date ), fact_subscriptions[fiscal_year] = FY - 1 )
+
+Subscriber Renewal % =
+DIVIDE ( [Renewing Subscribers], [Prior Season Subscribers] )
+
+Subscription Revenue =
+SUM ( fact_subscriptions[package_amount] )
+
+// =============================================================================
+// Calculation group "Time Intelligence" (fiscal year ends 30 June)
+// Column: [Period]   Items below. Keeps the measure list short (one [Gift Revenue],
+// not Gift Revenue PY / YoY / FYTD ...). Requires dim_date marked as date table.
+// =============================================================================
+// Current      = SELECTEDMEASURE ()
+// FYTD         = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( dim_date[date], "06-30" ) )
+// PY           = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ) )
+// PY FYTD      = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( SAMEPERIODLASTYEAR ( dim_date[date] ), "06-30" ) )
+// YoY          = VAR Cur = SELECTEDMEASURE () VAR Prev = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ) ) RETURN IF ( NOT ISBLANK ( Cur ) && NOT ISBLANK ( Prev ), Cur - Prev )
+// YoY %        = VAR Cur = SELECTEDMEASURE () VAR Prev = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ) ) RETURN DIVIDE ( Cur - Prev, Prev )
+//   Format string expression for YoY %:  "0.0%;-0.0%;0.0%"

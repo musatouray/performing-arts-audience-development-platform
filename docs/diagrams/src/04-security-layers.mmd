@@ -1,0 +1,11 @@
+%% Defence in depth: who is protected where
+flowchart TB
+  classDef l fill:#EDE7F6,stroke:#5E35B1,color:#26134D
+  L1["1 · Tenant settings<br/>publish-to-web OFF · external sharing OFF · item creation scoped to groups"]:::l
+  L2["2 · Entra security groups<br/>sg-hh-* · assign groups, never people"]:::l
+  L3["3 · Domains + Workspace roles<br/>engineers Contributor in DEV/TEST · Viewer in PROD · consumers via Apps only"]:::l
+  L4["4 · OneLake security (lh_silver)<br/>table roles · column permit-lists hide contact PII"]:::l
+  L5["5 · Warehouse SQL security (wh_gold)<br/>GRANT by group · Dynamic Data Masking · RLS on anonymous gifts"]:::l
+  L6["6 · Semantic model RLS / OLS<br/>Audience · Development · dynamic Venue Manager (USERPRINCIPALNAME)"]:::l
+  L7["7 · Purview sensitivity labels + DLP<br/>Confidential - Donor PII · label inheritance to exports"]:::l
+  L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7

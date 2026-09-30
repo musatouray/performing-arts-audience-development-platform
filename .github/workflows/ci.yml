@@ -1,0 +1,36 @@
+# CI: every PR must prove the design is valid and the code is healthy BEFORE Fabric syncs it.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: uv sync --group dev
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Validate tenant design (config/*.yaml)
+        run: uv run python scripts/validate_config.py
+
+      - name: Unit tests (data generator)
+        run: uv run pytest -q
+
+      - name: Notebooks are rebuilt from source
+        run: |
+          uv run python scripts/build_notebooks.py
+          git diff --exit-code src/notebooks/ipynb || (echo "::error::Run scripts/build_notebooks.py and commit the .ipynb files" && exit 1)
+
+      - name: Provisioning scripts compile
+        run: uv run python -m compileall -q scripts data_generator

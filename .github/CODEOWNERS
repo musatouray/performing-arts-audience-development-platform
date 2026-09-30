@@ -1,0 +1,5 @@
+# Every change to the platform design or security needs the platform owner's review.
+*                      @musatouray
+/config/               @musatouray
+/src/warehouse/60_security.sql @musatouray
+/src/semantic_model/rls_roles.md @musatouray

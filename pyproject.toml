@@ -1,0 +1,28 @@
+[project]
+name = "performing-arts-audience-development-platform"
+version = "0.1.0"
+description = "Microsoft Fabric reference platform for a performing-arts nonprofit: tenant topology as code, medallion lakehouse/warehouse, governance and Direct Lake BI."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    "azure-identity>=1.17",
+    "azure-storage-file-datalake>=12.16",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+cicd = ["fabric-cicd>=0.1"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+extend-exclude = ["src/notebooks"]   # Fabric notebooks rely on runtime globals (spark, display)
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E731"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

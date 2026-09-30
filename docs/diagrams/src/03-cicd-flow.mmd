@@ -1,0 +1,24 @@
+%% CI/CD: Git integration on DEV + deployment pipelines to TEST/PROD
+flowchart LR
+  classDef gh fill:#F6F8FA,stroke:#24292F,color:#24292F
+  classDef dev fill:#E3F2FD,stroke:#1565C0,color:#0D2A4D
+  classDef test fill:#FFF8E1,stroke:#F9A825,color:#3D2E00
+  classDef prod fill:#E8F5E9,stroke:#2E7D32,color:#123D16
+
+  subgraph GH["GitHub · musatouray/performing-arts-audience-development-platform"]
+    FB["feature/* branch"]:::gh
+    PR["Pull request<br/>CI: lint · unit tests · notebook build<br/>1 reviewer (CODEOWNERS)"]:::gh
+    MAIN["main<br/>/fabric/de · /fabric/bi-*"]:::gh
+  end
+
+  FW["Feature workspace<br/>(Fabric 'Branch out')"]:::dev
+  DEV["DEV workspace<br/>Git-connected to main"]:::dev
+  TEST["TEST workspace<br/>UAT with business users"]:::test
+  PROD["PROD workspace<br/>Org App"]:::prod
+
+  FW <-- "commit / update" --> FB
+  FB --> PR --> MAIN
+  MAIN -- "Update from Git (sync)" --> DEV
+  DEV -- "Deployment pipeline<br/>deploy + deployment rules" --> TEST
+  TEST -- "Deploy (approval:<br/>Director of BI)" --> PROD
+  MAIN -. "scale-up path: fabric-cicd<br/>GitHub Actions + service principal" .-> TEST & PROD

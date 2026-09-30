@@ -1,0 +1,58 @@
+%% Platform architecture: sources -> OneLake medallion -> semantic models -> consumers
+flowchart LR
+  classDef src fill:#FFF4E5,stroke:#B26A00,color:#3D2600
+  classDef bronze fill:#F3E1D3,stroke:#8C5A3C,color:#3B2416
+  classDef silver fill:#E8EDF2,stroke:#5B6B7A,color:#1F2A33
+  classDef gold fill:#FFF3C4,stroke:#B38F00,color:#3D3000
+  classDef bi fill:#E3F2FD,stroke:#1565C0,color:#0D2A4D
+  classDef gov fill:#EDE7F6,stroke:#5E35B1,color:#26134D
+  classDef user fill:#E8F5E9,stroke:#2E7D32,color:#123D16
+
+  subgraph SRC["Source systems"]
+    T["Ticketing & CRM<br/>(Tessitura-style)<br/>daily CSV extract"]:::src
+    F["Fundraising system<br/>REST API · JSON"]:::src
+    E["Education programs<br/>spreadsheet · SharePoint"]:::src
+  end
+
+  subgraph DP["Workspace: hh-dataplatform-{env} · Domain: Data Platform"]
+    direction LR
+    subgraph ING["Ingest"]
+      CJ["Copy job / Copy activity"]
+      NBAPI["Notebook<br/>(API paging, retries)"]
+      DF["Dataflow Gen2<br/>(analyst-owned)"]
+    end
+    subgraph OL["OneLake"]
+      B[("lh_bronze<br/>Files/landing + raw Delta<br/>append-only · strings")]:::bronze
+      S[("lh_silver<br/>typed · deduped · DQ-gated<br/>core.patron golden record")]:::silver
+      G[("wh_gold · Warehouse<br/>star schema · SCD2<br/>T-SQL procs · SQL security")]:::gold
+    end
+    PL{{"pl_daily_load<br/>05:00 ET · retries · Teams alert"}}
+  end
+
+  subgraph BI["Workspaces: hh-audience-{env} · hh-education-{env}"]
+    SM1["sm_audience_development<br/>Direct Lake on OneLake<br/>RLS/OLS · Certified"]:::bi
+    SM2["sm_education_impact<br/>Direct Lake · Certified"]:::bi
+    APP1["Audience & Development App"]:::bi
+    APP2["Education Impact App"]:::bi
+  end
+
+  subgraph CONS["Consumers"]
+    U1["Ticketing · Marketing<br/>Development · Leadership"]:::user
+    U2["Education staff · Grants"]:::user
+    U3["SQL analysts · Paginated reports<br/>Fabric Data Agent"]:::user
+  end
+
+  subgraph GOV["Governance (cross-cutting)"]
+    GV["Entra groups · Workspace roles · OneLake security<br/>Purview sensitivity labels · Endorsement · Domains<br/>DQ results · Run log · Capacity Metrics · Git + Deployment pipelines"]:::gov
+  end
+
+  T --> CJ --> B
+  F --> NBAPI --> B
+  E --> DF --> B
+  B -- "nb_10 bronze ingest<br/>+ reconciliation" --> S
+  S -- "nb_20 silver transform<br/>conform · dedupe · DQ · MERGE<br/>identity resolution" --> G
+  PL -. orchestrates .-> B & S & G
+  G --> SM1 --> APP1 --> U1
+  G --> SM2 --> APP2 --> U2
+  G -- "SQL endpoint<br/>rpt.* views" --> U3
+  GOV ~~~ OL

@@ -1,0 +1,34 @@
+%% Tenant topology: domains organise; WORKSPACE roles grant access
+flowchart TB
+  classDef dom fill:#EDE7F6,stroke:#5E35B1,color:#26134D
+  classDef dev fill:#E3F2FD,stroke:#1565C0,color:#0D2A4D
+  classDef test fill:#FFF8E1,stroke:#F9A825,color:#3D2E00
+  classDef prod fill:#E8F5E9,stroke:#2E7D32,color:#123D16
+  classDef cap fill:#FCE4EC,stroke:#AD1457,color:#3D0A1F
+
+  TEN["Fabric tenant · tenant settings audited (scripts/08)<br/>Capacity: F64 (trial in the mock) → all 9 workspaces<br/>BI models read Gold of the SAME env (deployment rules rebind)"]:::cap
+  ORG["Parent domain: Harmonia Hall<br/>Domain admins: sg-hh-fabric-admins (inherited by subdomains)<br/>Domain roles organise & delegate — they grant NO data access"]:::dom
+  TEN --> ORG
+
+  subgraph D1["Subdomain: Data Platform"]
+    direction TB
+    W1D["hh-dataplatform-dev<br/>lh_bronze · lh_silver · wh_gold · notebooks · pipelines<br/>Admin: fabric-admins · Contributor: data-engineers<br/>Git ↔ main:/fabric/de"]:::dev
+    W1T["hh-dataplatform-test<br/>Admin: fabric-admins · Contributor: data-engineers"]:::test
+    W1P["hh-dataplatform-prod<br/>Admin: fabric-admins · Viewer: data-engineers"]:::prod
+    W1D -- "dp-hh-dataplatform" --> W1T --> W1P
+  end
+  subgraph D2["Subdomain: Audience & Development"]
+    direction TB
+    W2D["hh-audience-dev<br/>sm_audience_development · reports<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Git ↔ main:/fabric/bi-audience"]:::dev
+    W2T["hh-audience-test (UAT)<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Viewer: analysts-audience, analysts-development"]:::test
+    W2P["hh-audience-prod<br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → report-viewers + analysts"]:::prod
+    W2D -- "dp-hh-audience" --> W2T --> W2P
+  end
+  subgraph D3["Subdomain: Education & Community"]
+    direction TB
+    W3D["hh-education-dev<br/>sm_education_impact<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Git ↔ main:/fabric/bi-education"]:::dev
+    W3T["hh-education-test (UAT)<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Viewer: education-team"]:::test
+    W3P["hh-education-prod<br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → education-team"]:::prod
+    W3D -- "dp-hh-education" --> W3T --> W3P
+  end
+  ORG --> D1 & D2 & D3

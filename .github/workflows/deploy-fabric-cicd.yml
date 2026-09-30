@@ -1,0 +1,33 @@
+# SCALE-UP PATH (ADR-005). Day-one promotion uses Fabric deployment pipelines.
+# Manual trigger only; PROD requires the "production" GitHub environment approval.
+# Secrets: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET (service principal).
+name: deploy-fabric-cicd
+
+on:
+  workflow_dispatch:
+    inputs:
+      family:
+        description: "Workspace family"
+        type: choice
+        options: [dataplatform, audience, education]
+      env:
+        description: "Target environment"
+        type: choice
+        options: [test, prod]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.env == 'prod' && 'production' || 'test' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --group cicd
+      - name: Deploy with fabric-cicd
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: uv run python scripts/deploy_fabric_cicd.py --family ${{ inputs.family }} --env ${{ inputs.env }}

@@ -1,0 +1,25 @@
+%% One daily run, end to end, with the quality gates
+flowchart LR
+  classDef ok fill:#E8F5E9,stroke:#2E7D32,color:#123D16
+  classDef bad fill:#FFEBEE,stroke:#C62828,color:#4A0E0E
+  classDef step fill:#F5F5F5,stroke:#616161,color:#212121
+
+  A["Files/landing/…/load_date=D<br/>+ _manifests/load_date=D.json"]:::step
+  B["Bronze append<br/>+ _load_date, _source_file,<br/>_ingested_at, _batch_id"]:::step
+  R{"Row counts =<br/>manifest?"}
+  C["Conform<br/>try_cast · trim · lower(email)"]:::step
+  DD["Dedupe<br/>latest per PK (CDC)"]:::step
+  Q{"DQ rules<br/>(dq_rules.yaml)"}
+  QU["dq.quarantine<br/>error rows"]:::bad
+  M["MERGE into Silver<br/>only changed hashes"]:::ok
+  IR["Identity resolution<br/>email → name+zip<br/>core.patron_xref / core.patron"]:::ok
+  SY["refreshMetadata<br/>SQL endpoint"]:::step
+  G["usp_load_gold<br/>dims (SCD2) → facts (incremental)"]:::ok
+  DL["Direct Lake reframe<br/>reports current"]:::ok
+  X["Pipeline fails<br/>Teams alert"]:::bad
+
+  A --> B --> R
+  R -- yes --> C --> DD --> Q
+  R -- no --> X
+  Q -- "error" --> QU
+  Q -- "pass / warn (logged)" --> M --> IR --> SY --> G --> DL

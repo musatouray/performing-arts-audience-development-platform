@@ -1,0 +1,169 @@
+# =============================================================================
+# sources.yaml — metadata-driven ingestion contract (the "control table").
+# Bronze and Silver notebooks loop over this file instead of hard-coding tables.
+# Adding a new source entity = add a block here, no new pipeline code.
+# scripts/06_upload_landing_files.py converts it to JSON at
+#   lh_bronze/Files/config/sources.json   (notebooks read the JSON).
+#
+# column types = the Silver schema contract (Spark SQL types).
+# =============================================================================
+
+sources:
+  # ---------------------------------------------------------------------------
+  # Ticketing / CRM (Tessitura-style). Daily CSV extracts.
+  # Prod pattern: Pipeline Copy activity / Copy job from the ticketing DB
+  # (or Mirroring if the DB is supported) -> Files/landing/ticketing/...
+  # ---------------------------------------------------------------------------
+  - source: ticketing
+    format: csv
+    owner: "Ticketing & Patron Services"
+    entities:
+      - name: customers
+        primary_key: [customer_id]
+        order_by: updated_at
+        pii: [first_name, last_name, email, phone, address_line1]
+        columns:
+          customer_id: string
+          first_name: string
+          last_name: string
+          email: string
+          phone: string
+          address_line1: string
+          city: string
+          state: string
+          postal_code: string
+          country: string
+          customer_type: string
+          email_opt_in: boolean
+          created_at: timestamp
+          updated_at: timestamp
+      - name: seasons
+        primary_key: [season_id]
+        order_by: season_id
+        columns: { season_id: string, season_name: string, fiscal_year: int, start_date: date, end_date: date }
+      - name: venues
+        primary_key: [venue_id]
+        order_by: venue_id
+        columns: { venue_id: string, venue_name: string, capacity: int }
+      - name: performances
+        primary_key: [performance_id]
+        order_by: updated_at
+        columns:
+          performance_id: string
+          season_id: string
+          venue_id: string
+          title: string
+          series: string
+          genre: string
+          performance_datetime: timestamp
+          capacity: int
+          status: string
+          updated_at: timestamp
+      - name: orders
+        primary_key: [order_id]
+        order_by: updated_at
+        columns:
+          order_id: string
+          customer_id: string
+          order_datetime: timestamp
+          channel: string
+          status: string
+          updated_at: timestamp
+      - name: order_lines
+        primary_key: [order_line_id]
+        order_by: updated_at
+        columns:
+          order_line_id: string
+          order_id: string
+          performance_id: string
+          price_zone: string
+          quantity: int
+          unit_price: "decimal(12,2)"
+          discount_amount: "decimal(12,2)"
+          is_comp: boolean
+          updated_at: timestamp
+      - name: subscriptions
+        primary_key: [subscription_id]
+        order_by: purchased_at
+        columns:
+          subscription_id: string
+          customer_id: string
+          season_id: string
+          package_name: string
+          seats: int
+          package_amount: "decimal(12,2)"
+          is_renewal: boolean
+          purchased_at: timestamp
+
+  # ---------------------------------------------------------------------------
+  # Fundraising / Development system. JSON (API-style, one record per line).
+  # Prod pattern: Notebook calling the vendor REST API (paging, auth, retries).
+  # Separate donor IDs -> identity resolution into core.patron in Silver.
+  # ---------------------------------------------------------------------------
+  - source: fundraising
+    format: json
+    owner: "Development (Fundraising)"
+    entities:
+      - name: donors
+        primary_key: [donor_id]
+        order_by: updated_at
+        pii: [first_name, last_name, email]
+        columns:
+          donor_id: string
+          first_name: string
+          last_name: string
+          email: string
+          city: string
+          state: string
+          postal_code: string
+          donor_since: date
+          updated_at: timestamp
+      - name: campaigns
+        primary_key: [campaign_id]
+        order_by: campaign_id
+        columns: { campaign_id: string, campaign_name: string, campaign_type: string, fiscal_year: int, goal_amount: "decimal(14,2)" }
+      - name: funds
+        primary_key: [fund_id]
+        order_by: fund_id
+        columns: { fund_id: string, fund_name: string, is_restricted: boolean }
+      - name: gifts
+        primary_key: [gift_id]
+        order_by: updated_at
+        columns:
+          gift_id: string
+          donor_id: string
+          gift_date: date
+          amount: "decimal(14,2)"
+          gift_type: string
+          campaign_id: string
+          fund_id: string
+          is_anonymous: boolean
+          updated_at: timestamp
+
+  # ---------------------------------------------------------------------------
+  # Education programs. CSV maintained by the program team (spreadsheet/SharePoint).
+  # Prod pattern: Dataflow Gen2 owned by the Education analyst (low-code, low volume).
+  # AGGREGATE participant counts only — no student-level (minor) PII by design.
+  # ---------------------------------------------------------------------------
+  - source: education
+    format: csv
+    owner: "Education & Community Programs"
+    entities:
+      - name: programs
+        primary_key: [program_id]
+        order_by: program_id
+        columns: { program_id: string, program_name: string, program_type: string, audience: string }
+      - name: schools
+        primary_key: [school_id]
+        order_by: school_id
+        columns: { school_id: string, school_name: string, borough: string, is_title_i: boolean }
+      - name: enrollments
+        primary_key: [enrollment_id]
+        order_by: session_date
+        columns:
+          enrollment_id: string
+          program_id: string
+          school_id: string
+          session_date: date
+          participants: int
+          teaching_artist_hours: "decimal(6,1)"

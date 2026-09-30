@@ -1,0 +1,46 @@
+# =============================================================================
+# dq_rules.yaml — declarative data-quality rules applied in the Silver notebook.
+#   severity: error -> row is QUARANTINED (dq.quarantine), not loaded to Silver
+#   severity: warn  -> row is loaded, violation is logged (dq.dq_results)
+# Every run writes one row per (entity, rule) to lh_silver.dq.dq_results, which
+# feeds the DQ dashboard and the Activator alert.
+# Rule types: not_null | unique | accepted_values | range | regex | foreign_key | not_future
+# =============================================================================
+
+rules:
+  ticketing.customers:
+    - { rule: not_null,  column: customer_id, severity: error }
+    - { rule: regex,     column: email, pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", severity: warn, allow_null: true }
+    - { rule: regex,     column: postal_code, pattern: "^[0-9]{5}$", severity: warn, allow_null: true }
+    - { rule: accepted_values, column: customer_type, values: [Individual, Household, Organization], severity: warn }
+
+  ticketing.performances:
+    - { rule: not_null,  column: performance_id, severity: error }
+    - { rule: range,     column: capacity, min: 1, max: 3000, severity: error }
+    - { rule: accepted_values, column: status, values: [Scheduled, Completed, Cancelled], severity: warn }
+
+  ticketing.orders:
+    - { rule: not_null,  column: customer_id, severity: error }
+    - { rule: not_future, column: order_datetime, severity: error }
+    - { rule: accepted_values, column: channel, values: [Web, Phone, Box Office, Group Sales], severity: warn }
+
+  ticketing.order_lines:
+    - { rule: range,       column: unit_price, min: 0, max: 5000, severity: error }
+    - { rule: range,       column: quantity,   min: 1, max: 50,   severity: error }
+    - { rule: foreign_key, column: performance_id, ref_entity: ticketing.performances, ref_column: performance_id, severity: error }
+    - { rule: foreign_key, column: order_id,       ref_entity: ticketing.orders,       ref_column: order_id,       severity: warn }
+
+  fundraising.donors:
+    - { rule: not_null,  column: donor_id, severity: error }
+    - { rule: regex,     column: email, pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", severity: warn, allow_null: true }
+
+  fundraising.gifts:
+    - { rule: not_null,  column: donor_id, severity: error }
+    - { rule: not_future, column: gift_date, severity: error }
+    - { rule: range,     column: amount, min: -1000000, max: 10000000, severity: error }
+    - { rule: accepted_values, column: gift_type, values: [Cash, Credit Card, Stock, Pledge Payment, Reversal], severity: warn }
+    - { rule: foreign_key, column: donor_id, ref_entity: fundraising.donors, ref_column: donor_id, severity: warn }
+
+  education.enrollments:
+    - { rule: range,       column: participants, min: 1, max: 2000, severity: error }
+    - { rule: foreign_key, column: program_id, ref_entity: education.programs, ref_column: program_id, severity: error }

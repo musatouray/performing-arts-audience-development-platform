@@ -1,0 +1,66 @@
+erDiagram
+  DIM_DATE ||--o{ FACT_TICKET_SALES : "performance_date (active)"
+  DIM_DATE ||--o{ FACT_TICKET_SALES : "order_date (inactive)"
+  DIM_PATRON ||--o{ FACT_TICKET_SALES : buys
+  DIM_PERFORMANCE ||--o{ FACT_TICKET_SALES : "for show"
+  DIM_CHANNEL ||--o{ FACT_TICKET_SALES : via
+  DIM_DATE ||--o{ FACT_GIFTS : gift_date
+  DIM_PATRON ||--o{ FACT_GIFTS : gives
+  DIM_CAMPAIGN ||--o{ FACT_GIFTS : "credited to"
+  DIM_FUND ||--o{ FACT_GIFTS : "designated to"
+  DIM_DATE ||--o{ FACT_SUBSCRIPTIONS : purchase_date
+  DIM_PATRON ||--o{ FACT_SUBSCRIPTIONS : subscribes
+  DIM_DATE ||--o{ FACT_EDUCATION_SESSIONS : session_date
+  DIM_PROGRAM ||--o{ FACT_EDUCATION_SESSIONS : delivers
+  DIM_SCHOOL ||--o{ FACT_EDUCATION_SESSIONS : "hosted at"
+
+  FACT_TICKET_SALES {
+    string order_line_id "grain: order line"
+    int patron_key FK
+    int performance_key FK
+    int order_date_key FK
+    int performance_date_key FK
+    int quantity
+    decimal net_amount
+    bit is_returned
+  }
+  FACT_GIFTS {
+    string gift_id "grain: gift"
+    int patron_key FK
+    int campaign_key FK
+    decimal amount
+    bit is_anonymous "RLS"
+  }
+  FACT_SUBSCRIPTIONS {
+    string subscription_id "grain: package"
+    int patron_key FK
+    int fiscal_year
+    bit is_renewal
+  }
+  FACT_EDUCATION_SESSIONS {
+    string enrollment_id "grain: session"
+    int program_key FK
+    int school_key FK
+    int participants "aggregate, no PII"
+  }
+  DIM_PATRON {
+    int patron_key PK "SCD2 version"
+    string patron_id "golden person ID"
+    string region
+    string email "masked"
+    datetime valid_from
+    datetime valid_to
+    bit is_current
+  }
+  DIM_PERFORMANCE {
+    int performance_key PK
+    string series
+    string season_name
+    string venue_name
+    int capacity
+  }
+  DIM_DATE {
+    int date_key PK
+    int fiscal_year "Jul-Jun"
+    int fiscal_month_num
+  }
