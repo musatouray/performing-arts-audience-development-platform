@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Warehouse",
+    "displayName": "wh_gold",
+    "description": "Star schema (dims/facts) + security. The only layer business users touch (via semantic models)."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "1ee809a8-d5a1-96ac-4ad6-5641e45efcd0"
+  }
+}

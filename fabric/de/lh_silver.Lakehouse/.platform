@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Lakehouse",
+    "displayName": "lh_silver",
+    "description": "Cleaned, conformed, de-duplicated, typed. Identity-resolved patrons. DQ results."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "9a3089e9-80a6-ba49-4ab2-8c94814881f4"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Lakehouse",
+    "displayName": "lh_bronze",
+    "description": "Raw, immutable, append-only landing + Delta copies of source extracts."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "757c7554-bf8d-827c-4335-13f4e4b5b873"
+  }
+}
