@@ -1,18 +1,16 @@
 /* =============================================================================
-   wh_gold · 00 — schemas + ETL framework
-   Workload : Fabric Warehouse (T-SQL). Run once per environment, in order 00 -> 60.
-   Run with : Fabric SQL editor, SSMS or VS Code (mssql). "GO" separates batches.
+   wh_gold 00: schemas and load logging
+   Run the files in order (00 to 60), once per environment, in the Fabric SQL
+   editor, SSMS or VS Code.
 
-   Layer contract (Gold):
-     dim.*   conformed dimensions, surrogate keys, unknown member = -1
-     fact.*  facts at a declared grain, FK = dimension surrogate keys
-     rpt.*   business-friendly views (for SQL users / paginated reports)
-     sec.*   security predicates + mapping tables (RLS)
-     etl.*   procedures, watermarks, load log
-   Silver is read via cross-database queries: [lh_silver].[schema].[table]
-   (same workspace -> no data copy, no linked service).
-   Fabric Warehouse T-SQL notes: varchar (UTF-8) not nvarchar, datetime2 not datetime,
-   no IDENTITY -> surrogate keys = MAX(key) + ROW_NUMBER().
+   Schemas:
+     dim    descriptive tables (patrons, performances, dates...)
+     fact   measurable events (ticket sales, gifts, subscriptions, sessions)
+     rpt    ready-made views for people who query with SQL
+     sec    security rules and lookup tables
+     etl    load procedures, load log and progress markers
+   Silver tables are read directly as [lh_silver].[schema].[table]; nothing is copied.
+   Fabric Warehouse has no IDENTITY columns, so keys are numbered as MAX(key) + ROW_NUMBER().
    ============================================================================= */
 
 CREATE SCHEMA dim;
@@ -26,7 +24,7 @@ GO
 CREATE SCHEMA etl;
 GO
 
--- One row per procedure run: the pipeline-health report and the "did last night's load work?" answer.
+-- One row per procedure run. Use it to check whether last night's load worked.
 CREATE TABLE etl.load_log (
     run_id          varchar(64)   NOT NULL,
     procedure_name  varchar(128)  NOT NULL,
@@ -37,11 +35,12 @@ CREATE TABLE etl.load_log (
     status          varchar(20)   NOT NULL,
     message         varchar(4000) NULL,
     started_at      datetime2(6)  NOT NULL,
-    ended_at        datetime2(6)  NULL
+    ended_at        datetime2(6)  NULL,
+    run_by          varchar(256)  NULL   -- who ran it (a person, or the pipeline's identity)
 );
 GO
 
--- High-water marks for incremental fact loads (based on Silver _silver_updated_at).
+-- How far each incremental load got, so the next run only picks up newer rows.
 CREATE TABLE etl.watermark (
     object_name  varchar(128) NOT NULL,
     last_value   datetime2(6) NOT NULL,
@@ -55,9 +54,10 @@ CREATE OR ALTER PROCEDURE etl.usp_log
     @status varchar(20), @message varchar(4000), @started_at datetime2(6)
 AS
 BEGIN
-    INSERT INTO etl.load_log
+    INSERT INTO etl.load_log (run_id, procedure_name, target_table, rows_inserted, rows_updated, rows_deleted,
+                              [status], [message], started_at, ended_at, run_by)
     VALUES (@run_id, @procedure_name, @target_table, @rows_inserted, @rows_updated, @rows_deleted,
-            @status, @message, @started_at, SYSUTCDATETIME());
+            @status, @message, @started_at, SYSUTCDATETIME(), USER_NAME());
 END;
 GO
 

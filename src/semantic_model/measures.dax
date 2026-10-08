@@ -1,10 +1,10 @@
 // =============================================================================
-// sm_audience_development — DAX measures
-// Model: Direct Lake on OneLake over wh_gold (see src/semantic_model/model.md)
-// Paste into the web modeling view (New measure) or apply with Tabular Editor.
-// Conventions: measures live in a hidden-column "_Measures" table, grouped by
-// display folder; people are counted by patron_id (the PERSON), never by
-// patron_key (an SCD2 VERSION).
+// DAX measures for the sm_audience_development semantic model.
+// The model reads the Gold warehouse in Direct Lake mode (see model.md).
+// Add them in the web modeling view (New measure) or with Tabular Editor.
+// All measures sit in a "_Measures" table, grouped into display folders.
+// People are counted by patron_id (one per person), not patron_key, which has
+// a new row each time a patron's details change.
 // =============================================================================
 
 // ---------------------------------------------------------------- Ticketing
@@ -18,8 +18,8 @@ CALCULATE ( SUM ( fact_ticket_sales[net_amount] ), fact_ticket_sales[is_returned
 Gross Ticket Revenue =
 CALCULATE ( SUM ( fact_ticket_sales[gross_amount] ), fact_ticket_sales[is_returned] = FALSE () )
 
-// Capacity comes from the performance dimension, so it also counts shows with ZERO sales.
-// dim_performance is not related to dim_date -> apply the date filter with TREATAS.
+// Seat capacity comes from the performance table, so shows with no sales still count.
+// That table isn't linked to the calendar, so TREATAS applies the date filter.
 Capacity =
 CALCULATE (
     SUM ( dim_performance[capacity] ),
@@ -49,8 +49,8 @@ DIVIDE (
     SUM ( fact_ticket_sales[quantity] )
 )
 
-// Role-playing date: the ACTIVE relationship is performance date (what season/show);
-// this measure re-points the calendar to ORDER date for sales-pacing visuals.
+// By default the calendar filters on performance date.
+// This measure switches it to order date, to show how fast tickets are selling.
 Tickets Sold by Order Date =
 CALCULATE (
     [Tickets Sold],
@@ -92,7 +92,7 @@ SUM ( dim_campaign[goal_amount] )
 % of Campaign Goal =
 DIVIDE ( [Gift Revenue], [Campaign Goal] )
 
-// Donor sets for the selected fiscal year (FY = MAX of current filter) and the prior year.
+// Donors in the selected fiscal year and in the year before.
 Retained Donors =
 VAR FY = MAX ( dim_date[fiscal_year] )
 VAR ThisYear =
@@ -110,7 +110,7 @@ RETURN
 Donor Retention % =
 DIVIDE ( [Retained Donors], [Donors Last Year] )
 
-// LYBUNT = gave Last Year But Unfortunately Not This year -> the development team's call list.
+// LYBUNT: gave Last Year But Unfortunately Not This year. The fundraising team's call list.
 LYBUNT Donors =
 VAR FY = MAX ( dim_date[fiscal_year] )
 VAR ThisYear =
@@ -131,7 +131,7 @@ RETURN
 
 // ---------------------------------------------------------------- Audience x Development
 // Display folder: Cross-functional
-// The question leadership actually asks: "how many of our ticket buyers also give?"
+// How many of our ticket buyers are also donors?
 Buyers Who Also Give =
 VAR Buyers = CALCULATETABLE ( SUMMARIZE ( fact_ticket_sales, dim_patron[patron_id] ), fact_ticket_sales[is_returned] = FALSE () )
 VAR Givers = CALCULATETABLE ( SUMMARIZE ( fact_gifts, dim_patron[patron_id] ), REMOVEFILTERS ( dim_date ), fact_gifts[amount] > 0 )
@@ -162,8 +162,9 @@ SUM ( fact_subscriptions[package_amount] )
 
 // =============================================================================
 // Calculation group "Time Intelligence" (fiscal year ends 30 June)
-// Column: [Period]   Items below. Keeps the measure list short (one [Gift Revenue],
-// not Gift Revenue PY / YoY / FYTD ...). Requires dim_date marked as date table.
+// Column: [Period]. One set of time calculations that works with any measure,
+// so we don't need separate "PY", "YoY" and "FYTD" copies of each one.
+// dim_date must be marked as the date table.
 // =============================================================================
 // Current      = SELECTEDMEASURE ()
 // FYTD         = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( dim_date[date], "06-30" ) )

@@ -1,12 +1,11 @@
 /* =============================================================================
-   wh_gold · 40 — fact load procedures
-   * ticket_sales, gifts : INCREMENTAL. Watermark on Silver _silver_updated_at.
-                           Changed business keys are DELETEd then re-INSERTed inside a
-                           transaction -> idempotent, handles late-arriving changes
-                           (e.g. an order returned 3 days after purchase).
-   * subscriptions, education_sessions : small -> full refresh (TRUNCATE + INSERT).
-   * Patron lookup is POINT-IN-TIME: the SCD2 version valid at the transaction time.
-   * Every lookup falls back to -1 (unknown) so no fact row is silently dropped.
+   wh_gold 40: procedures that load the fact tables
+   * ticket_sales and gifts load only rows changed since the last run. Changed rows
+     are deleted and inserted again in one transaction, which also handles late
+     changes such as an order returned three days after it was bought.
+   * subscriptions and education_sessions are small, so they're reloaded in full.
+   * Each sale or gift links to the patron's details as they were on that date.
+   * Anything that can't be matched points to the -1 "Unknown" row instead of being dropped.
    ============================================================================= */
 
 CREATE OR ALTER PROCEDURE etl.usp_load_fact_ticket_sales @run_id varchar(64)
@@ -19,7 +18,7 @@ BEGIN
         SELECT MAX(_silver_updated_at) AS x FROM [lh_silver].[ticketing].[order_lines]
         UNION ALL SELECT MAX(_silver_updated_at) FROM [lh_silver].[ticketing].[orders]) AS t;
 
-    -- Changed lines = lines that changed OR whose parent order changed (status -> Returned).
+    -- Pick up lines that changed, and lines whose order changed (for example, was returned).
     DROP TABLE IF EXISTS etl.stg_ticket_sales;
     CREATE TABLE etl.stg_ticket_sales AS
     SELECT ol.order_line_id, ol.order_id,
@@ -38,7 +37,7 @@ BEGIN
            CAST(ISNULL(ol.quantity, 0) * ISNULL(ol.unit_price, 0) - ISNULL(ol.discount_amount, 0) AS decimal(14,2)) AS net_amount,
            CAST(ISNULL(ol.is_comp, 0) AS bit)                                             AS is_comp,
            CAST(CASE WHEN o.[status] = 'Returned' THEN 1 ELSE 0 END AS bit)               AS is_returned,
-           SYSUTCDATETIME()                                                               AS loaded_at
+           CAST(SYSUTCDATETIME() AS datetime2(6))                                         AS loaded_at   -- Warehouse only stores up to 6 decimal places
     FROM [lh_silver].[ticketing].[order_lines] AS ol
     LEFT JOIN [lh_silver].[ticketing].[orders]      AS o  ON o.order_id = ol.order_id
     LEFT JOIN [lh_silver].[core].[patron_xref]      AS x  ON x.source_system = 'ticketing' AND x.source_id = o.customer_id
@@ -66,8 +65,8 @@ BEGIN
         THROW;
     END CATCH;
 
-    EXEC etl.usp_log @run_id, 'etl.usp_load_fact_ticket_sales', 'fact.ticket_sales', @ins, 0, @del, 'Succeeded',
-         CONCAT('watermark ', CONVERT(varchar(30), @wm, 126), ' -> ', CONVERT(varchar(30), @new_wm, 126)), @started;
+    DECLARE @note varchar(4000) = CONCAT('watermark ', CONVERT(varchar(30), @wm, 126), ' -> ', CONVERT(varchar(30), @new_wm, 126));
+    EXEC etl.usp_log @run_id, 'etl.usp_load_fact_ticket_sales', 'fact.ticket_sales', @ins, 0, @del, 'Succeeded', @note, @started;
 END;
 GO
 
@@ -88,7 +87,7 @@ BEGIN
            CAST(ISNULL(g.amount, 0) AS decimal(14,2)) AS amount,
            g.gift_type,
            CAST(ISNULL(g.is_anonymous, 0) AS bit) AS is_anonymous,
-           SYSUTCDATETIME() AS loaded_at
+           CAST(SYSUTCDATETIME() AS datetime2(6)) AS loaded_at   -- Warehouse only stores up to 6 decimal places
     FROM [lh_silver].[fundraising].[gifts]      AS g
     LEFT JOIN [lh_silver].[core].[patron_xref]  AS x  ON x.source_system = 'fundraising' AND x.source_id = g.donor_id
     LEFT JOIN dim.patron                        AS p  ON p.patron_id = x.patron_id
@@ -147,25 +146,39 @@ BEGIN
     LEFT JOIN dim.school  AS sc ON sc.school_id  = e.school_id;
     SET @n2 = @@ROWCOUNT;
 
+    DECLARE @total int = @n1 + @n2;
     EXEC etl.usp_log @run_id, 'etl.usp_load_fact_subscriptions_and_education', 'fact.subscriptions+education_sessions',
-         @n1 + @n2, 0, 0, 'Succeeded', NULL, @started;
+         @total, 0, 0, 'Succeeded', NULL, @started;
 END;
 GO
 
 -- ---------------------------------------------------------------------------
--- Orchestrator: the ONE procedure the pipeline calls (Stored procedure activity).
--- Pipeline passes @run_id = @pipeline().RunId for end-to-end lineage in the logs.
+-- The one procedure the pipeline calls. It loads dimensions first, then facts.
+-- The pipeline passes its run ID so every log row can be traced back to one run.
 -- ---------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE etl.usp_load_gold @run_id varchar(64) = NULL
 AS
 BEGIN
     SET @run_id = ISNULL(@run_id, CONVERT(varchar(64), NEWID()));
-    IF NOT EXISTS (SELECT 1 FROM dim.[date]) EXEC etl.usp_load_dim_date;
-    EXEC etl.usp_load_dim_reference @run_id;
-    EXEC etl.usp_load_dim_patron @run_id;          -- dims BEFORE facts (facts look up surrogate keys)
-    EXEC etl.usp_load_fact_ticket_sales @run_id;
-    EXEC etl.usp_load_fact_gifts @run_id;
-    EXEC etl.usp_load_fact_subscriptions_and_education @run_id;
+    DECLARE @started datetime2(6) = SYSUTCDATETIME();
+
+    -- If any step fails, stop here, record it and fail the pipeline.
+    -- Without this, a step that hits a missing table or column is skipped
+    -- and the remaining steps carry on as if nothing happened.
+    BEGIN TRY
+        IF NOT EXISTS (SELECT 1 FROM dim.[date]) EXEC etl.usp_load_dim_date;
+        EXEC etl.usp_load_dim_reference @run_id;
+        EXEC etl.usp_load_dim_patron @run_id;          -- facts need the dimension keys, so dimensions load first
+        EXEC etl.usp_load_fact_ticket_sales @run_id;
+        EXEC etl.usp_load_fact_gifts @run_id;
+        EXEC etl.usp_load_fact_subscriptions_and_education @run_id;
+    END TRY
+    BEGIN CATCH
+        DECLARE @msg varchar(4000) = CONCAT(ERROR_PROCEDURE(), ': ', ERROR_MESSAGE());
+        EXEC etl.usp_log @run_id, 'etl.usp_load_gold', NULL, 0, 0, 0, 'Failed', @msg, @started;
+        THROW;
+    END CATCH;
+
     SELECT * FROM etl.load_log WHERE run_id = @run_id ORDER BY started_at;
 END;
 GO

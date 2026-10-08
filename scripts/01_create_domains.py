@@ -1,23 +1,18 @@
-"""Step 01 - Fabric domains & subdomains (Admin API).
+"""Step 01: create the Fabric domain and its subdomains.
 
-Why: Domains group workspaces by BUSINESS AREA so the OneLake catalog is navigable,
-governance can be delegated (domain admins), and domain-level defaults (e.g. default
-sensitivity label) can be applied. Domains are NOT a security boundary - domain roles
-grant no access to workspaces or data; access is workspace/item/OneLake security.
+Domains group workspaces by business area so data is easy to find in the
+OneLake catalog. They don't give anyone access to data; workspace roles do.
 
-Role rules (Fabric):
-  * Domain admins are assigned on the PARENT domain; subdomains inherit them.
-  * Domain contributors are workspace admins allowed to self-assign their workspaces.
-    Not used here - step 02 assigns workspaces centrally as Fabric admin.
-
-Topology (tenant.yaml > domains):
   Harmonia Hall (parent)
-    |- Data Platform           <- hh-dataplatform-{dev,test,prod}
-    |- Audience & Development  <- hh-audience-{dev,test,prod}
-    |- Education & Community   <- hh-education-{dev,test,prod}
+    |- Data Platform           hh-dataplatform-dev/test/prod
+    |- Audience & Development  hh-audience-dev/test/prod
+    |- Education & Community   hh-education-dev/test/prod
 
-Workspaces are assigned to domains in step 02 (they must exist first).
-Needs: Fabric administrator.   Run: uv run python scripts/01_create_domains.py [--dry-run]
+Domain admins are set on the parent only, and the subdomains inherit them.
+Workspaces are added to their domains in step 02, once they exist.
+
+You need to be a Fabric administrator.
+Run: uv run python scripts/01_create_domains.py [--dry-run]
 """
 
 from lib.fabric import Client, banner, load_principals, save_generated, std_args, tenant_config
@@ -31,7 +26,7 @@ def main():
     ids = {}
 
     banner("Domains")
-    for d in tenant_config()["domains"]:          # parents are listed before children in the YAML
+    for d in tenant_config()["domains"]:          # the parent comes first in tenant.yaml
         if d["name"] in existing:
             dom = existing[d["name"]]
             print(f"  = {d['name']:<28} exists  {dom['id']}")
@@ -43,8 +38,7 @@ def main():
             print(f"  + {d['name']:<28} created {dom.get('id')}")
         ids[d["key"]] = dom["id"]
 
-        # Delegate governance (GROUPS only). Subdomains inherit roles from the parent,
-        # so role assignments are only sent for top-level domains.
+        # Subdomains inherit their admins from the parent, so only the parent gets roles.
         if d.get("parent"):
             if d.get("admins") or d.get("contributors"):
                 print("      (roles ignored: subdomains inherit the parent domain's admins)")

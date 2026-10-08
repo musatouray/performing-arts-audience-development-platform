@@ -21,4 +21,5 @@ Around that:
 - **Gold integrity** checks (`rpt.vw_gold_integrity`) count unknown-member (-1) facts.
 - **Activator** alerts the data owner when an error rule fires.
 
-**Say it in 30 seconds:** "Quality rules live in config that the business can read, bad rows are quarantined rather than silently dropped, and every run leaves a pass rate that feeds a Data Trust page. That's how dashboards become dashboards people trust."
+> [!NOTE]
+> *"Quality rules live in config that the business can read, bad rows are quarantined rather than silently dropped, and every run leaves a pass rate that feeds a Data Trust page. That's how dashboards become dashboards people trust."*

@@ -1,16 +1,15 @@
-"""Step 04 - Deployment pipelines: one per workspace family, stages Dev -> Test -> Prod.
+"""Step 04: create a deployment pipeline for each workspace family.
 
-  dp-hh-dataplatform : hh-dataplatform-dev -> hh-dataplatform-test -> hh-dataplatform-prod
-  dp-hh-audience     : hh-audience-dev     -> hh-audience-test     -> hh-audience-prod
-  dp-hh-education    : hh-education-dev    -> hh-education-test    -> hh-education-prod
+  dp-hh-dataplatform   hh-dataplatform-dev > hh-dataplatform-test > hh-dataplatform-prod
+  dp-hh-audience       hh-audience-dev     > hh-audience-test     > hh-audience-prod
+  dp-hh-education      hh-education-dev    > hh-education-test    > hh-education-prod
 
-Why deployment pipelines (not scripted fabric-cicd) for a 4-person team? Lowest operational
-overhead, visual diff between stages, deployment rules for connection swaps, and the
-Director of BI can approve/see promotions without reading YAML. fabric-cicd is the
-documented scale-up path (see .github/workflows/deploy-fabric-cicd.yml, disabled).
+Deployment pipelines are simple for a small team to run, show what changed
+between stages, and let the Director of BI approve releases in the portal.
+If releases become frequent, fabric-cicd is the next step (see ADR-005).
 
-Needs: Admin on every workspace being assigned.
-Run:   uv run python scripts/04_create_deployment_pipelines.py [--dry-run]
+You need Admin on every workspace being added to a pipeline.
+Run: uv run python scripts/04_create_deployment_pipelines.py [--dry-run]
 """
 
 from lib.fabric import ApiError, Client, banner, load_principals, require_workspace, std_args, tenant_config, ws_name

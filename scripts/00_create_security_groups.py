@@ -1,19 +1,16 @@
-"""Step 00 - Microsoft Entra security groups (Microsoft Graph).
+"""Step 00: create the Microsoft Entra security groups.
 
-Why: Fabric permissions are granted to GROUPS, never individuals. Joiners/leavers are
-handled in Entra.
-In corporate environments, access to data tools like Microsoft Fabric should never be given to individuals directly.
-Instead, permissions are assigned to Security Groups. When a worker joins or leaves a company, an IT administrator
-simply changes their group membership in Entra ID rather than updating permissions inside Fabric.
-This script automates setting up those foundation groups.
+Fabric access is given to groups, not to individual people. When someone joins
+or leaves, IT changes their group membership in Entra and nothing in Fabric
+needs to be touched.
 
-What it does
-  * creates each group in tenant.yaml > security_groups if missing (security-enabled, not mail-enabled)
-  * adds YOU to sg-hh-fabric-admins (so the demo works end-to-end)
-  * writes config/.generated/principals.json  (group key -> object id) for later scripts
+What it does:
+  * creates each group listed in tenant.yaml (security_groups) if it's missing
+  * adds you to sg-hh-fabric-admins so you can run the rest of the setup
+  * saves the group IDs to config/.generated/principals.json for the later scripts
 
-Needs: Entra role that can create groups (Groups Administrator / Global Administrator).
-Run:   uv run python scripts/00_create_security_groups.py [--dry-run] [--add-me-to all]
+You need an Entra role that can create groups (Groups Administrator or Global Administrator).
+Run: uv run python scripts/00_create_security_groups.py [--dry-run] [--add-me-to all]
 """
 
 from lib.fabric import GRAPH_SCOPE, ApiError, Client, banner, save_generated, std_args, tenant_config

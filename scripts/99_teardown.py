@@ -1,7 +1,7 @@
-"""Step 99 - Tear the mock tenant down (deployment pipelines, workspaces, domains).
+"""Step 99: remove everything the setup created (pipelines, workspaces, domains).
 
-Deletes ONLY objects whose names come from tenant.yaml. Requires --confirm; default is a
-dry run that lists what would be deleted. Security groups are kept (delete in Entra).
+Only items named in tenant.yaml are deleted. Without --confirm it just lists
+what would be removed. Security groups are kept; delete those in Entra.
 
 Run: uv run python scripts/99_teardown.py            # preview
      uv run python scripts/99_teardown.py --confirm  # delete

@@ -1,20 +1,18 @@
-"""Step 08 - Audit tenant settings against the governance baseline (read-only).
+"""Step 08: check the tenant settings against the agreed baseline. Read-only.
 
-Tenant settings are the outermost governance layer (who can create items, share
-externally, publish to web, use service principals, etc.). We treat them as
-*audited configuration*: export them, compare to a baseline, review drift monthly.
-Changes themselves are made by a Fabric admin in the Admin portal (and recorded in
-docs/05-governance-and-security.md) - deliberately not automated.
+Tenant settings control things like who can create items, publish to the web or
+share data outside the organization. They are changed by hand in the Admin
+portal; this script exports them and flags any that differ from the baseline.
 
-Output: docs/tenant-settings-audit.md  (commit it -> audit trail in Git history)
-Run:    uv run python scripts/08_audit_tenant_settings.py
+Output: docs/tenant-settings-audit.md. Commit it to keep a history of changes.
+Run: uv run python scripts/08_audit_tenant_settings.py
 """
 
 from datetime import datetime
 
 from lib.fabric import ROOT, Client, std_args
 
-# (keyword in setting title, recommended state, reason)
+# (text in the setting name, expected on/off, reason)
 BASELINE = [
     ("Publish to web", False, "Public, anonymous links are a data-leak vector (donor data)."),
     ("Users can create Fabric items", True, "Enabled, but scoped to sg-hh-fabric-admins / engineers / BI developers."),

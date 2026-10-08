@@ -118,9 +118,10 @@ Assumed profile: a nonprofit, a four-person BI team, probably a few hundred staf
 
 ---
 
-## 9. Say it in 30 seconds
+## 9. Summary
 
-> "For an organization this size I'd run production on a reserved F32 and dev/test on a small pay-as-you-go F4 that's paused at night, then scale production up on pay-as-you-go for peaks like renewal week. F64 is really a licensing decision: above roughly 200 Pro-licensed viewers it's cheaper, because viewers no longer need Pro. Nonprofit Pro pricing or E5 licensing pushes that break-even much higher, so I'd size from the pilots' Capacity Metrics data and the actual license mix, not guess."
+> [!NOTE]
+> *"For an organization this size I'd run production on a reserved F32 and dev/test on a small pay-as-you-go F4 that's paused at night, then scale production up on pay-as-you-go for peaks like renewal week. F64 is really a licensing decision: above roughly 200 Pro-licensed viewers it's cheaper, because viewers no longer need Pro. Nonprofit Pro pricing or E5 licensing pushes that break-even much higher, so I'd size from the pilots' Capacity Metrics data and the actual license mix, not guess."*
 
 ---
 

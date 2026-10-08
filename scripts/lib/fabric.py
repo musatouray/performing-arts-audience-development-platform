@@ -1,15 +1,14 @@
-"""Thin Fabric REST API client + helpers shared by every provisioning script.
+"""Shared helpers for the provisioning scripts: config, sign-in and Fabric API calls.
 
-Design choices (say these out loud in the interview):
-  * Idempotent  - every "create" is get-or-create by display name, so scripts can be re-run safely.
-  * Config-driven - names/roles/domains come from config/tenant.yaml, never hard-coded.
-  * LRO-aware  - Fabric returns 202 + Location for long-running ops; we poll until done.
-  * Throttle-aware - 429 responses honour Retry-After (admin APIs allow ~10-25 req/min).
-  * Dry-run   - pass --dry-run to any script to print the plan without calling write APIs.
+How the scripts behave:
+  * Safe to re-run. Each script looks for an item by name before creating it.
+  * Names, roles and domains come from config/tenant.yaml.
+  * Long-running Fabric operations are polled until they finish.
+  * If Fabric says "too many requests", the script waits and tries again.
+  * --dry-run prints what would change without changing anything.
 
-Auth: service principal from AZURE_* env vars (CI) -> Azure CLI (`az login --allow-no-subscriptions`)
--> interactive browser login. The signed-in user must be a Fabric administrator for the admin
-APIs (domains, tenant settings).
+Sign-in order: a service principal (CI), then the Azure CLI (`az login`), then a
+browser window. Domain and tenant-settings calls need a Fabric administrator.
 """
 
 from __future__ import annotations
@@ -26,7 +25,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "config"
-GENERATED = CONFIG / ".generated"          # tenant-specific IDs (git-ignored)
+GENERATED = CONFIG / ".generated"          # IDs from your tenant; not committed to Git
 
 FABRIC_API = "https://api.fabric.microsoft.com/v1"
 FABRIC_SCOPE = "https://api.fabric.microsoft.com/.default"
@@ -37,16 +36,18 @@ STORAGE_SCOPE = "https://storage.azure.com/.default"
 # ----------------------------------------------------------------------------- config
 @lru_cache
 def tenant_config() -> dict:
-    return yaml.safe_load((CONFIG / "tenant.yaml").read_text(encoding="utf-8"))
+    """tenant.yaml with your .env values filled in (see lib/config.py)."""
+    from lib.config import tenant_config as filled_tenant_config
+    return filled_tenant_config()
 
 
 def ws_name(family_key: str, env: str) -> str:
-    """Workspace naming convention: {org}-{family}-{env}  e.g. hh-dataplatform-dev."""
+    """Workspace name, for example hh-dataplatform-dev."""
     return f"{tenant_config()['org']['code']}-{family_key}-{env}"
 
 
 def load_principals() -> dict:
-    """Group key -> {id, name}. Written by 00_create_security_groups.py."""
+    """Group IDs saved by 00_create_security_groups.py."""
     p = GENERATED / "principals.json"
     if not p.exists():
         sys.exit("principals.json not found - run scripts/00_create_security_groups.py first.")
@@ -62,7 +63,6 @@ def save_generated(name: str, data: Any):
 @lru_cache
 def _credential():
     from azure.identity import AzureCliCredential, ChainedTokenCredential, EnvironmentCredential, InteractiveBrowserCredential
-    # Service principal (CI, via AZURE_* env vars) -> Azure CLI (your laptop) -> browser pop-up.
     return ChainedTokenCredential(EnvironmentCredential(), AzureCliCredential(), InteractiveBrowserCredential())
 
 
@@ -87,7 +87,7 @@ class ApiError(RuntimeError):
 
 
 class Client:
-    """Minimal REST client for Fabric (base_url=FABRIC_API) or Graph."""
+    """Small REST client for the Fabric API (default) or Microsoft Graph."""
 
     def __init__(self, base_url: str = FABRIC_API, scope: str = FABRIC_SCOPE, dry_run: bool = False):
         self.base, self.scope, self.dry_run = base_url, scope, dry_run
@@ -97,7 +97,7 @@ class Client:
         return {"Authorization": f"Bearer {token(self.scope)}", "Content-Type": "application/json"}
 
     def call(self, method: str, path: str, body: dict | None = None, write: bool | None = None) -> dict:
-        """Send a request. Writes are skipped (and logged) in dry-run mode."""
+        """Send a request. In dry-run mode, changes are printed instead of sent."""
         is_write = write if write is not None else method.upper() != "GET"
         url = path if path.startswith("http") else f"{self.base}{path}"
         if self.dry_run and is_write:
@@ -105,12 +105,12 @@ class Client:
             return {"id": "00000000-dry-run", "dryRun": True}
         for attempt in range(8):
             r = self.s.request(method, url, headers=self._headers(), json=body, timeout=120)
-            if r.status_code == 429:                       # throttled -> honour Retry-After
+            if r.status_code == 429:                       # too many requests: wait and retry
                 wait = int(r.headers.get("Retry-After", 30))
                 print(f"   429 throttled, waiting {wait}s ...")
                 time.sleep(wait)
                 continue
-            if r.status_code == 202 and "Location" in r.headers:   # long-running operation
+            if r.status_code == 202 and "Location" in r.headers:   # still running: poll until done
                 return self._poll(r)
             if r.status_code >= 400:
                 raise ApiError(r)
@@ -127,7 +127,7 @@ class Client:
             body = r.json() if r.content else {}
             status = body.get("status", "Succeeded" if r.status_code == 200 and "status" not in body else "")
             if status in ("Succeeded", "Completed"):
-                try:                                        # some LROs expose the created item at /result
+                try:                                        # some operations return the new item at /result
                     res = self.s.get(f"{loc}/result", headers=self._headers(), timeout=120)
                     return res.json() if res.ok and res.content else body
                 except requests.RequestException:
@@ -136,7 +136,7 @@ class Client:
                 raise RuntimeError(f"LRO {status}: {json.dumps(body)[:600]}")
 
     def paged(self, path: str, key: str = "value") -> Iterator[dict]:
-        """Follow continuationUri/continuationToken (Fabric) or @odata.nextLink (Graph)."""
+        """Return every result, following the "next page" links."""
         url = path
         while url:
             body = self.call("GET", url)
@@ -164,9 +164,8 @@ def find_item(c: Client, workspace_id: str, name: str, item_type: str) -> dict |
 
 
 def pick_capacity(c: Client) -> dict:
-    """Resolve the target capacity from tenant.yaml > capacity. Precedence:
-    capacity_id (exact) > region (+ optional display_name_hint). Never guesses:
-    zero or multiple matches stop the script with the candidate list."""
+    """Find the capacity set in tenant.yaml (by ID, or else by region).
+    Stops with a list of capacities if there isn't exactly one match."""
     cfg = tenant_config()["capacity"]
     caps = [x for x in c.paged("/capacities") if x.get("state") == "Active"]
     if cfg.get("capacity_id"):
@@ -183,7 +182,7 @@ def pick_capacity(c: Client) -> dict:
         listing = "\n".join(f"   {x['id']}  {x['displayName']:<40} {x.get('sku', ''):<6} {x.get('region', '')}" for x in caps)
         reason = "No capacity matches" if not matches else f"{len(matches)} capacities match"
         sys.exit(f"{reason} tenant.yaml > capacity. Active capacities:\n{listing}\n"
-                 "Set capacity.capacity_id (safest) or a unique capacity.region.")
+                 "Set FABRIC_CAPACITY_ID in .env (safest) or a unique capacity.region in tenant.yaml.")
     return matches[0]
 
 

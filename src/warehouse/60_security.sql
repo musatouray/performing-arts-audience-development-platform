@@ -1,22 +1,23 @@
 /* =============================================================================
-   wh_gold · 60 — SQL-layer security (for people who query the Warehouse with SQL:
-   SSMS/VS Code, Excel, paginated reports on the SQL endpoint, Data Agent).
+   wh_gold 60: security for people who query the warehouse with SQL
+   (SSMS, VS Code, Excel, paginated reports, Data Agent).
 
-   IMPORTANT (defend this in the interview):
-   Direct Lake **on OneLake** reads the Delta files directly, so T-SQL RLS/DDM below do
-   NOT apply to Power BI reports built on it. Report users are protected by
-   semantic-model RLS/OLS (src/semantic_model/rls_roles.md) + a fixed-identity connection.
-   One policy, enforced at the layer each audience actually uses.
+   These rules don't apply to the Power BI reports. Those read the data files
+   directly, so report security is set in the semantic model instead
+   (see src/semantic_model/rls_roles.md).
 
-   Controls here:
-     1. GRANT by Entra GROUP on schemas (never on individuals)
-     2. Dynamic Data Masking on patron contact PII + UNMASK only for Development
-     3. Row-Level Security: anonymous gifts visible only to privileged users
-   Replace @yourdomain with your tenant's domain before running.
+   What this file sets up:
+     1. Read access by security group
+     2. Masked contact details (email, phone, address) for everyone except fundraising
+     3. Anonymous gifts hidden from everyone except a short list of people
+   Who is on the privileged list and which venues each manager sees are
+   tenant data (real sign-in names), so they're not in this file. After running
+   it, copy 61_security_users.example.sql to 61_security_users.local.sql
+   (ignored by Git), put in real names, and run that.
    ============================================================================= */
 
 -- ---------------------------------------------------------------------------
--- 1) Least-privilege grants (groups from config/tenant.yaml)
+-- 1) Read access by group. Each group only gets the schemas it needs.
 -- ---------------------------------------------------------------------------
 GRANT SELECT ON SCHEMA::rpt  TO [sg-hh-analysts-audience];
 GRANT SELECT ON SCHEMA::rpt  TO [sg-hh-analysts-development];
@@ -28,7 +29,7 @@ DENY  SELECT ON SCHEMA::etl  TO [sg-hh-analysts-development];
 GO
 
 -- ---------------------------------------------------------------------------
--- 2) Dynamic Data Masking: contact PII masked unless the caller has UNMASK.
+-- 2) Contact details are masked unless the user has UNMASK permission.
 -- ---------------------------------------------------------------------------
 ALTER TABLE dim.patron ALTER COLUMN email         ADD MASKED WITH (FUNCTION = 'email()');
 ALTER TABLE dim.patron ALTER COLUMN phone         ADD MASKED WITH (FUNCTION = 'partial(0,"XXX-XXX-",4)');
@@ -37,17 +38,16 @@ GRANT UNMASK TO [sg-hh-analysts-development];     -- fundraisers need to contact
 GO
 
 -- ---------------------------------------------------------------------------
--- 3) Row-Level Security on fact.gifts
---    Donors who asked for anonymity are hidden from everyone except users listed
---    in sec.privileged_users (e.g. Chief Development Officer, gift processing).
+-- 3) Anonymous gifts
+--    Gifts from donors who asked to stay anonymous are only visible to people
+--    listed in sec.privileged_users (for example, the head of fundraising).
 -- ---------------------------------------------------------------------------
 CREATE TABLE sec.privileged_users (
     user_principal_name varchar(256) NOT NULL,
     reason              varchar(200) NULL
 );
 GO
-INSERT INTO sec.privileged_users VALUES ('you@yourdomain.com', 'Platform owner (demo)');
-GO
+-- Rows are added by 61_security_users.local.sql.
 
 CREATE FUNCTION sec.fn_gift_access(@is_anonymous bit)
 RETURNS TABLE
@@ -65,19 +65,17 @@ CREATE SECURITY POLICY sec.policy_gifts
 GO
 
 -- ---------------------------------------------------------------------------
--- 4) Mapping table for DYNAMIC RLS in the semantic model ("Venue Manager" role):
---    a manager sees only the venues assigned to them. Loaded into the model as a
---    hidden table; DAX filter: sec_user_venue[user_principal_name] = USERPRINCIPALNAME()
+-- 4) Which venues each manager can see. The semantic model's "Venue Manager"
+--    role uses this table so each manager only sees their own halls.
 -- ---------------------------------------------------------------------------
 CREATE TABLE sec.user_venue (
     user_principal_name varchar(256) NOT NULL,
     venue_id            varchar(10)  NOT NULL
 );
 GO
-INSERT INTO sec.user_venue VALUES ('you@yourdomain.com', 'V02');   -- demo: you manage the Recital Hall
-GO
+-- Rows are added by 61_security_users.local.sql.
 
--- Verify as yourself:
---   SELECT USER_NAME();                                     -- the UPN RLS sees
+-- To check it works:
+--   SELECT USER_NAME();                                     -- the user name the rules see
 --   SELECT COUNT(*), SUM(CAST(is_anonymous AS int)) FROM fact.gifts;
---   Then sign in as a test user in sg-hh-analysts-audience: emails are masked, anonymous gifts are gone.
+--   Then sign in as a test user in sg-hh-analysts-audience: emails should be masked and anonymous gifts gone.

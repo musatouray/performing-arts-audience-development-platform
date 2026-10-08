@@ -16,9 +16,10 @@
    - Incremental loads (watermarks, hash-based MERGE)
    - V-Order + OPTIMIZE
    - Direct Lake instead of Import refreshes
-   - Dataflow Gen2 only where the business owns the logic (ADR-002)
+   - Dataflow Gen2 only where the business owns the logic (ADR-003)
 4. **Pause DEV capacity** outside hours if it's a separate pay-as-you-go SKU.
 
 **Detailed sizing:** see the [capacity sizing reference](../05-capacity-sizing.md) for SKU prices, the F32 vs. F64 licensing break-even, per-environment recommendations (reserved F32 PROD + pausable PAYG F4 DEV/TEST), and scale-up/down triggers.
 
-**Say it in 30 seconds:** "I size from evidence, not guesswork. I keep heavy jobs away from business hours, and every design choice, from incremental loads to Direct Lake, is also a cost choice."
+> [!NOTE]
+> *"I size from evidence, not guesswork. I keep heavy jobs away from business hours, and every design choice, from incremental loads to Direct Lake, is also a cost choice."*

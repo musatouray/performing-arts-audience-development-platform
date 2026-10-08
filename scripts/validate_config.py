@@ -1,32 +1,77 @@
-"""Validate config/*.yaml BEFORE anything touches the tenant (runs in CI on every PR).
+"""Check the config files for mistakes before anything is created in Fabric.
+This also runs automatically on every pull request.
 
-Checks referential integrity of the design:
-  * every group referenced by domains / workspace roles / OneLake roles is defined
-  * domain roles are set on parent domains only (subdomains inherit them)
-  * item shares reference declared items/groups and don't duplicate a workspace role
-  * every workspace family points at an existing domain; roles exist for every environment
-  * only valid Fabric workspace roles are used; PROD grants no Contributor/Member to builders
-  * every DQ rule targets a declared entity + column; FK rules reference declared entities
-  * every OneLake-secured table exists in sources.yaml (or the core/ identity tables)
+It checks that:
+  * every group used anywhere is defined in security_groups
+  * domain admins are only set on the parent domain
+  * item shares point at real items and groups, and don't repeat a workspace role
+  * every workspace family has a valid domain and roles for every environment
+  * only real workspace roles are used, and nobody can edit prod directly
+  * every source says how it reaches Bronze, in a way the notebooks understand
+  * every data quality rule points at a real table and column
+  * every table in the OneLake security roles exists
+  * restricted columns (contact details) are listed as pii, and no OneLake role can see them
+  * source, schema, table and column names are plain identifiers, safe to use in SQL
+  * no committed file holds tenant-specific values (IDs or email addresses); those belong in .env
 
-Run: uv run python scripts/validate_config.py     (exit code 1 on any error)
+Run: uv run python scripts/validate_config.py  (exits with an error if anything is wrong)
 """
 
+import os
+import re
 import sys
 from pathlib import Path
 
 import yaml
+from lib.config import ROOT, sources_config, tenant_config, unfilled
 
 CONFIG = Path(__file__).resolve().parents[1] / "config"
 VALID_ROLES = {"Admin", "Member", "Contributor", "Viewer"}
+# Which ingestion tools land files (that nb_10 loads) and which write Bronze tables themselves.
+LANDS_IN = {"copy_job": "bronze_table", "dataflow": "bronze_table", "notebook_api": "files", "shortcut": "files"}
 CORE_TABLES = {"core/patron": ["patron_id", "first_name", "last_name", "email", "phone", "address_line1", "city", "state",
                                "postal_code", "country", "patron_type", "email_opt_in", "first_seen_date", "source_systems",
                                "updated_at"]}
 
 
+# Names end up in SQL statements, where they can't be passed as parameters, so they must be plain identifiers.
+SAFE_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+# Tenant-specific values must stay out of committed files. These patterns catch the usual leaks.
+GUID = re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.I)
+EMAIL = re.compile(r"\b[\w.+-]+@([\w-]+(?:\.[\w-]+)+)\b")
+EXAMPLE_DOMAINS = {"yourdomain.com", "example.com", "contoso.com"}
+SCAN_SUFFIXES = {".py", ".yaml", ".yml", ".md", ".sql", ".dax", ".toml", ".mmd", ".txt", ".example"}
+# Not scanned: ignored by Git (.env, data, .generated, *.local.*), or written by Fabric itself (fabric/).
+SKIP_DIRS = {".git", ".venv", "data", "__pycache__", ".generated", "fabric", "node_modules"}
+
+
+def tenant_data_in_repo() -> list[str]:
+    found = []
+    for folder, dirs, files in os.walk(ROOT):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]          # don't even walk into .venv, data, ...
+        for name in files:
+            p = Path(folder) / name
+            rel = p.relative_to(ROOT)
+            if ".local." in name or (p.suffix not in SCAN_SUFFIXES and name != ".env.example"):
+                continue
+            found += _scan(p, rel)
+    return found
+
+
+def _scan(p: Path, rel: Path) -> list[str]:
+    found = []
+    for n, line in enumerate(p.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1):
+        guids = [g for g in GUID.findall(line) if set(g) - {"0", "-"}]
+        emails = [m.group(0) for m in EMAIL.finditer(line) if m.group(1).lower() not in EXAMPLE_DOMAINS]
+        for value in guids + emails:
+            found.append(f"{rel.as_posix()}:{n}: looks tenant-specific ({value}) - move it to .env")
+    return found
+
+
 def main() -> int:
-    tenant = yaml.safe_load((CONFIG / "tenant.yaml").read_text())
-    sources = yaml.safe_load((CONFIG / "sources.yaml").read_text())
+    tenant = tenant_config()            # with your .env values filled in
+    sources = sources_config()          # with your .env values filled in
     dq = yaml.safe_load((CONFIG / "dq_rules.yaml").read_text())
     errors: list[str] = []
     groups = set(tenant["security_groups"])
@@ -55,10 +100,31 @@ def main() -> int:
                 if role not in VALID_ROLES:
                     errors.append(f"family {fam['key']}/{env}: invalid role {role}")
                 if env == "prod" and role in ("Contributor", "Member") and g != "fabric_admins":
-                    errors.append(f"family {fam['key']}/prod: {g} has {role} - prod must be deploy-only")
+                    errors.append(f"family {fam['key']}/prod: {g} has {role} (prod should only change through a deployment pipeline)")
+
+    warnings: list[str] = []
+    for s in sources["sources"]:
+        ing = s.get("ingestion") or {}
+        method, lands_in = ing.get("method"), ing.get("lands_in")
+        if method not in LANDS_IN:
+            errors.append(f"{s['source']}: ingestion.method must be one of {sorted(LANDS_IN)}")
+        elif lands_in != LANDS_IN[method]:
+            errors.append(f"{s['source']}: a {method} lands in {LANDS_IN[method]}, not {lands_in}")
+        if lands_in == "files" and s.get("format") not in ("csv", "json"):
+            errors.append(f"{s['source']}: sources that land files need format: csv or json")
+        missing = unfilled(ing) + (["connection_id"] if ing.get("adls", {}).get("connection_id") == "" else [])
+        if missing:
+            warnings.append(f"{s['source']}: no value yet for {', '.join(missing)} (add it to .env)")
 
     entities = {}
+    restricted_by_table: dict[str, set] = {}
     for s in sources["sources"]:
+        names = [s["source"], (s.get("ingestion") or {}).get("bronze_schema") or s["source"]]
+        for e in s["entities"]:
+            names += [e["name"], *e["columns"]]
+        for n in names:
+            if not SAFE_NAME.match(n):
+                errors.append(f"{s['source']}: '{n}' isn't a safe name (letters, digits and _ only)")
         for e in s["entities"]:
             entities[f"{s['source']}.{e['name']}"] = set(e["columns"])
             for pk in e["primary_key"]:
@@ -66,6 +132,12 @@ def main() -> int:
                     errors.append(f"{s['source']}.{e['name']}: primary key {pk} not in columns")
             if e["order_by"] not in e["columns"]:
                 errors.append(f"{s['source']}.{e['name']}: order_by {e['order_by']} not in columns")
+            pii, restricted = set(e.get("pii", [])), set(e.get("restricted", []))
+            if pii - set(e["columns"]):
+                errors.append(f"{s['source']}.{e['name']}: pii columns not in columns {sorted(pii - set(e['columns']))}")
+            if restricted - pii:
+                errors.append(f"{s['source']}.{e['name']}: restricted columns must also be pii {sorted(restricted - pii)}")
+            restricted_by_table[f"{s['source']}/{e['name']}"] = restricted
 
     for ent, rules in dq["rules"].items():
         if ent not in entities:
@@ -98,6 +170,10 @@ def main() -> int:
             errors.append(f"item_share {sh['item']}: permissions must include Read and only use {sorted(item_perms)}")
 
     known_tables = {k.replace(".", "/"): v for k, v in entities.items()} | {k: set(v) for k, v in CORE_TABLES.items()}
+    # core/patron is built from ticket buyers and donors, so it carries their restricted columns.
+    restricted_by_table["core/patron"] = ((restricted_by_table.get("ticketing/customers", set())
+                                           | restricted_by_table.get("fundraising/donors", set()))
+                                          & set(CORE_TABLES["core/patron"]))
     for role in tenant["onelake_security"]["roles"]:
         for m in role["members"]:
             if m not in groups:
@@ -109,7 +185,24 @@ def main() -> int:
             missing = set(cols) - set(known_tables.get(t, []))
             if missing:
                 errors.append(f"onelake role {role['name']}: {t} unknown columns {sorted(missing)}")
+        # Restricted columns must never be readable through a OneLake role.
+        allowed = role.get("allow_columns") or {}
+        for t in role["tables"]:
+            restricted = restricted_by_table.get(t, set())
+            if not restricted:
+                continue
+            if t not in allowed:
+                errors.append(f"onelake role {role['name']}: {t} has restricted columns {sorted(restricted)} - "
+                              "list the allowed columns in allow_columns")
+            elif restricted & set(allowed[t]):
+                errors.append(f"onelake role {role['name']}: {t} exposes restricted columns {sorted(restricted & set(allowed[t]))}")
 
+    errors += tenant_data_in_repo()
+    if unfilled(tenant):
+        warnings.append(f"tenant.yaml: no value yet for {', '.join(unfilled(tenant))} (add it to .env)")
+
+    for w in warnings:
+        print(f"WARN   {w}")
     for e in errors:
         print(f"ERROR  {e}")
     n_ws = len(tenant["workspace_families"]) * len(tenant["environments"])

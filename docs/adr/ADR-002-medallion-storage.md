@@ -1,4 +1,4 @@
-# ADR-001: Lakehouse for Bronze/Silver, Warehouse for Gold
+# ADR-002: Lakehouse for Bronze/Silver, Warehouse for Gold
 
 **Context.** Two partner-led pilots proved the medallion approach. Now a four-person BI team, strong in T-SQL, has to own it. Sources arrive as CSV extracts, API JSON and spreadsheets. Business users only ever touch Gold, through semantic models.
 
@@ -22,6 +22,7 @@ Option **C**.
 - After Spark writes Silver, the notebook calls `refreshMetadata` on the SQL endpoint before Gold procedures run. This avoids the classic "the proc didn't see today's rows" failure.
 - Every layer has the **same item names in every environment**. Code resolves items by name, so promotion needs no ID rewiring.
 
-**Say it in 30 seconds:** "Spark where the data is messy, T-SQL where the business logic lives. Your team knows T-SQL, so the layer the business depends on is the layer your team can maintain without me."
+> [!NOTE]
+> *"Spark where the data is messy, T-SQL where the business logic lives. Your team knows T-SQL, so the layer the business depends on is the layer your team can maintain without me."*
 
 **Revisit when:** Gold transforms need ML or complex Python. At that point, consider Lakehouse Gold with materialized lake views.

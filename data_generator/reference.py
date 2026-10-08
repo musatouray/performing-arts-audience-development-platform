@@ -1,7 +1,6 @@
-"""Static reference data for the synthetic generator (stdlib only, no Faker).
+"""Fixed lists the generator picks from: names, cities, venues, series, campaigns and programs.
 
-Everything here is invented. Venue/series names are generic stand-ins for a
-NYC performing-arts presenter; no real patron, donor or school data is used.
+Everything is made up. No real patron, donor or school data is used.
 """
 
 FIRST_NAMES = [
@@ -33,7 +32,7 @@ STREETS = [
     "Main St", "Elm St", "Oak Ave", "Maple Dr", "Washington St", "Hudson St", "Bleecker St",
 ]
 
-# (city, state, zip3 prefix, weight) — NY metro heavy, some national/international patrons.
+# (city, state, first 3 digits of zip, weight). Mostly New York area.
 CITIES = [
     ("New York", "NY", "100", 40), ("Brooklyn", "NY", "112", 12), ("Queens", "NY", "113", 6),
     ("Bronx", "NY", "104", 3), ("Staten Island", "NY", "103", 1), ("Yonkers", "NY", "107", 2),
@@ -46,14 +45,14 @@ CITIES = [
 
 EMAIL_DOMAINS = ["gmail.com", "yahoo.com", "outlook.com", "icloud.com", "aol.com", "nyu.edu", "columbia.edu", "proton.me"]
 
-# Venues: (venue_id, name, capacity, price zones {zone: base_price})
+# Venues: (id, name, capacity, {price zone: base price})
 VENUES = [
     ("V01", "Main Hall", 2800, {"Orchestra": 145, "Parquet": 125, "First Tier": 95, "Second Tier": 75, "Balcony": 45}),
     ("V02", "Recital Hall", 600, {"Orchestra": 75, "Mezzanine": 55, "Balcony": 40}),
     ("V03", "Studio Hall", 270, {"General Admission": 35}),
 ]
 
-# Series -> (genre, preferred venues, popularity range, price multiplier)
+# Series: (genre, venues it plays in, popularity range, price multiplier)
 SERIES = {
     "Great Orchestras":  ("Orchestral", ["V01"], (0.55, 1.05), 1.4),
     "Recital Series":    ("Classical Recital", ["V01", "V02"], (0.40, 0.95), 1.1),
@@ -110,3 +109,17 @@ PROGRAMS = [  # (id, name, type, audience)
 ]
 
 BOROUGHS = [("Manhattan", 25), ("Brooklyn", 30), ("Queens", 25), ("Bronx", 15), ("Staten Island", 5)]
+
+# Email marketing: (campaign type, audience segment, share of the opted-in list it goes to, promotes a series?)
+EMAIL_CAMPAIGN_TYPES = [
+    ("Weekly Picks", "All opted-in", 0.90, True),
+    ("Last Chance", "Recent buyers", 0.35, True),
+    ("Season Announcement", "All opted-in", 1.00, False),
+    ("Subscriber News", "Current subscribers", 0.08, False),
+    ("Lapsed Buyer Win-back", "Lapsed buyers", 0.25, False),
+    ("Family Programs", "Family buyers", 0.12, True),
+    ("Donor Appeal", "Donors and members", 0.15, False),
+]
+
+# Paid ads: (platform, short code, cost per 1,000 impressions, click-through rate)
+AD_PLATFORMS = [("Meta Ads", "META", 9.5, 0.011), ("Google Ads", "GADS", 6.0, 0.018)]

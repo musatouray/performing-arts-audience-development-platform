@@ -13,6 +13,9 @@ wheels/
 data/
 config/.generated/
 .env
+.env.*
+!.env.example
+*.local.*
 *.log
 
 # Editors / OS

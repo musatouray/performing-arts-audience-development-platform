@@ -9,20 +9,22 @@ flowchart LR
   classDef user fill:#E8F5E9,stroke:#2E7D32,color:#123D16
 
   subgraph SRC["Source systems"]
-    T["Ticketing & CRM<br/>(Tessitura-style)<br/>daily CSV extract"]:::src
-    F["Fundraising system<br/>REST API · JSON"]:::src
-    E["Education programs<br/>spreadsheet · SharePoint"]:::src
+    T["Ticketing & CRM<br/>(Tessitura-style)<br/>on-prem SQL Server"]:::src
+    F["Fundraising system<br/>REST API · paged JSON"]:::src
+    E["Education programs<br/>Excel · SharePoint"]:::src
+    M["Marketing exports<br/>email + ads · ADLS Gen2"]:::src
   end
 
   subgraph DP["Workspace: hh-dataplatform-{env} · Domain: Data Platform"]
     direction LR
     subgraph ING["Ingest"]
-      CJ["Copy job / Copy activity"]
-      NBAPI["Notebook<br/>(API paging, retries)"]
+      CJ["Copy job via gateway<br/>incremental on updated_at"]
+      NBAPI["Notebook nb_05<br/>(API paging, retries)"]
       DF["Dataflow Gen2<br/>(analyst-owned)"]
+      SC["OneLake shortcut<br/>(zero copy)"]
     end
     subgraph OL["OneLake"]
-      B[("lh_bronze<br/>Files/landing + raw Delta<br/>append-only · strings")]:::bronze
+      B[("lh_bronze<br/>Files/landing + raw Delta<br/>every version kept")]:::bronze
       S[("lh_silver<br/>typed · deduped · DQ-gated<br/>core.patron golden record")]:::silver
       G[("wh_gold · Warehouse<br/>star schema · SCD2<br/>T-SQL procs · SQL security")]:::gold
     end
@@ -46,10 +48,11 @@ flowchart LR
     GV["Entra groups · Workspace roles · OneLake security<br/>Purview sensitivity labels · Endorsement · Domains<br/>DQ results · Run log · Capacity Metrics · Git + Deployment pipelines"]:::gov
   end
 
-  T --> CJ --> B
-  F --> NBAPI --> B
-  E --> DF --> B
-  B -- "nb_10 bronze ingest<br/>+ reconciliation" --> S
+  T --> CJ -- "tables" --> B
+  F --> NBAPI -- "files" --> B
+  E --> DF -- "tables" --> B
+  M --> SC -- "files, read in place" --> B
+  B -- "nb_10 loads files<br/>+ reconciliation<br/>nb_20 reads all Bronze" --> S
   S -- "nb_20 silver transform<br/>conform · dedupe · DQ · MERGE<br/>identity resolution" --> G
   PL -. orchestrates .-> B & S & G
   G --> SM1 --> APP1 --> U1
