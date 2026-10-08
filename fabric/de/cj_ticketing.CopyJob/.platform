@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "CopyJob",
+    "displayName": "cj_ticketing"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "bce36915-339b-9af9-410b-03383e3c2471"
+  }
+}

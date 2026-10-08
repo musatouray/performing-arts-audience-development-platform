@@ -1,0 +1,51 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {
+    "allowModernEvaluationEngine": true
+  },
+  "name": "df_education_sharepoint",
+  "queryGroups": [],
+  "documentLocale": "en-US",
+  "queriesMetadata": {
+    "SiteUrl": {
+      "queryId": "4fd3bc81-6e00-4f06-a2c2-c8211f5b08b5",
+      "queryName": "SiteUrl",
+      "loadEnabled": false
+    },
+    "FolderPath": {
+      "queryId": "0e7a806b-3107-42f8-ae7a-ee396404ded0",
+      "queryName": "FolderPath",
+      "loadEnabled": false
+    },
+    "enrollments": {
+      "queryId": "ec431818-91a5-4fa8-a0d1-818c5efbaf3c",
+      "queryName": "enrollments"
+    },
+    "programs": {
+      "queryId": "e0d37e34-5b41-4c39-afdb-e37e8c4af32a",
+      "queryName": "programs"
+    },
+    "schools": {
+      "queryId": "ab4e78dd-da64-4819-b810-0d8c91f05ad1",
+      "queryName": "schools"
+    },
+    "DefaultDestination": {
+      "queryId": "3e166867-2940-49d0-80e3-cf726ffd0a7b",
+      "queryName": "DefaultDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"c0bd670e-0ed5-4a5f-b3cf-4aa383521abc\",\"DatasourceId\":\"f81828be-1226-45a2-bdb6-f2ebc30589db\"}"
+    },
+    {
+      "path": "https://amigomusa.sharepoint.com/sites/HarmoniaHallEducationPrograms",
+      "kind": "SharePoint",
+      "connectionId": "{\"ClusterId\":\"c0bd670e-0ed5-4a5f-b3cf-4aa383521abc\",\"DatasourceId\":\"799bb24d-a147-4d8e-af21-11c294ff6902\"}"
+    }
+  ]
+}

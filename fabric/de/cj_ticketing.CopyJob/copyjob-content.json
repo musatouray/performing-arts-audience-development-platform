@@ -1,0 +1,1059 @@
+{
+  "properties": {
+    "jobMode": "CDC",
+    "fullLoadBehavior": "Truncate",
+    "source": {
+      "type": "SqlServerTable",
+      "connectionSettings": {
+        "type": "SqlServer",
+        "typeProperties": {
+          "database": "HarmoniaTicketing"
+        },
+        "externalReferences": {
+          "connection": "849cd099-2902-42df-9edf-43d259b63dba"
+        }
+      }
+    },
+    "destination": {
+      "type": "LakehouseTable",
+      "connectionSettings": {
+        "type": "Lakehouse",
+        "typeProperties": {
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "artifactId": "757c7554-bf8d-827c-4335-13f4e4b5b873",
+          "rootFolder": "Tables"
+        }
+      }
+    },
+    "policy": {
+      "timeout": "0.12:00:00",
+      "retry": 0
+    }
+  },
+  "activities": [
+    {
+      "id": "e84b5f77-ee09-4cea-ab5a-ae8636626719",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "schema": "tix",
+            "table": "customers"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2"
+              }
+            ],
+            "nullWatermarkBehavior": "Skip"
+          },
+          "partitionSettings": {
+            "partitionOption": "None"
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "schema": "ticketing",
+            "table": "customers"
+          },
+          "applyVOrder": false,
+          "enableTimestampNtz": false,
+          "enableChangeDataFeed": false
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator",
+          "mappings": [
+            {
+              "source": {
+                "name": "customer_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "customer_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "first_name",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "first_name",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "last_name",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "last_name",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "email",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "email",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "phone",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "phone",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "address_line1",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "address_line1",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "city",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "city",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "state",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "state",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "postal_code",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "postal_code",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "country",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "country",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "customer_type",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "customer_type",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "email_opt_in",
+                "type": "Boolean",
+                "physicalType": "bit"
+              },
+              "destination": {
+                "name": "email_opt_in",
+                "physicalType": "boolean"
+              }
+            },
+            {
+              "source": {
+                "name": "created_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "created_at",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "updated_at",
+                "physicalType": "timestamp"
+              }
+            }
+          ]
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
+    },
+    {
+      "id": "ecef3085-8ca4-41f3-a973-1690b9e8b5e3",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "schema": "tix",
+            "table": "order_lines"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2"
+              }
+            ],
+            "nullWatermarkBehavior": "Skip"
+          },
+          "partitionSettings": {
+            "partitionOption": "None"
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "schema": "ticketing",
+            "table": "order_lines"
+          },
+          "applyVOrder": false,
+          "enableTimestampNtz": false,
+          "enableChangeDataFeed": false
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator",
+          "mappings": [
+            {
+              "source": {
+                "name": "order_line_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "order_line_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "order_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "order_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "performance_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "performance_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "price_zone",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "price_zone",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "quantity",
+                "type": "Int32",
+                "physicalType": "int"
+              },
+              "destination": {
+                "name": "quantity",
+                "physicalType": "integer"
+              }
+            },
+            {
+              "source": {
+                "name": "unit_price",
+                "type": "Decimal",
+                "physicalType": "decimal",
+                "scale": 2,
+                "precision": 12
+              },
+              "destination": {
+                "name": "unit_price",
+                "physicalType": "decimal",
+                "scale": 2,
+                "precision": 12
+              }
+            },
+            {
+              "source": {
+                "name": "discount_amount",
+                "type": "Decimal",
+                "physicalType": "decimal",
+                "scale": 2,
+                "precision": 12
+              },
+              "destination": {
+                "name": "discount_amount",
+                "physicalType": "decimal",
+                "scale": 2,
+                "precision": 12
+              }
+            },
+            {
+              "source": {
+                "name": "is_comp",
+                "type": "Boolean",
+                "physicalType": "bit"
+              },
+              "destination": {
+                "name": "is_comp",
+                "physicalType": "boolean"
+              }
+            },
+            {
+              "source": {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "updated_at",
+                "physicalType": "timestamp"
+              }
+            }
+          ]
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
+    },
+    {
+      "id": "744e85f2-d421-426d-8cca-9b7b57911afb",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "schema": "tix",
+            "table": "orders"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2"
+              }
+            ],
+            "nullWatermarkBehavior": "Skip"
+          },
+          "partitionSettings": {
+            "partitionOption": "None"
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "schema": "ticketing",
+            "table": "orders"
+          },
+          "applyVOrder": false,
+          "enableTimestampNtz": false,
+          "enableChangeDataFeed": false
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator",
+          "mappings": [
+            {
+              "source": {
+                "name": "order_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "order_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "customer_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "customer_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "order_datetime",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "order_datetime",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "channel",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "channel",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "status",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "status",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "updated_at",
+                "physicalType": "timestamp"
+              }
+            }
+          ]
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
+    },
+    {
+      "id": "529614fc-3c5c-4178-8aee-a8cf9b10826a",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "schema": "tix",
+            "table": "performances"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2"
+              }
+            ],
+            "nullWatermarkBehavior": "Skip"
+          },
+          "partitionSettings": {
+            "partitionOption": "None"
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "schema": "ticketing",
+            "table": "performances"
+          },
+          "applyVOrder": false,
+          "enableTimestampNtz": false,
+          "enableChangeDataFeed": false
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator",
+          "mappings": [
+            {
+              "source": {
+                "name": "performance_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "performance_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "season_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "season_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "venue_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "venue_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "title",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "title",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "series",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "series",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "genre",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "genre",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "performance_datetime",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "performance_datetime",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "capacity",
+                "type": "Int32",
+                "physicalType": "int"
+              },
+              "destination": {
+                "name": "capacity",
+                "physicalType": "integer"
+              }
+            },
+            {
+              "source": {
+                "name": "status",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "status",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "updated_at",
+                "physicalType": "timestamp"
+              }
+            }
+          ]
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
+    },
+    {
+      "id": "f6b0cb1c-e171-45e5-b3e1-fbe7e5e98b3e",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "schema": "tix",
+            "table": "seasons"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2"
+              }
+            ],
+            "nullWatermarkBehavior": "Skip"
+          },
+          "partitionSettings": {
+            "partitionOption": "None"
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "schema": "ticketing",
+            "table": "seasons"
+          },
+          "applyVOrder": false,
+          "enableTimestampNtz": false,
+          "enableChangeDataFeed": false
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator",
+          "mappings": [
+            {
+              "source": {
+                "name": "season_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "season_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "season_name",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "season_name",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "fiscal_year",
+                "type": "Int32",
+                "physicalType": "int"
+              },
+              "destination": {
+                "name": "fiscal_year",
+                "physicalType": "integer"
+              }
+            },
+            {
+              "source": {
+                "name": "start_date",
+                "type": "DateTime",
+                "physicalType": "date"
+              },
+              "destination": {
+                "name": "start_date",
+                "physicalType": "date"
+              }
+            },
+            {
+              "source": {
+                "name": "end_date",
+                "type": "DateTime",
+                "physicalType": "date"
+              },
+              "destination": {
+                "name": "end_date",
+                "physicalType": "date"
+              }
+            },
+            {
+              "source": {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "updated_at",
+                "physicalType": "timestamp"
+              }
+            }
+          ]
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
+    },
+    {
+      "id": "3ee39573-5874-4599-8f4d-cd9dc37ace3f",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "schema": "tix",
+            "table": "subscriptions"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2"
+              }
+            ],
+            "nullWatermarkBehavior": "Skip"
+          },
+          "partitionSettings": {
+            "partitionOption": "None"
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "schema": "ticketing",
+            "table": "subscriptions"
+          },
+          "applyVOrder": false,
+          "enableTimestampNtz": false,
+          "enableChangeDataFeed": false
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator",
+          "mappings": [
+            {
+              "source": {
+                "name": "subscription_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "subscription_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "customer_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "customer_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "season_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "season_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "package_name",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "package_name",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "seats",
+                "type": "Int32",
+                "physicalType": "int"
+              },
+              "destination": {
+                "name": "seats",
+                "physicalType": "integer"
+              }
+            },
+            {
+              "source": {
+                "name": "package_amount",
+                "type": "Decimal",
+                "physicalType": "decimal",
+                "scale": 2,
+                "precision": 12
+              },
+              "destination": {
+                "name": "package_amount",
+                "physicalType": "decimal",
+                "scale": 2,
+                "precision": 12
+              }
+            },
+            {
+              "source": {
+                "name": "is_renewal",
+                "type": "Boolean",
+                "physicalType": "bit"
+              },
+              "destination": {
+                "name": "is_renewal",
+                "physicalType": "boolean"
+              }
+            },
+            {
+              "source": {
+                "name": "purchased_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "purchased_at",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "updated_at",
+                "physicalType": "timestamp"
+              }
+            }
+          ]
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
+    },
+    {
+      "id": "3b310962-ec96-451e-b88c-296a7c210705",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "schema": "tix",
+            "table": "venues"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2"
+              }
+            ],
+            "nullWatermarkBehavior": "Skip"
+          },
+          "partitionSettings": {
+            "partitionOption": "None"
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "schema": "ticketing",
+            "table": "venues"
+          },
+          "applyVOrder": false,
+          "enableTimestampNtz": false,
+          "enableChangeDataFeed": false
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator",
+          "mappings": [
+            {
+              "source": {
+                "name": "venue_id",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "venue_id",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "venue_name",
+                "type": "String",
+                "physicalType": "nvarchar",
+                "length": "400"
+              },
+              "destination": {
+                "name": "venue_name",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "capacity",
+                "type": "Int32",
+                "physicalType": "int"
+              },
+              "destination": {
+                "name": "capacity",
+                "physicalType": "integer"
+              }
+            },
+            {
+              "source": {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2",
+                "precision": 0
+              },
+              "destination": {
+                "name": "updated_at",
+                "physicalType": "timestamp"
+              }
+            }
+          ]
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
+    }
+  ]
+}

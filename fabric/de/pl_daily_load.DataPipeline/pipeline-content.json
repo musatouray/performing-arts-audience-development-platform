@@ -1,0 +1,256 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "InvokeCopyJob",
+        "typeProperties": {
+          "copyJobId": "bce36915-339b-9af9-410b-03383e3c2471",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "externalReferences": {
+          "connection": "37cf9619-df47-4406-9a00-4be684ffd66c"
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 120,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "cj_ticketing",
+        "dependsOn": []
+      },
+      {
+        "type": "RefreshDataflow",
+        "typeProperties": {
+          "dataflowId": "ca994966-d614-aa57-402a-3badbd100ed0",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "notifyOption": "NoNotification",
+          "dataflowType": "DataflowFabric",
+          "executeMashupQueriesOnly": true
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "df_education",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "1a85276c-d298-9e6e-4b40-5a8d7591598a",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "load_date": {
+              "value": {
+                "value": "@pipeline().parameters.load_date",
+                "type": "Expression"
+              },
+              "type": "string"
+            },
+            "redownload": {
+              "value": false,
+              "type": "bool"
+            },
+            "api_workers": {
+              "value": "4",
+              "type": "int"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 120,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "nb_api",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "f935d6b2-19de-aee0-454f-b0391b4bc96e",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "load_date": {
+              "value": {
+                "value": "@pipeline().parameters.load_date",
+                "type": "Expression"
+              },
+              "type": "string"
+            },
+            "entities": {
+              "value": "",
+              "type": "string"
+            },
+            "reprocess": {
+              "value": false,
+              "type": "bool"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 120,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "nb_bronze",
+        "dependsOn": [
+          {
+            "activity": "nb_api",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "f01bc6ea-cb56-99d8-457a-6da7142ac1be",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "entities": {
+              "value": "",
+              "type": "string"
+            },
+            "full_refresh": {
+              "value": false,
+              "type": "bool"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "nb_silver",
+        "dependsOn": [
+          {
+            "activity": "nb_bronze",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "cj_ticketing",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "df_education",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SqlServerStoredProcedure",
+        "typeProperties": {
+          "storedProcedureName": "[etl].[usp_load_gold]",
+          "storedProcedureParameters": {
+            "run_id": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            }
+          }
+        },
+        "linkedService": {
+          "name": "wh_gold",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "1ee809a8-d5a1-96ac-4ad6-5641e45efcd0",
+              "endpoint": "ukzp3z4akpyebawyuo2uyh4bp4-ubpz7h4jni4u7gd6eqbrc5zdoe.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "00000000-0000-0000-0000-000000000000"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "sp_load_gold",
+        "dependsOn": [
+          {
+            "activity": "nb_silver",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "MicrosoftTeams",
+        "typeProperties": {
+          "content": "<p>Pipeline Run Details</p>\n<p><b>pl_daily_load failed</b></p>\n<p>Run ID: @{pipeline().RunId}</p>\n<p>Triggered: @{pipeline().TriggerTime}</p>\n<p>Open the run in the Monitoring hub to see which activity failed.</p>",
+          "teamId": "0c22d99b-0cea-4b42-9c3c-01e7579ae53a",
+          "channelId": "19:MZNvXPAMbK9Sjx3z5WLtsMw0NcAJgEMIMm1Od4zhh8Y1@thread.tacv2",
+          "operationType": "SendMessageInChannel",
+          "subject": "pl_daily_load Failed"
+        },
+        "externalReferences": {
+          "connection": "19f611ab-c054-4ef0-af9d-ac423aeab3a5"
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "notify_failure",
+        "dependsOn": [
+          {
+            "activity": "sp_load_gold",
+            "dependencyConditions": [
+              "Failed",
+              "Skipped"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Fail",
+        "typeProperties": {
+          "message": "pl_daily_load failed, see the activity runs",
+          "errorCode": "500"
+        },
+        "name": "fail_run",
+        "dependsOn": [
+          {
+            "activity": "notify_failure",
+            "dependencyConditions": [
+              "Completed"
+            ]
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "load_date": {
+        "type": "string"
+      }
+    }
+  }
+}

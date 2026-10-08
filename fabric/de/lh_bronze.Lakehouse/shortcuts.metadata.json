@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "name": "marketing",
+    "path": "/Files/landing",
+    "target": {
+      "type": "AdlsGen2",
+      "adlsGen2": {
+        "connectionId": "169ee905-3f31-4f76-9ff9-6415a0776bb5",
+        "location": "https://harmoniahallmarketing.dfs.core.windows.net",
+        "subpath": "/marketing-exports"
+      }
+    }
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Dataflow",
+    "displayName": "df_education_sharepoint"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "ca994966-d614-aa57-402a-3badbd100ed0"
+  }
+}
