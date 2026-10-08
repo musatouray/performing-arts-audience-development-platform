@@ -1,14 +1,13 @@
-"""Step 03 - Core data items in every Data Platform workspace (dev/test/prod).
+"""Step 03: create the lakehouses and warehouse in each Data Platform workspace.
 
-  lh_bronze  Lakehouse (schemas enabled)  raw landing files + append-only Delta copies
-  lh_silver  Lakehouse (schemas enabled)  cleaned/conformed/identity-resolved + DQ results
-  wh_gold    Warehouse                    star schema, T-SQL stored procs, SQL security
+  lh_bronze  lakehouse   raw source data, stored as received
+  lh_silver  lakehouse   cleaned and checked data
+  wh_gold    warehouse   star schema used for reporting
 
-Why create items by script in TEST/PROD instead of letting deployment pipelines do it?
-Storage items (lakehouse/warehouse) are "containers": deployment pipelines deploy their
-*definition*, not their data. Pre-creating them with IDENTICAL NAMES in every stage means
-notebooks and cross-database SQL (lh_silver.ticketing.orders) resolve by name - no ID
-rebinding per environment. Pipelines/notebooks/semantic models are promoted by deployment.
+These are created in dev, test and prod with the same names. Deployment
+pipelines copy definitions, not data, so each environment needs its own copy of
+these items. Matching names also mean the notebooks and SQL find them without
+any changes per environment.
 
 Run: uv run python scripts/03_create_items.py [--dry-run] [--env dev]
 """

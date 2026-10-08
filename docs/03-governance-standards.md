@@ -39,10 +39,31 @@ A semantic model is **Certified** only when all of these are true:
 - Access is **always** granted by adding a person to an `sg-hh-*` group. Nobody is granted access directly.
 - Consumers get **Apps**, not workspace roles.
 - PROD workspaces: builders are Viewers, and changes go through deployment pipelines only.
-- Contact PII (email, phone, address) is visible to the Development group only:
-  - lake: OneLake column security
-  - SQL: DDM + UNMASK
-  - reports: OLS
+- Personal data is tagged in `config/sources.yaml` at two levels:
+  - **pii**: identifies a person (names, email, phone, address). Labelled, and visible to people who need named records, for example fundraisers working a call list.
+  - **restricted**: contact details (email, phone, street address). Visible to the Development group only:
+    - lake: hidden from every OneLake security role (`validate_config.py` fails the build otherwise)
+    - SQL: DDM + UNMASK
+    - reports: OLS
+    - `dq.quarantine`: stored as a hash
+- City, state and zip code aren't tagged on purpose: they're location, not contact details, and audience analysis needs them.
+
+### Secrets and tenant-specific values
+
+Nothing that identifies the tenant is committed to Git: no IDs, server names, storage accounts, SharePoint sites or people's sign-in names.
+
+| What | Where it lives |
+|---|---|
+| Tenant-specific settings for local scripts | `.env` (ignored by Git), referenced as `${NAME}` in `config/*.yaml`. `.env.example` lists every name. |
+| Credentials for CI | GitHub Actions secrets, scoped to an environment with approval for prod. |
+| Credentials used inside Fabric | Fabric connections, or Azure Key Vault read with `notebookutils.credentials.getSecret`. Never in notebook code. |
+| People in security lists | `*.local.sql` files (ignored by Git), filled from the committed `.example` templates. |
+| IDs created by the scripts | `config/.generated/` (ignored by Git). |
+
+- Prefer sign-in over passwords: `az login` locally, Microsoft Entra authentication for SQL, workspace identity or a service principal for production connections.
+- `validate_config.py` fails the build if a committed file contains a GUID or a real email address.
+- Screenshots in `docs/screenshots/` must not show tenant names, emails, URLs or IDs. Crop them before committing.
+- Folders written by Fabric Git integration (`fabric/`) contain item IDs. They aren't secrets, but they are tenant-specific, so the production repo should be private. A public portfolio copy is published without them.
 - Anonymous gifts are visible only to `sec.privileged_users` and the Development role.
 - **Never** land payment card data in OneLake (PCI scope). Ticketing extracts exclude card fields at source.
 - Education data stays aggregate. No student-level records are ingested.

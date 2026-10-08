@@ -1,6 +1,6 @@
-"""List the Fabric capacities you can assign workspaces to (id, name, SKU, region, state).
+"""List the Fabric capacities you can use, with their ID, name, size, region and state.
 
-Use it to fill tenant.yaml > capacity.capacity_id.
+Copy the ID you want into .env (FABRIC_CAPACITY_ID).
 Run: uv run python scripts/list_capacities.py
 """
 

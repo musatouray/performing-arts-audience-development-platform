@@ -1,23 +1,19 @@
-"""Step 09 - Item-level shares: give BI developers Gold, and ONLY Gold.
+"""Step 09: share the Gold warehouse with BI developers, then check it.
 
-Problem it solves
-  BI developers have no role in the Data Platform workspaces (that would expose Bronze/Silver).
-  Their Direct Lake models still need to read wh_gold. The least-privilege answer is an
-  ITEM share on wh_gold only - never a workspace role.
+BI developers have no role in the Data Platform workspaces, so they can't see
+Bronze or Silver. Their reports still need Gold, so the wh_gold warehouse is
+shared with them directly.
 
-Why this script only GUIDES + VERIFIES (does not grant)
-  Microsoft Learn: "Currently, sharing a Warehouse is only available through the user
-  experience." There is no public API to grant warehouse item permissions. So the grant is
-  a UI step; this script prints exactly what to share per environment, then reads the
-  actual permissions back through the Admin API (Items - List Item Access Details) and
-  flags anything missing or extra. That's the audit trail.
+Fabric has no API for sharing a warehouse; it has to be done in the portal.
+This script prints the steps for each environment, then reads the permissions
+back and reports anything missing or unexpected.
 
-Permissions (tenant.yaml > item_shares):
-  Read     - connect to the item (always granted with a share)
-  ReadData - read all tables via SQL (validate numbers against rpt.* views)
-  ReadAll  - read the Delta files in OneLake -> required for Direct Lake ON ONELAKE authoring
+Permissions (tenant.yaml, item_shares):
+  Read     = connect to the warehouse (always included)
+  ReadData = query all tables with SQL
+  ReadAll  = read the underlying files in OneLake (needed for Direct Lake models)
 
-Report viewers get NOTHING here: models use a fixed-identity connection (ADR-003).
+Report viewers don't need a share; the semantic models connect with a fixed identity.
 
 Run: uv run python scripts/09_verify_item_shares.py [--env dev]
 """
@@ -57,7 +53,7 @@ def main():
                 print(f"  ! {share['item']} not found - run scripts/03_create_items.py first")
                 continue
 
-            # 1) What to do in the UI
+            # Steps to follow in the portal
             print("  UI: open the item > ... > Share > 'Grant people access'")
             for g in share["grant_to"]:
                 print(f"      add group  {principals[g]['name']}")
@@ -66,7 +62,7 @@ def main():
                     print(f"      {UI_LABELS[p]}")
             print("      untick 'Notify recipients by email' > Grant  (propagation can take up to 2 hours)")
 
-            # 2) Verify against the Admin API (read-only)
+            # Check what was actually granted
             try:
                 details = c.get(f"/admin/workspaces/{ws['id']}/items/{item['id']}/users").get("accessDetails", [])
             except ApiError as e:
@@ -87,7 +83,7 @@ def main():
                 else:
                     print(f"  OK       {principals[g]['name']}: {sorted(have)}")
 
-            # 3) Flag direct shares nobody declared (drift / someone shared to an individual)
+            # Flag access that isn't in tenant.yaml, such as a share with one person
             declared = {principals[g]["id"] for g in share["grant_to"]}
             for d in details:
                 p = d["principal"]

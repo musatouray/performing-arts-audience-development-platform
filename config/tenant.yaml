@@ -1,63 +1,61 @@
 # =============================================================================
-# tenant.yaml — SINGLE SOURCE OF TRUTH for the Fabric tenant topology.
-# Every provisioning script in /scripts reads this file. Change the design here,
-# re-run the scripts (they are idempotent: "create if missing, else reuse").
+# tenant.yaml
+# The design of the Fabric tenant: groups, domains, workspaces, pipelines and
+# security. Every script in /scripts reads this file. To change the setup, edit
+# it here and re-run the scripts. They skip anything that already exists.
 # =============================================================================
 
 org:
-  code: hh                       # short prefix used in every name (lower-case)
-  name: Harmonia Hall            # fictional stand-in for a NYC performing-arts nonprofit
-  fiscal_year_start_month: 7     # US nonprofit FY runs Jul -> Jun
+  code: hh                       # prefix used in every name
+  name: Harmonia Hall            # fictional NYC performing-arts nonprofit
+  fiscal_year_start_month: 7     # the fiscal year runs July to June
 
-# Fabric capacity. Trial = F64-equivalent. Leave capacity_id empty and the
-# script picks the first capacity you can assign (your trial).
+# Which Fabric capacity the workspaces run on.
+# Set FABRIC_CAPACITY_ID in .env to pick one exactly, or leave it out and the
+# region below picks it. Anything tied to your tenant (IDs, server names) goes
+# in .env, never in this file, because this file is on GitHub.
+# If no capacity matches, or more than one does, the script stops and lists them.
+# To see your capacities: uv run python scripts/list_capacities.py
 capacity:
-  # Precedence: capacity_id (exact, safest) > region (+ optional display_name_hint).
-  # The script stops if zero or several capacities match - it never guesses.
-  # List yours: uv run python scripts/list_capacities.py
-  capacity_id: ""
+  capacity_id: "${FABRIC_CAPACITY_ID:-}"
   region: "East US 2"
   display_name_hint: ""
 
-# Git (GitHub). Only DEV workspaces are Git-connected; Test/Prod are promoted
-# by deployment pipelines (see docs/adr/ADR-005-cicd.md).
+# GitHub connection. Only the dev workspaces are connected to Git.
+# Test and prod receive changes through deployment pipelines (see ADR-005).
 git:
   provider: GitHub
   owner: musatouray
   repository: performing-arts-audience-development-platform
   branch: main
-  # Fabric "Connection" (Settings > Manage connections > GitHub - Source control)
-  # holding a fine-grained PAT. Paste its ID here after creating it in the UI.
-  connection_id: ""
+  # ID of the GitHub connection created in Fabric
+  # (Settings > Manage connections and gateways). Set in .env.
+  connection_id: "${FABRIC_GIT_CONNECTION_ID}"
 
 # -----------------------------------------------------------------------------
-# Security groups (Microsoft Entra). Principle: assign GROUPS, never people.
-# scripts/00_create_security_groups.py creates any that are missing.
+# Security groups in Microsoft Entra.
+# Permissions are always given to groups, never to individual people.
+# scripts/00_create_security_groups.py creates any group that's missing.
 # -----------------------------------------------------------------------------
 security_groups:
-  fabric_admins:        { name: "sg-hh-fabric-admins",        purpose: "Platform owners. Workspace Admin everywhere." }
-  data_engineers:       { name: "sg-hh-data-engineers",       purpose: "Build pipelines/notebooks/warehouse. Contributor in DE Dev/Test." }
-  bi_developers:        { name: "sg-hh-bi-developers",        purpose: "Build semantic models and reports. Contributor in BI Dev/Test." }
-  analysts_audience:    { name: "sg-hh-analysts-audience",    purpose: "Ticketing/marketing analysts. Build on certified Audience model." }
-  analysts_development: { name: "sg-hh-analysts-development", purpose: "Fundraising analysts. Donor data incl. giving history." }
+  fabric_admins:        { name: "sg-hh-fabric-admins",        purpose: "Platform owners. Admin on every workspace." }
+  data_engineers:       { name: "sg-hh-data-engineers",       purpose: "Build pipelines, notebooks and the warehouse." }
+  bi_developers:        { name: "sg-hh-bi-developers",        purpose: "Build semantic models and reports." }
+  analysts_audience:    { name: "sg-hh-analysts-audience",    purpose: "Ticketing and marketing analysts." }
+  analysts_development: { name: "sg-hh-analysts-development", purpose: "Fundraising analysts. Can see donor giving history." }
   education_team:       { name: "sg-hh-education-team",       purpose: "Education program staff. Education data only." }
-  report_viewers:       { name: "sg-hh-report-viewers",       purpose: "All staff consuming published apps." }
+  report_viewers:       { name: "sg-hh-report-viewers",       purpose: "Staff who use the published report apps." }
 
 # -----------------------------------------------------------------------------
-# Domains (data mesh-lite). One parent domain for the org, subdomains by
-# business area. Domain = governance + discoverability boundary, NOT security:
-# domain roles grant NO access to workspaces or data (workspace roles do that,
-# see workspace_families.roles below).
-#   * Domain admins are set on the PARENT only - subdomains inherit them
-#     (Fabric: "a subdomain's domain admins are the domain admins of its parent").
-#   * Domain contributors = workspace ADMINS allowed to self-assign their
-#     workspaces to the domain. 
+# Domains group workspaces by business area so people can find data in the
+# OneLake catalog. They don't control access; workspace roles do that.
+# Domain admins are set on the parent only. Subdomains inherit them.
 # -----------------------------------------------------------------------------
 domains:
   - key: org
     name: "Harmonia Hall"
     description: "Enterprise domain for all Harmonia Hall analytics."
-    admins: [fabric_admins]          # inherited by all subdomains
+    admins: [fabric_admins]
   - key: platform
     parent: org
     name: "Data Platform"
@@ -71,39 +69,41 @@ domains:
     name: "Education & Community"
     description: "Music education and social-impact program analytics."
 
-# Environments. Same item NAMES in every environment -> notebooks/SQL resolve
-# items by name at runtime, so promotion needs no ID rebinding.
+# Items have the same names in every environment, so code moves from dev to
+# test to prod without any changes.
 environments: [dev, test, prod]
 
 # -----------------------------------------------------------------------------
-# Workspace "families". One workspace per family per environment.
-# Name pattern: {org}-{family}-{env}   e.g. hh-dataplatform-dev
+# Workspaces. Each family gets one workspace per environment,
+# named {org}-{family}-{env}, for example hh-dataplatform-dev.
+# Builders can edit in dev and test. In prod they can only view, so prod only
+# changes through a deployment pipeline.
 # -----------------------------------------------------------------------------
 workspace_families:
   - key: dataplatform
     display: "Data Platform"
     domain: platform
-    git_directory: fabric/de           # folder in the repo the DEV workspace syncs to
+    git_directory: fabric/de           # repo folder the dev workspace syncs to
     items:
       lakehouses:
-        - { name: lh_bronze, schemas: true, description: "Raw, immutable, append-only landing + Delta copies of source extracts." }
-        - { name: lh_silver, schemas: true, description: "Cleaned, conformed, de-duplicated, typed. Identity-resolved patrons. DQ results." }
+        - { name: lh_bronze, schemas: true, description: "Raw source data, stored as received." }
+        - { name: lh_silver, schemas: true, description: "Cleaned, typed and de-duplicated data, plus data quality results." }
       warehouses:
-        - { name: wh_gold,   description: "Star schema (dims/facts) + security. The only layer business users touch (via semantic models)." }
+        - { name: wh_gold,   description: "Star schema for reporting. The layer the semantic models read." }
     roles:
       dev:  { fabric_admins: Admin, data_engineers: Contributor }
       test: { fabric_admins: Admin, data_engineers: Contributor }
-      prod: { fabric_admins: Admin, data_engineers: Viewer }   # nobody hand-edits PROD
+      prod: { fabric_admins: Admin, data_engineers: Viewer }
 
   - key: audience
     display: "Audience & Development BI"
     domain: audience
     git_directory: fabric/bi-audience
-    items: {}                           # semantic models/reports are built in the UI then synced by Git
+    items: {}                           # models and reports are built in Fabric, then saved to Git
     roles:
       dev:  { fabric_admins: Admin, bi_developers: Contributor }
       test: { fabric_admins: Admin, bi_developers: Contributor, analysts_audience: Viewer, analysts_development: Viewer }
-      prod: { fabric_admins: Admin, bi_developers: Viewer }     # consumers get the App, not the workspace
+      prod: { fabric_admins: Admin, bi_developers: Viewer }
 
   - key: education
     display: "Education & Community BI"
@@ -115,7 +115,7 @@ workspace_families:
       test: { fabric_admins: Admin, bi_developers: Contributor, education_team: Viewer }
       prod: { fabric_admins: Admin, bi_developers: Viewer }
 
-# One deployment pipeline per workspace family (Fabric requires 1 workspace per stage).
+# One deployment pipeline per workspace family.
 deployment_pipelines:
   stages:
     - { env: dev,  name: "Development", public: false }
@@ -124,14 +124,15 @@ deployment_pipelines:
   admins: [fabric_admins]
 
 # -----------------------------------------------------------------------------
-# Item-level shares (least privilege ACROSS workspace families).
-# BI developers get Gold only - never a Data Platform workspace role, which would
-# expose Bronze/Silver. Warehouse sharing is UI-only today (no public API), so
-# scripts/09_verify_item_shares.py prints the steps and VERIFIES them via the
-# Admin API. Report viewers need nothing here: models use a fixed identity.
-#   Read     = connect (always part of a share)
-#   ReadData = query all tables with SQL (validate numbers)
-#   ReadAll  = read OneLake files -> required to author Direct Lake ON ONELAKE models
+# Item shares give access to a single item without a workspace role.
+# BI developers get the Gold warehouse only, in each environment, so they never
+# see Bronze or Silver. Report viewers aren't listed here: they see reports
+# through the org apps in the BI prod workspaces.
+# Warehouse sharing can only be done in the Fabric portal;
+# scripts/09_verify_item_shares.py shows the steps and checks the result.
+#   Read     = connect to the warehouse (always included)
+#   ReadData = query all tables with SQL
+#   ReadAll  = read the underlying files in OneLake (needed for Direct Lake models)
 # -----------------------------------------------------------------------------
 item_shares:
   - workspace_family: dataplatform
@@ -139,23 +140,24 @@ item_shares:
     item_type: Warehouse
     grant_to: [bi_developers]
     permissions: [Read, ReadData, ReadAll]
-    environments: [dev, test, prod]     # each env's BI model reads the SAME env's Gold
+    environments: [dev, test, prod]     # BI models read Gold from their own environment
 
 # -----------------------------------------------------------------------------
-# OneLake security (lh_silver). Table-level roles; RLS/CLS via constraints.
-# Applied by scripts/07_apply_onelake_security.py. Engineers use workspace roles.
+# OneLake security on the Silver lakehouse: which group can read which tables.
+# Engineers aren't listed because their workspace role already gives access.
+# Applied by scripts/07_apply_onelake_security.py.
 # -----------------------------------------------------------------------------
 onelake_security:
   lakehouse: lh_silver
   roles:
     - name: AudienceReaders
       members: [analysts_audience]
-      tables: [ticketing/performances, ticketing/orders, ticketing/order_lines, ticketing/subscriptions]
+      tables: [ticketing/performances, ticketing/orders, ticketing/order_lines, ticketing/subscriptions,
+               marketing/email_campaigns, marketing/ad_spend_daily]   # not email_clicks: it holds email addresses
     - name: DevelopmentReaders
       members: [analysts_development]
       tables: [fundraising/gifts, fundraising/campaigns, fundraising/funds, core/patron]
-      # Column-level security = PERMIT list. Contact PII (email, phone, address_line1)
-      # is deliberately absent, so it is hidden from fundraising analysts on the lake.
+      # Only these columns are visible. Email, phone and street address are left out.
       allow_columns:
         core/patron: [patron_id, first_name, last_name, city, state, postal_code, country, patron_type, first_seen_date, source_systems]
     - name: EducationReaders

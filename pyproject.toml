@@ -9,6 +9,8 @@ dependencies = [
     "requests>=2.31",
     "azure-identity>=1.17",
     "azure-storage-file-datalake>=12.16",
+    "openpyxl>=3.1",        # education workbooks
+    "pyodbc>=5.1",          # loading the ticketing database
 ]
 
 [dependency-groups]
@@ -18,7 +20,7 @@ cicd = ["fabric-cicd>=0.1"]
 [tool.ruff]
 line-length = 140
 target-version = "py311"
-extend-exclude = ["src/notebooks"]   # Fabric notebooks rely on runtime globals (spark, display)
+extend-exclude = ["fabric"]   # Fabric Git items; notebooks use names that only exist inside Fabric (spark, display)
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]

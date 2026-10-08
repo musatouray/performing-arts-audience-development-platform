@@ -1,23 +1,22 @@
-"""Step 05 - Git integration (GitHub) for the DEV workspaces only.
+"""Step 05: connect the dev workspaces to GitHub.
 
-  hh-dataplatform-dev  <->  main : fabric/de
-  hh-audience-dev      <->  main : fabric/bi-audience
-  hh-education-dev     <->  main : fabric/bi-education
+  hh-dataplatform-dev  syncs with  main:/fabric/de
+  hh-audience-dev      syncs with  main:/fabric/bi-audience
+  hh-education-dev     syncs with  main:/fabric/bi-education
 
-Why only DEV? Git is the source of truth for *development*; Test/Prod are populated by
-deployment pipelines, so Prod can never drift from what was reviewed. Engineers work in
-feature branches ("Branch out to new workspace" in the Fabric UI), open a PR, merge to
-main, then sync DEV and promote.
+Only dev is connected. Test and prod get changes through deployment pipelines,
+so prod always matches what was reviewed and merged.
 
-Prerequisite (one-time, UI): Fabric > Settings > Manage connections and gateways >
-New > "GitHub - Source control" with a fine-grained PAT (Contents: Read & write on this
-repo). Paste the connection ID into tenant.yaml > git.connection_id.
+Before running: create a GitHub connection in Fabric (Settings > Manage
+connections and gateways > New > GitHub - Source control) using a fine-grained
+personal access token, then put its ID in .env (FABRIC_GIT_CONNECTION_ID).
 
 Run: uv run python scripts/05_connect_git.py [--dry-run]
 """
 
 import sys
 
+from lib.config import unfilled
 from lib.fabric import ApiError, Client, banner, require_workspace, std_args, tenant_config, ws_name
 
 
@@ -25,8 +24,8 @@ def main():
     a = std_args(__doc__).parse_args()
     cfg = tenant_config()
     git = cfg["git"]
-    if not git.get("connection_id") and not a.dry_run:
-        sys.exit("Set git.connection_id in config/tenant.yaml first (see docstring).")
+    if (not git.get("connection_id") or unfilled(git["connection_id"])) and not a.dry_run:
+        sys.exit("Add FABRIC_GIT_CONNECTION_ID to .env first (see docstring).")
     c = Client(dry_run=a.dry_run)
 
     for fam in cfg["workspace_families"]:
@@ -45,7 +44,7 @@ def main():
                 raise
             print("  = already connected")
 
-        # Initialize: workspace content wins on first sync (items were created in the workspace).
+        # On the first sync, keep what is in the workspace, since the items were created there.
         init = c.post(f"/workspaces/{ws['id']}/git/initializeConnection", {"initializationStrategy": "PreferWorkspace"})
         action = init.get("requiredAction", "None")
         print(f"  requiredAction: {action}")

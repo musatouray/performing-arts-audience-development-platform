@@ -1,18 +1,16 @@
 /* =============================================================================
-   wh_gold · 30 — dimension load procedures
-   Patterns shown (interview talking points):
-     * Type 1 upsert  : UPDATE changed attributes + INSERT new business keys
-     * SCD Type 2     : expire changed current rows, insert new versions (dim.patron)
-     * Surrogate keys : MAX(key) + ROW_NUMBER()  (no IDENTITY needed)
-     * Unknown member : key -1 in every dimension
-     * Idempotent     : re-running produces the same result (safe pipeline retries)
-   MERGE is available in Fabric Warehouse, but UPDATE + INSERT is used here because it
-   is portable, easy to review, and gives exact row counts for the load log.
+   wh_gold 30: procedures that load the dimension tables
+   * Most tables: update rows that changed, then insert new ones.
+   * dim.patron keeps history: a changed patron gets a new row and the old row is closed.
+   * Every table gets a -1 "Unknown" row.
+   * Running a procedure twice gives the same result, so a failed pipeline can just be re-run.
+   UPDATE then INSERT is used instead of MERGE because it's easier to read and
+   gives exact row counts for the load log.
    ============================================================================= */
 
 -- ---------------------------------------------------------------------------
--- dim.date — generated, not sourced. Fiscal calendar = Jul -> Jun.
--- (No recursive CTE: a 5-way cross join of digits gives 0..99,999 day offsets.)
+-- dim.date is generated rather than loaded. The fiscal year runs July to June.
+-- Crossing the digits 0-9 five times gives up to 100,000 days to build from.
 -- ---------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE etl.usp_load_dim_date
     @start date = '2020-07-01', @end date = '2030-06-30'
@@ -51,7 +49,8 @@ END;
 GO
 
 -- ---------------------------------------------------------------------------
--- Small Type-1 dimensions: venue, performance, channel, campaign, fund, program, school
+-- The smaller dimensions (venue, performance, channel, campaign, fund, program, school).
+-- These keep only the latest values, no history.
 -- ---------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE etl.usp_load_dim_reference @run_id varchar(64)
 AS
@@ -72,7 +71,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM dim.venue WHERE venue_key = -1)
         INSERT INTO dim.venue VALUES (-1, 'N/A', 'Unknown', NULL);
 
-    /* ---- performance (denormalises season + venue: a star, not a snowflake) ---- */
+    /* ---- performance (includes season and venue details, so reports need fewer joins) ---- */
     WITH src AS (
         SELECT p.performance_id, p.title, p.series, p.genre, p.season_id, s.season_name, s.fiscal_year,
                p.venue_id, v.venue_name, p.performance_datetime,
@@ -109,7 +108,7 @@ BEGIN
         INSERT INTO dim.performance (performance_key, performance_id, title, performance_date_key, capacity)
         VALUES (-1, 'N/A', 'Unknown performance', -1, 0);
 
-    /* ---- channel (derived from orders) ---- */
+    /* ---- channel (taken from the orders) ---- */
     SELECT @max = ISNULL(MAX(channel_key), 0) FROM dim.channel WHERE channel_key > 0;
     INSERT INTO dim.channel
     SELECT @max + ROW_NUMBER() OVER (ORDER BY c.channel), c.channel
@@ -154,7 +153,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM dim.program WHERE program_key = -1)
         INSERT INTO dim.program VALUES (-1, 'N/A', 'Unknown program', 'Unknown', NULL);
 
-    /* ---- school (-1 also means "not a school-based session", e.g. community programs) ---- */
+    /* ---- school (-1 also covers sessions not held at a school, such as community programs) ---- */
     SELECT @max = ISNULL(MAX(school_key), 0) FROM dim.school WHERE school_key > 0;
     INSERT INTO dim.school
     SELECT @max + ROW_NUMBER() OVER (ORDER BY s.school_id), s.school_id, s.school_name, s.borough, s.is_title_i
@@ -169,7 +168,8 @@ END;
 GO
 
 -- ---------------------------------------------------------------------------
--- dim.patron — SCD Type 2 on geography/type; Type 1 on contact details.
+-- dim.patron keeps a history of address and patron type.
+-- Contact details (email, phone) are just overwritten.
 -- ---------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE etl.usp_load_dim_patron @run_id varchar(64)
 AS
@@ -177,7 +177,7 @@ BEGIN
     DECLARE @started datetime2(6) = SYSUTCDATETIME(), @now datetime2(6) = SYSUTCDATETIME(),
             @max int, @ins int, @upd int, @exp int;
 
-    -- 1) Stage the golden records with derived columns + change-detection hash (CTAS = fast, minimal logging).
+    -- 1) Copy the latest patron records into a staging table, with a fingerprint of the tracked columns.
     DROP TABLE IF EXISTS etl.stg_patron;
     CREATE TABLE etl.stg_patron AS
     SELECT p.patron_id, p.first_name, p.last_name,
@@ -192,7 +192,7 @@ BEGIN
                    CONCAT_WS('|', p.address_line1, p.city, p.[state], p.postal_code, p.patron_type)), 2) AS scd_hash
     FROM [lh_silver].[core].[patron] AS p;
 
-    -- 2) Type 1 attributes: overwrite on the current version (no history needed for a typo fix).
+    -- 2) Overwrite contact details on the current row. No history is needed for these.
     UPDATE d SET first_name = s.first_name, last_name = s.last_name, full_name = s.full_name, email = s.email,
                  phone = s.phone, email_opt_in = s.email_opt_in, source_systems = s.source_systems
     FROM dim.patron AS d JOIN etl.stg_patron AS s ON d.patron_id = s.patron_id
@@ -202,14 +202,14 @@ BEGIN
            OR ISNULL(CAST(d.email_opt_in AS int), -1) <> ISNULL(CAST(s.email_opt_in AS int), -1));
     SET @upd = @@ROWCOUNT;
 
-    -- 3) Type 2: close the current version when a tracked attribute changed.
+    -- 3) If the address or patron type changed, close the current row.
     UPDATE d SET valid_to = @now, is_current = 0
     FROM dim.patron AS d JOIN etl.stg_patron AS s ON d.patron_id = s.patron_id
     WHERE d.is_current = 1 AND d.scd_hash <> s.scd_hash;
     SET @exp = @@ROWCOUNT;
 
-    -- 4) Insert a current version for (a) brand-new patrons and (b) patrons just expired in step 3.
-    --    New patrons get valid_from = 1900-01-01 so their historical orders/gifts join to them.
+    -- 4) Add a current row for new patrons and for patrons closed in step 3.
+    --    New patrons start in 1900 so their older orders and gifts still link to them.
     SELECT @max = ISNULL(MAX(patron_key), 0) FROM dim.patron WHERE patron_key > 0;
     INSERT INTO dim.patron
     SELECT @max + ROW_NUMBER() OVER (ORDER BY s.patron_id),
@@ -226,7 +226,8 @@ BEGIN
         INSERT INTO dim.patron (patron_key, patron_id, full_name, region, valid_from, valid_to, is_current)
         VALUES (-1, 'N/A', 'Unknown patron', 'Unknown', '1900-01-01', '9999-12-31', 1);
 
-    EXEC etl.usp_log @run_id, 'etl.usp_load_dim_patron', 'dim.patron', @ins, @upd, 0, 'Succeeded',
-         CONCAT(@exp, ' version(s) expired (SCD2)'), @started;
+    -- EXEC only accepts variables or literals, so build the note first.
+    DECLARE @note varchar(4000) = CONCAT(@exp, ' version(s) expired (SCD2)');
+    EXEC etl.usp_log @run_id, 'etl.usp_load_dim_patron', 'dim.patron', @ins, @upd, 0, 'Succeeded', @note, @started;
 END;
 GO

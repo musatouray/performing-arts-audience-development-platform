@@ -1,4 +1,4 @@
-# ADR-003: Semantic model storage mode
+# ADR-004: Semantic model storage mode
 
 ## Options
 
@@ -22,6 +22,7 @@ Enterprise models (`sm_audience_development`, `sm_education_impact`) use **Direc
 - The security design is explicit about layers. See ADR-006.
 - **Promotion gotcha:** the models live in BI workspaces but read `wh_gold` in the Data Platform workspace. After deploying to TEST or PROD, rebind the model to that environment's `wh_gold`, using a deployment rule where the UI offers one or the rebind notebook step in the runbook (semantic-link-labs).
 
-**Say it in 30 seconds:** "Direct Lake on OneLake gives us import-like speed with no refresh to babysit and no silent fallback to DirectQuery. The trade-off is that security moves into the model, which is where report users are anyway."
+> [!NOTE]
+> *"Direct Lake on OneLake gives us import-like speed with no refresh to babysit and no silent fallback to DirectQuery. The trade-off is that security moves into the model, which is where report users are anyway."*
 
 **Revisit when:** a model needs heavy Power Query transforms, or data outside OneLake. Then use Import or a composite model.

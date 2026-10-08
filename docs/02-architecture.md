@@ -6,8 +6,9 @@
 
 | Layer | Item | Contract (what the layer guarantees) | Owner |
 |---|---|---|---|
-| Landing | `lh_bronze/Files/landing/<source>/<entity>/load_date=D/` | Files exactly as received, plus a manifest with row counts | Data engineering |
-| **Bronze** | `lh_bronze.<source>.<entity>` (Delta) | Append-only and immutable. All columns are strings. Lineage columns (`_load_date`, `_source_file`, `_ingested_at`, `_batch_id`). Reconciled to the manifest. | Data engineering |
+| Ingestion | Copy job (ticketing), notebook (fundraising API), Dataflow Gen2 (education), shortcut (marketing) | Each source arrives through the tool that suits it; see [ADR-003](adr/ADR-003-ingestion-tools.md) | Data engineering |
+| Landing | `lh_bronze/Files/landing/<source>/<entity>/load_date=D/` (fundraising files; marketing through the shortcut) | Files exactly as received, plus a manifest with row counts | Data engineering |
+| **Bronze** | `lh_bronze.<source>.<entity>` (Delta) | Keeps every version received; nothing is overwritten, except education, which is small and replaced each run. File sources are stored as text with lineage columns (`_load_date`, `_source_file`, `_ingested_at`, `_batch_id`) and reconciled to their manifest. Database sources keep their types. | Data engineering |
 | **Silver** | `lh_silver.<source>.<entity>`, `core.*`, `dq.*`, `audit.*` | Typed to the schema contract, trimmed, one row per business key (latest), DQ-gated (errors quarantined), identity-resolved patrons | Data engineering |
 | **Gold** | `wh_gold.dim.*`, `fact.*`, `rpt.*`, `sec.*` | Star schema with a declared grain per fact, surrogate keys, unknown member -1, SCD2 patron, business definitions (sell-through, LYBUNT, renewal) | BI team |
 | **Semantic** | `sm_audience_development`, `sm_education_impact` | Certified measures, RLS/OLS, Direct Lake | BI team |
@@ -17,7 +18,7 @@
 
 ![Tenant topology](diagrams/02-tenant-topology.png)
 
-See [ADR-004](adr/ADR-004-workspace-domain-topology.md). The design lives in [`config/tenant.yaml`](../config/tenant.yaml) and is applied by `scripts/00–05`.
+See [ADR-001](adr/ADR-001-workspace-domain-topology.md). The design lives in [`config/tenant.yaml`](../config/tenant.yaml) and is applied by `scripts/00–05`.
 
 ## 3. Daily data flow and quality gates
 
@@ -58,7 +59,7 @@ See [ADR-004](adr/ADR-004-workspace-domain-topology.md). The design lives in [`c
 
 - **Identical item names in every environment.** Notebooks resolve lakehouses by name (`notebookutils.lakehouse.get("lh_silver")`) and Gold reads `[lh_silver].[schema].[table]`, so code is promoted **unchanged**.
 - **Only DEV is Git-connected.** TEST and PROD are reached only through deployment pipelines.
-- **Data doesn't move between environments.** Each environment ingests from its own source connection. In this demo, you upload landing files to each environment.
+- **Data doesn't move between environments.** Each environment ingests from its own source connection. In this lab all three environments read the same four sources.
 
 ## 9. Microsoft Fabric deployment pattern
 
@@ -81,7 +82,7 @@ See [ADR-004](adr/ADR-004-workspace-domain-topology.md). The design lives in [`c
 | **Hub and spoke** | Hub: `hh-dataplatform-*`, the central data plane owned by engineering. Spokes: `hh-audience-*` and `hh-education-*`, owned by each business area. |
 | **Per-workload workspaces** | Ingestion and engineering (lakehouses, warehouse, notebooks, pipelines) are separated from consumption (semantic models, reports, apps). |
 | **Data mesh via domains** | Parent domain *Harmonia Hall*, with subdomains Data Platform, Audience & Development, and Education & Community. |
-| ~~Per-medallion-layer workspaces~~ | **Not used, on purpose.** Bronze, Silver and Gold share one workspace so `wh_gold` can read `lh_silver` through cross-database queries without shortcuts, and a four-person team has fewer workspaces to run (ADR-001, ADR-004). |
+| ~~Per-medallion-layer workspaces~~ | **Not used, on purpose.** Bronze, Silver and Gold share one workspace so `wh_gold` can read `lh_silver` through cross-database queries without shortcuts, and a four-person team has fewer workspaces to run (ADR-001, ADR-002). |
 
 ### Trade-offs we accept
 
@@ -103,4 +104,5 @@ For which SKU to buy at each step, see the [capacity sizing reference](05-capaci
 
 Pattern 1 (a single workspace) was rejected because it rules out deployment pipelines and separation of duties. Pattern 4 (multiple tenants) applies only after an acquisition or with a legally separate subsidiary.
 
-> **Say it in 30 seconds:** "It's Microsoft's Pattern 2, multiple workspaces on one capacity. It's a hub-and-spoke design: a central data-platform workspace and business-area BI workspaces, grouped by domains, with dev, test and prod environments. That fits a single-region nonprofit with a four-person team. The first move to Pattern 3 is a dedicated production capacity, once reports need a performance guarantee."
+> [!NOTE]
+> *"It's Microsoft's Pattern 2, multiple workspaces on one capacity. It's a hub-and-spoke design: a central data-platform workspace and business-area BI workspaces, grouped by domains, with dev, test and prod environments. That fits a single-region nonprofit with a four-person team. The first move to Pattern 3 is a dedicated production capacity, once reports need a performance guarantee."*

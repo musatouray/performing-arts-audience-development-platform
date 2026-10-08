@@ -8,7 +8,7 @@ They're built in the **DEV BI workspace** (web modeling or Power BI Desktop), th
 | `sm_audience_development` | `hh-audience-*` | Ticketing, marketing, development analysts; leadership | **Certified** (after review) |
 | `sm_education_impact` | `hh-education-*` | Education & Community staff, grants team | **Certified** |
 
-## Why Direct Lake on OneLake (ADR-003)
+## Why Direct Lake on OneLake (ADR-004)
 
 * There's no import refresh copy of the data. Gold changes show up in reports as soon as `usp_load_gold` commits, with no scheduled refresh to babysit.
 * It **doesn't fall back to DirectQuery**, unlike Direct Lake on the SQL endpoint, so performance stays predictable.

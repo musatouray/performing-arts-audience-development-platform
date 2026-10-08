@@ -20,4 +20,5 @@
 
 **Key subtlety:** Direct Lake on OneLake bypasses Warehouse SQL security. The same business rule, anonymous gifts, is therefore implemented **twice, deliberately**: SQL RLS for SQL users and model RLS for report users. Both files are CODEOWNERS-protected, so a change to one gets reviewed alongside the other.
 
-**Say it in 30 seconds:** "Every audience is protected at the layer it actually queries. Report users through model RLS, SQL users through Warehouse security, lake users through OneLake security. All of it is assigned to groups, so onboarding a new fundraiser is one Entra change."
+> [!NOTE]
+> *"Every audience is protected at the layer it actually queries. Report users through model RLS, SQL users through Warehouse security, lake users through OneLake security. All of it is assigned to groups, so onboarding a new fundraiser is one Entra change."*

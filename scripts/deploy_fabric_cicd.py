@@ -1,15 +1,15 @@
-"""SCALE-UP PATH (not used day-one): code-first deployment with Microsoft's `fabric-cicd` library.
+"""Optional, for later: deploy from GitHub with Microsoft's fabric-cicd library.
 
-When to switch from deployment pipelines to this (ADR-005):
-  * deployments become frequent (daily) or need to be gated by GitHub PR checks/approvals
-  * more environments/workspaces than a UI can comfortably manage
-  * you need find/replace of IDs per environment in item definitions (parameter.yml)
+Today, changes reach test and prod through deployment pipelines. Switch to this when:
+  * releases happen often, or need GitHub pull request checks and approvals
+  * there are more workspaces than are practical to manage in the portal
+  * IDs need to be swapped per environment (parameter.yml)
 
-Auth: service principal (SP) in the sg for "Service principals can use Fabric APIs", Admin/Contributor on
-the target workspace. Secrets come from GitHub Actions secrets, never from the repo.
+It signs in as a service principal with Admin or Contributor on the target
+workspace. Credentials come from GitHub secrets, never from the repo.
 
-Run locally:  uv run --group cicd python scripts/deploy_fabric_cicd.py --family dataplatform --env test
-In CI:        .github/workflows/deploy-fabric-cicd.yml (manual trigger)
+Run locally: uv run --group cicd python scripts/deploy_fabric_cicd.py --family dataplatform --env test
+In GitHub:   .github/workflows/deploy-fabric-cicd.yml (started by hand)
 """
 
 import argparse
@@ -33,13 +33,13 @@ def main():
 
     target = FabricWorkspace(
         workspace_id=ws["id"],
-        environment=a.env.upper(),                         # selects values in <dir>/parameter.yml
+        environment=a.env.upper(),                         # which values to use from parameter.yml
         repository_directory=fam["git_directory"],
         item_type_in_scope=["Notebook", "DataPipeline", "SemanticModel", "Report"],
         token_credential=cred,
     )
     publish_all_items(target)
-    unpublish_all_orphan_items(target)                     # removes items deleted from Git
+    unpublish_all_orphan_items(target)                     # remove items that were deleted in Git
     print(f"Deployed {fam['git_directory']} -> {ws['displayName']}")
 
 

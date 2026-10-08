@@ -1,9 +1,9 @@
 /* =============================================================================
-   wh_gold · 10 — dimension tables (DDL)
-   Surrogate keys are int; -1 = "Unknown" member so facts never drop rows on a
-   missing lookup (orphans are visible, not silently lost).
-   PRIMARY KEY ... NOT ENFORCED documents the grain for the optimizer and for
-   the semantic model; Fabric Warehouse does not enforce it.
+   wh_gold 10: dimension tables
+   Every table has a row with key -1 meaning "Unknown". A sale or gift whose
+   patron or show can't be found points to -1 instead of being dropped.
+   Fabric doesn't enforce primary keys, but declaring them still helps the
+   query engine and documents what makes a row unique.
    ============================================================================= */
 
 CREATE TABLE dim.[date] (
@@ -16,25 +16,25 @@ CREATE TABLE dim.[date] (
     month_name         varchar(10)  NOT NULL,
     calendar_quarter   int          NOT NULL,
     calendar_year      int          NOT NULL,
-    fiscal_year        int          NOT NULL,   -- FY runs Jul -> Jun; FY2027 = Jul-2026..Jun-2027
+    fiscal_year        int          NOT NULL,   -- fiscal year runs July to June; FY2027 = July 2026 to June 2027
     fiscal_year_label  varchar(10)  NOT NULL,   -- 'FY2027'
-    fiscal_month_num   int          NOT NULL,   -- Jul = 1 ... Jun = 12 (sort key for fiscal visuals)
+    fiscal_month_num   int          NOT NULL,   -- July = 1 ... June = 12, for sorting months in fiscal order
     fiscal_quarter     int          NOT NULL,
     season_label       varchar(12)  NOT NULL    -- '2026-27'
 );
 ALTER TABLE dim.[date] ADD CONSTRAINT pk_dim_date PRIMARY KEY NONCLUSTERED (date_key) NOT ENFORCED;
 GO
 
--- SCD Type 2: address/geography/type changes create a new version, so a patron's
--- purchases and gifts are reported against where they lived AT THE TIME.
+-- When a patron moves or changes type, a new row is added and the old one is kept.
+-- Sales and gifts stay linked to where the patron lived at the time.
 CREATE TABLE dim.patron (
     patron_key       int           NOT NULL,
-    patron_id        varchar(20)   NOT NULL,   -- golden ID from Silver identity resolution
+    patron_id        varchar(20)   NOT NULL,   -- one ID per person, matched across ticketing and fundraising
     first_name       varchar(100)  NULL,
     last_name        varchar(100)  NULL,
     full_name        varchar(210)  NULL,
-    email            varchar(256)  NULL,       -- masked (DDM) for non-privileged SQL users
-    phone            varchar(40)   NULL,       -- masked (DDM)
+    email            varchar(256)  NULL,       -- hidden from SQL users without permission
+    phone            varchar(40)   NULL,       -- hidden from SQL users without permission
     address_line1    varchar(200)  NULL,
     city             varchar(100)  NULL,
     [state]          varchar(10)   NULL,
@@ -43,7 +43,7 @@ CREATE TABLE dim.patron (
     region           varchar(30)   NULL,       -- 'NYC', 'NY Metro', 'Domestic', 'Unknown'
     patron_type      varchar(20)   NULL,
     email_opt_in     bit           NULL,
-    source_systems   varchar(50)   NULL,       -- 'fundraising,ticketing' = known to both systems
+    source_systems   varchar(50)   NULL,       -- 'fundraising,ticketing' means the person is in both systems
     first_seen_date  date          NULL,
     scd_hash         varchar(64)   NULL,
     valid_from       datetime2(6)  NOT NULL,

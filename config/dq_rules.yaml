@@ -1,10 +1,10 @@
 # =============================================================================
-# dq_rules.yaml — declarative data-quality rules applied in the Silver notebook.
-#   severity: error -> row is QUARANTINED (dq.quarantine), not loaded to Silver
-#   severity: warn  -> row is loaded, violation is logged (dq.dq_results)
-# Every run writes one row per (entity, rule) to lh_silver.dq.dq_results, which
-# feeds the DQ dashboard and the Activator alert.
-# Rule types: not_null | unique | accepted_values | range | regex | foreign_key | not_future
+# dq_rules.yaml
+# Data quality checks run by the Silver notebook.
+#   error = the row is set aside in dq.quarantine and not loaded
+#   warn  = the row is loaded and the problem is logged
+# Every run records a pass rate per rule in lh_silver.dq.dq_results.
+# Rule types: not_null, accepted_values, range, regex, foreign_key, not_future
 # =============================================================================
 
 rules:
@@ -44,3 +44,11 @@ rules:
   education.enrollments:
     - { rule: range,       column: participants, min: 1, max: 2000, severity: error }
     - { rule: foreign_key, column: program_id, ref_entity: education.programs, ref_column: program_id, severity: error }
+
+  marketing.email_clicks:
+    - { rule: regex,       column: email, pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", severity: warn, allow_null: true }
+    - { rule: foreign_key, column: email_campaign_id, ref_entity: marketing.email_campaigns, ref_column: email_campaign_id, severity: error }
+
+  marketing.ad_spend_daily:
+    - { rule: range,           column: spend, min: 0, max: 100000, severity: error }
+    - { rule: accepted_values, column: platform, values: [Meta Ads, Google Ads], severity: warn }
