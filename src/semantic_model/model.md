@@ -1,12 +1,14 @@
 # Semantic models — build spec
 
-Two models, one per business domain. Both are **Direct Lake on OneLake** over `wh_gold`.
+Four models, one per business domain. All are **Direct Lake on OneLake** over `wh_gold`.
 They're built in the **DEV BI workspace** (web modeling or Power BI Desktop), then Git-synced and promoted by deployment pipeline.
 
 | Model | Workspace | Audience | Endorsement |
 |---|---|---|---|
 | `sm_audience_development` | `hh-audience-*` | Ticketing, marketing, development analysts; leadership | **Certified** (after review) |
 | `sm_education_impact` | `hh-education-*` | Education & Community staff, grants team | **Certified** |
+| `sm_finance` | `hh-finance-*` | Finance office (CFO), auditors | **Certified** |
+| `sm_operations` | `hh-operations-*` | Hall Operations, Event Services, Rentals | **Certified** |
 
 ## Why Direct Lake on OneLake (ADR-004)
 
@@ -33,6 +35,7 @@ They're built in the **DEV BI workspace** (web modeling or Power BI Desktop), th
 | `fact_gifts` | `fact.gifts` | Hide all keys. |
 | `fact_subscriptions` | `fact.subscriptions` | |
 | `sec_user_venue` | `sec.user_venue` | **Hidden.** Used only by dynamic RLS. |
+| `source_freshness` | `rpt.source_freshness` | Snapshot written by each Gold load. Data Trust measures as in [`finance_measures.dax`](finance_measures.dax). |
 | `_Measures` | (calculated, empty) | Holds all measures from `measures.dax`, in display folders. |
 
 `dim.venue` isn't imported. Venue attributes already live on `dim_performance`, and a second path to venue would make the filters ambiguous.
@@ -82,4 +85,87 @@ See [`rls_roles.md`](rls_roles.md).
 2. **Season & Performance.** A matrix of Season › Series › Performance with sell-through conditional formatting, a scatter of sell-through vs average ticket price, and a sales-pacing line (`Tickets Sold by Order Date`, by days before show).
 3. **Patrons.** New vs returning buyers, region map (`dim_patron[region]`), channel mix, and Buyer-to-Donor Conversion %.
 4. **Fundraising.** Campaign progress vs goal, the donor pyramid (gift bands), a LYBUNT list (table: patron, last-year amount), and a retention trend.
-5. **Data Trust.** Last load time, DQ pass rate by entity, quarantined rows (from `rpt.vw_dq_latest` / `vw_pipeline_health` via a small Import model or a paginated report).
+5. **Data Trust.** Source freshness (`source_freshness`: last load, data through, Fresh/Stale), plus DQ pass rate and quarantined rows (from `rpt.vw_dq_latest` / `vw_pipeline_health` via a paginated report).
+
+## sm_finance
+
+The Finance spoke (`hh-finance-*`, ADR-009), for the CFO's office. Direct Lake on OneLake over `wh_gold`.
+
+### Tables (from `wh_gold`)
+
+| Model table | Source | Notes |
+|---|---|---|
+| `dim_date` | `dim.date` | Mark as date table. Sort `month_name` by `fiscal_month_num`. |
+| `dim_account` | `fin.dim_account` | Hierarchy: Type › Group › Account. Sort by `account_code`. |
+| `dim_department` | `fin.dim_department` | |
+| `dim_fund` | `dim.fund` | The same fund dimension as the audience model; `mip_fund_code` is the ledger's code. |
+| `fact_gl_entry` | `fin.fact_gl_entry` | One row per journal line. Hide keys. |
+| `recon_revenue_to_gl` | `fin.recon_revenue_to_gl` | Monthly reconciliation, with finance's notes. |
+| `source_freshness` | `rpt.source_freshness` | Snapshot written by each Gold load; feeds the Data Trust page. |
+| `_Measures` | (empty) | [`finance_measures.dax`](finance_measures.dax) |
+
+### Relationships (many-to-one, single direction)
+
+| From (many) | To (one) | Active |
+|---|---|---|
+| `fact_gl_entry[effective_date_key]` | `dim_date[date_key]` | ✅ |
+| `fact_gl_entry[posted_date_key]` | `dim_date[date_key]` | ❌ (posting lag analysis via `USERELATIONSHIP`) |
+| `fact_gl_entry[account_key]` | `dim_account[account_key]` | ✅ |
+| `fact_gl_entry[fund_key]` | `dim_fund[fund_key]` | ✅ |
+| `fact_gl_entry[department_key]` | `dim_department[department_key]` | ✅ |
+| `recon_revenue_to_gl[month_start]` | `dim_date[date]` | ✅ |
+| `recon_revenue_to_gl[fund_code]` | `dim_fund[mip_fund_code]` | ✅ |
+
+The same "Time Intelligence" calculation group as the audience model (fiscal year ending 30 June).
+Role: **Finance** (`sg-hh-analysts-finance`), no row filter. The model itself is the boundary: only finance gets it.
+
+### Report pages
+
+1. **Income Statement.** Revenue, Expenses, Net Surplus by account group and month, FYTD vs PY (calc group), earned vs contributed mix.
+2. **Revenue Reconciliation.** Month × revenue stream (× fund) with Source, Ledger, Variance and status colour, and the lines to investigate with cause and resolution. This page replaces the month-end spreadsheet.
+3. **Data Trust.** Source freshness, Out of Balance (always 0), open reconciliation items.
+
+## sm_operations
+
+The Operations spoke (`hh-operations-*`, ADR-009), for Hall Operations, Event Services and Rentals. Direct Lake on OneLake over `wh_gold`. No ledger tables: rental revenue here is what Diese records; finance reconciles it to the ledger in `sm_finance`.
+
+### Tables (from `wh_gold`)
+
+| Model table | Source | Notes |
+|---|---|---|
+| `dim_date` | `dim.date` | Mark as date table. |
+| `dim_room` | `dim.room` | Hierarchy: Room type › Room. |
+| `dim_event` | `dim.event` | `client_name` can name a private client; the model is limited to the operations team, who deal with those clients. |
+| `dim_performance` | `dim.performance` | For concert events: which show, series and season. |
+| `fact_venue_booking` | `fact.venue_booking` | Hide keys. |
+| `source_freshness` | `rpt.source_freshness` | Data Trust page. |
+| `_Measures` | (empty) | [`operations_measures.dax`](operations_measures.dax) |
+
+### Relationships (many-to-one, single direction)
+
+| From (many) | To (one) | Active |
+|---|---|---|
+| `fact_venue_booking[booking_date_key]` | `dim_date[date_key]` | ✅ |
+| `fact_venue_booking[event_key]` | `dim_event[event_key]` | ✅ |
+| `fact_venue_booking[room_key]` | `dim_room[room_key]` | ✅ |
+| `dim_event[performance_key]` | `dim_performance[performance_key]` | ✅ (snowflake: event → performance; one direction only) |
+
+Role: **Operations** (`sg-hh-analysts-operations`), no row filter.
+
+### Report pages
+
+1. **Halls & Rentals.** Utilisation % by room and month, concert vs rental vs rehearsal hours, rental revenue and average fee, top rental clients.
+2. **Calendar.** Upcoming confirmed and tentative bookings by room, so holds are visible before they lapse.
+3. **Data Trust.** Source freshness, unlinked concerts (Diese events with no Tessitura performance).
+
+### Excel: the cube replacement
+
+Finance keeps working in Excel, against the certified model instead of a cube:
+Excel › Data › Get Data › From Power Platform › **From Power BI semantic model** › `sm_finance` (or any certified model) › PivotTable. Then PivotTable Analyze › OLAP Tools › **Convert to Formulas** turns it into `CUBEVALUE` cells that survive any layout, for example:
+
+```
+=CUBEVALUE("<connection>", "[Measures].[Revenue]", "[dim_date].[fiscal_year_label].&[FY2026]")
+=CUBEVALUE("<connection>", "[Measures].[Variance]", "[recon_revenue_to_gl].[revenue_stream].&[Contributions]", "[dim_date].[fiscal_year_label].&[FY2026]")
+```
+
+Same definitions as the reports, same security, refreshed by the same daily load. No cube processing to schedule.

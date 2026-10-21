@@ -5,36 +5,55 @@ flowchart TB
   classDef test fill:#FFF8E1,stroke:#F9A825,color:#3D2E00
   classDef prod fill:#E8F5E9,stroke:#2E7D32,color:#123D16
   classDef cap fill:#FCE4EC,stroke:#AD1457,color:#3D0A1F
-  classDef planned fill:#FAFAFA,stroke:#9E9E9E,color:#424242,stroke-dasharray: 5 4
+  classDef serves fill:#FFFFDE,stroke:#FFFFDE,color:#424242,font-style:italic
 
-  TEN["Fabric tenant · tenant settings audited (scripts/08)<br/>Capacity: F64 (trial in the mock) → all 9 workspaces<br/>BI models read Gold of the SAME env (deployment rules rebind)"]:::cap
+  TEN["Fabric tenant · tenant settings audited (scripts/08)<br/>Capacity: F64 (trial in the mock) → all 15 workspaces<br/>BI models read Gold of the SAME env (deployment rules rebind)"]:::cap
   ORG["Parent domain: Harmonia Hall<br/>Domain admins: sg-hh-fabric-admins (inherited by subdomains)<br/>Domain roles organise & delegate — they grant NO data access"]:::dom
   TEN --> ORG
 
   subgraph D1["Subdomain: Data Platform"]
     direction TB
-    W1D["hh-dataplatform-dev<br/>lh_bronze · lh_silver · wh_gold · notebooks · pipelines<br/>Admin: fabric-admins · Contributor: data-engineers<br/>Contributor: svc-dataflows-nonprod (service account only)<br/>Git ↔ main:/fabric/de"]:::dev
-    W1T["hh-dataplatform-test<br/>Admin: fabric-admins · Contributor: data-engineers<br/>Contributor: svc-dataflows-nonprod (service account only)"]:::test
-    W1P["hh-dataplatform-prod<br/>Admin: fabric-admins · Viewer: data-engineers<br/>Contributor: svc-dataflows-prod (runs the Dataflow; no people,<br/>separate from the non-prod account)"]:::prod
+    HD1["Data engineering for every domain<br/>ingestion · Bronze · Silver · Gold"]:::serves
+    HD1 ~~~ W1D
+    W1D["hh-dataplatform-dev<br/><i>(DEV - Data engineering for every domain)</i><br/>lh_bronze · lh_silver · wh_gold · notebooks · pipelines<br/>Admin: fabric-admins · Contributor: data-engineers<br/>Contributor: svc-dataflows-nonprod (service account only)<br/>Git ↔ main:/fabric/de"]:::dev
+    W1T["hh-dataplatform-test<br/><i>(TEST - Data engineering for every domain)</i><br/>Admin: fabric-admins · Contributor: data-engineers<br/>Contributor: svc-dataflows-nonprod (service account only)"]:::test
+    W1P["hh-dataplatform-prod<br/><i>(PROD - Data engineering for every domain)</i><br/>Admin: fabric-admins · Viewer: data-engineers<br/>Contributor: svc-dataflows-prod (runs the Dataflow; no people)"]:::prod
     W1D -- "dp-hh-dataplatform" --> W1T --> W1P
   end
   subgraph D2["Subdomain: Audience & Development"]
     direction TB
-    W2D["hh-audience-dev<br/>sm_audience_development · reports<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Git ↔ main:/fabric/bi-audience"]:::dev
-    W2T["hh-audience-test (UAT)<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Viewer: analysts-audience, analysts-development"]:::test
-    W2P["hh-audience-prod<br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → report-viewers + analysts"]:::prod
+    HD2["Marketing · Ticketing Services · Development"]:::serves
+    HD2 ~~~ W2D
+    W2D["hh-audience-dev<br/><i>(DEV - Marketing, Ticketing Services, Development)</i><br/>sm_audience_development · reports<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Git ↔ main:/fabric/bi-audience"]:::dev
+    W2T["hh-audience-test (UAT)<br/><i>(TEST - Marketing, Ticketing Services, Development)</i><br/>Admin: fabric-admins · Contributor: bi-developers<br/>Viewer: analysts-audience, analysts-development"]:::test
+    W2P["hh-audience-prod<br/><i>(PROD - Marketing, Ticketing Services, Development)</i><br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → report-viewers + analysts"]:::prod
     W2D -- "dp-hh-audience" --> W2T --> W2P
   end
   subgraph D3["Subdomain: Education & Community"]
     direction TB
-    W3D["hh-education-dev<br/>sm_education_impact<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Git ↔ main:/fabric/bi-education"]:::dev
-    W3T["hh-education-test (UAT)<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Viewer: education-team"]:::test
-    W3P["hh-education-prod<br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → education-team"]:::prod
+    HD3["Music Education · Community Programs"]:::serves
+    HD3 ~~~ W3D
+    W3D["hh-education-dev<br/><i>(DEV - Music Education and Community Programs)</i><br/>sm_education_impact<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Git ↔ main:/fabric/bi-education"]:::dev
+    W3T["hh-education-test (UAT)<br/><i>(TEST - Music Education and Community Programs)</i><br/>Admin: fabric-admins · Contributor: bi-developers<br/>Viewer: education-team"]:::test
+    W3P["hh-education-prod<br/><i>(PROD - Music Education and Community Programs)</i><br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → education-team"]:::prod
     W3D -- "dp-hh-education" --> W3T --> W3P
   end
-  subgraph D4["PLANNED subdomain: Finance & Operations (ADR-001, ADR-009)"]
+  subgraph D4["Subdomain: Finance"]
     direction TB
-    W4["hh-finance-dev / -test / -prod<br/>sm_finance · sm_venue_operations<br/>Admin: fabric-admins · Contributor: bi-developers (dev/test)<br/>Viewer: finance-analysts (test) · Org App in prod"]:::planned
+    HD4["Finance, CFO office"]:::serves
+    HD4 ~~~ W4D
+    W4D["hh-finance-dev<br/><i>(DEV - Finance, CFO office)</i><br/>sm_finance · reports<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Git ↔ main:/fabric/bi-finance"]:::dev
+    W4T["hh-finance-test (UAT)<br/><i>(TEST - Finance, CFO office)</i><br/>Admin: fabric-admins · Contributor: bi-developers<br/>Viewer: analysts-finance"]:::test
+    W4P["hh-finance-prod<br/><i>(PROD - Finance, CFO office)</i><br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → analysts-finance"]:::prod
+    W4D -- "dp-hh-finance" --> W4T --> W4P
   end
-  ORG --> D1 & D2 & D3
-  ORG -.-> D4
+  subgraph D5["Subdomain: Operations"]
+    direction TB
+    HD5["Hall Operations · Event Services · Rentals"]:::serves
+    HD5 ~~~ W5D
+    W5D["hh-operations-dev<br/><i>(DEV - Hall Operations, Event Services, Rentals)</i><br/>sm_operations · reports<br/>Admin: fabric-admins · Contributor: bi-developers<br/>Git ↔ main:/fabric/bi-operations"]:::dev
+    W5T["hh-operations-test (UAT)<br/><i>(TEST - Hall Operations, Event Services, Rentals)</i><br/>Admin: fabric-admins · Contributor: bi-developers<br/>Viewer: analysts-operations"]:::test
+    W5P["hh-operations-prod<br/><i>(PROD - Hall Operations, Event Services, Rentals)</i><br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → analysts-operations"]:::prod
+    W5D -- "dp-hh-operations" --> W5T --> W5P
+  end
+  ORG --> D1 & D2 & D3 & D4 & D5

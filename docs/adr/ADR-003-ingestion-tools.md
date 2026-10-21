@@ -18,7 +18,9 @@ Harmonia Hall's data lives in four places, each with different owners, volumes a
 | Source | Lives in (this lab) | Tool | Lands in Bronze as | Why | Alternative rejected |
 |---|---|---|---|---|---|
 | Tessitura database | On-premises SQL Server 2022, schema `tix`, reached through the **on-premises data gateway** | **Copy job**, incremental on `updated_at`, append | `lh_bronze.tessitura.*` tables, typed | Built-in watermarking with nothing to maintain. Only needs a read-only login. The gateway connects outbound only, so no firewall port is opened. | **Mirroring** needs admin rights on the source server to turn on change tracking, which a vendor-hosted Tessitura doesn't give you. A **Dataflow** costs more capacity per GB at this volume. |
-| Tessitura REST API | REST API with paging (mock on GitHub Pages) | **Notebook** `nb_05_tessitura_api` | Raw records in `Files/landing/tessitura_api`, then `lh_bronze.tessitura.*` | Paging, retries on 429/5xx, record-count checks and auth all need code. Raw responses are kept, so a Bronze reload never calls the API again. | A **Copy activity** with the REST connector gets brittle with nested JSON, custom paging and OAuth. |
+| Tessitura REST API | REST API with paging (mock on GitHub Pages) | **Notebook** `nb_05_api_ingest` | Raw records in `Files/landing/tessitura_api`, then `lh_bronze.tessitura.*` | Paging, retries on 429/5xx, record-count checks and auth all need code. Raw responses are kept, so a Bronze reload never calls the API again. | A **Copy activity** with the REST connector gets brittle with nested JSON, custom paging and OAuth. |
+| MIP general ledger | On-premises SQL Server, database `HarmoniaMIP` | **Copy job** `cj_mip`, incremental, append, **its own read-only login** | `lh_bronze.mip.*` tables, typed | Same pattern as Tessitura: on-premises, read-only access, changes found by `updated_at`. A separate login because finance owns the ledger and must be able to revoke access to it alone. | A shared login with Tessitura: one secret fewer, but one leak exposes both systems. |
+| Diese bookings | REST API with paging (mock on GitHub Pages) | **The same notebook** `nb_05_api_ingest` | Raw records in `Files/landing/diese_api`, then `lh_bronze.diese.*` | A second API source is a `sources.yaml` entry, not new code: the notebook reads every `notebook_api` source. | A copy of the notebook per API: twice the code to maintain and to fix. |
 | Education | Excel in SharePoint | **Dataflow Gen2** `df_education_sharepoint` | `lh_bronze.dbo.*` tables, replaced each run (Dataflow Gen2 can't choose a schema yet) | Small, and the clean-up rules belong to the business. The analyst can read and change Power Query. | A **notebook** would make IT the bottleneck for a spreadsheet. |
 | Marketing | ADLS Gen2 container `marketing-exports` | **OneLake shortcut** `Files/landing/marketing` | Read in place, then `lh_bronze.marketing.*` | Zero copy and zero pipeline. The marketing team keeps owning its storage. | **Copying** the files would store them twice and add a step that can fail. |
 
@@ -26,8 +28,8 @@ Specs: [`src/ingestion/`](../../src/ingestion/README.md). Settings per source: t
 
 Two kinds of Bronze come out of this, and Silver handles both:
 
-- **File sources** (Tessitura API, marketing) land as files, and `nb_10` loads them as text with lineage columns and checks the row counts against a manifest. Silver picks up new rows by `_load_date`.
-- **Table sources** (Tessitura database, education) are written straight into Bronze by the tool. Silver picks up new Tessitura rows by `updated_at`, and re-reads the small education tables in full.
+- **File sources** (Tessitura API, Diese API, marketing) land as files, and `nb_10` loads them as text with lineage columns and checks the row counts against a manifest. Silver picks up new rows by `_load_date`.
+- **Table sources** (Tessitura database, MIP, education) are written straight into Bronze by the tool. Silver picks up new Tessitura and MIP rows by `updated_at`, and re-reads the small education tables in full.
 
 ## Consequences
 

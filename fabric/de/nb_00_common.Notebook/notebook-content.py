@@ -132,6 +132,8 @@ def _violation(df: DataFrame, rule: dict):
         return c.isNotNull() & ((c < F.lit(rule["min"])) | (c > F.lit(rule["max"])))
     if r == "not_future":
         return c.isNotNull() & (c.cast("timestamp") > F.current_timestamp())
+    if r == "expression":                     # a condition across columns; unknown (null) counts as failing
+        return ~F.coalesce(F.expr(rule["check"]), F.lit(False))
     raise ValueError(f"unknown rule {r}")
 
 

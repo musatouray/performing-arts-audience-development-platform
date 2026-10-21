@@ -63,9 +63,9 @@ Business consumers have **no role in PROD workspaces**. They get the **Org App**
 > [!NOTE]
 > *"Engineers own the data plane; each business area gets its own BI workspace, domain and app. That gives us separation of duties without drowning a four-person team in workspaces."*
 
-## Planned next domain: Finance & Operations
+## Finance, then Operations
 
-Not built yet, on purpose. It's the first domain to add once the audience, fundraising and education domains are running and trusted.
+> **Update:** built by [ADR-009](ADR-009-domain-expansion-hub-and-spoke.md), as **two** domains rather than one: **Finance** (CFO office: the ledger and reconciliation) and **Operations** (Hall Operations, Event Services, Rentals: the hall calendar). They answer to different leaders and carry very different sensitivity. The reasoning below for giving Finance its own domain still holds.
 
 **Why Finance gets its own domain instead of joining an existing one:**
 
@@ -78,7 +78,7 @@ Not built yet, on purpose. It's the first domain to add once the audience, fundr
 
 **How it would fit the current design:**
 
-- **Workspaces:** a new family, `hh-finance-{dev,test,prod}`, in a new subdomain **Finance & Operations**, holding both the finance model and the venue operations model (ADR-009), with its own deployment pipeline and a `sg-hh-finance-analysts` group. One family added to `tenant.yaml`, then re-run scripts 02–05.
+- **Workspaces:** a new family, `hh-finance-{dev,test,prod}`, in a new subdomain **Finance**, with its own deployment pipeline and a `sg-hh-analysts-finance` group; Operations gets `hh-operations-{env}` the same way (ADR-009). Each is one family added to `tenant.yaml`, then re-run scripts 00–05.
 - **Data:** engineers still own the data plane. The general ledger is ingested into `lh_bronze` and `lh_silver` like any other source. Gold gains a small finance star schema: `fact_gl_entry`, `dim_account`, `dim_fund` (restricted vs unrestricted, matching the existing fundraising funds) and `dim_department`.
 - **First deliverable: reconciliations, not dashboards.**
   - Box-office daily settlement vs bank deposits.

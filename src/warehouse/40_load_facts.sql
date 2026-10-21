@@ -168,10 +168,15 @@ BEGIN
     BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM dim.[date]) EXEC etl.usp_load_dim_date;
         EXEC etl.usp_load_dim_reference @run_id;
+        EXEC etl.usp_load_finance_dims @run_id;        -- accounts, departments, ledger fund codes (70)
         EXEC etl.usp_load_dim_patron @run_id;          -- facts need the dimension keys, so dimensions load first
+        EXEC etl.usp_load_venue_ops @run_id;           -- rooms, events (linked to performances), bookings (70)
         EXEC etl.usp_load_fact_ticket_sales @run_id;
         EXEC etl.usp_load_fact_gifts @run_id;
         EXEC etl.usp_load_fact_subscriptions_and_education @run_id;
+        EXEC etl.usp_load_fact_gl_entry @run_id;       -- the ledger (70)
+        EXEC etl.usp_build_recon_revenue_to_gl @run_id; -- last: compares the facts above with the ledger (70)
+        EXEC etl.usp_snapshot_source_freshness @run_id; -- how current each source is, for the models (80)
     END TRY
     BEGIN CATCH
         DECLARE @msg varchar(4000) = CONCAT(ERROR_PROCEDURE(), ': ', ERROR_MESSAGE());

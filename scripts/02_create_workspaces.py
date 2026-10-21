@@ -54,12 +54,15 @@ def main():
             if a.env and env != a.env:
                 continue
             name = ws_name(fam["key"], env)
+            description = f"{env.upper()} - {fam['serves']}"     # e.g. "DEV - Marketing, Ticketing Services, Development"
             ws = find_workspace(c, name)
             if ws:
                 print(f"  = {name:<26} exists  {ws['id']}")
+                if ws.get("description") != description:       # keep existing workspaces in step with tenant.yaml
+                    c.call("PATCH", f"/workspaces/{ws['id']}", {"description": description})
+                    print(f"      description -> {description}")
             else:
-                ws = c.post("/workspaces", {"displayName": name, "capacityId": cap["id"],
-                                            "description": f"{fam['display']} [{env.upper()}] - managed by tenant.yaml"})
+                ws = c.post("/workspaces", {"displayName": name, "capacityId": cap["id"], "description": description})
                 print(f"  + {name:<26} created {ws.get('id')}")
             if ws.get("capacityId") and ws["capacityId"] != cap["id"]:
                 c.post(f"/workspaces/{ws['id']}/assignToCapacity", {"capacityId": cap["id"]})

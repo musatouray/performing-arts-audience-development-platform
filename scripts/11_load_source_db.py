@@ -1,24 +1,30 @@
-"""Step 11: load the generated Tessitura data into the mock Tessitura database.
+"""Step 11: load generated data into the mock source databases (Tessitura and MIP).
 
-This plays the part of Tessitura itself. Each run applies one or more
-days of sales, returns and address changes to the tix tables, the way the real
-system would during the day. The Fabric Copy job then copies the changes to Bronze.
+This plays the part of the source systems themselves. Each run applies one or more
+days of changes (sales, returns, address changes, ledger postings) to the source
+tables, the way the real system would during the day. A Fabric Copy job per system
+then copies the changes to Bronze.
 
-  * The first run creates schema tix and its tables, based on config/sources.yaml.
-  * Each data/tessitura_db/<table>/load_date=D folder is applied once, oldest first.
-    tix._load_history remembers which days are done.
+Works for every source in config/sources.yaml that has a source_db block:
+  tessitura_db  -> database TESSITURA_SQL_DATABASE, schema tix
+  mip_db        -> database MIP_SQL_DATABASE,       schema dbo
+
+  * The first run creates the schema and tables, based on config/sources.yaml.
+  * Each data/<source>/<table>/load_date=D folder is applied once, oldest first.
+    <schema>._load_history remembers which days are done.
   * New rows are inserted. Changed rows are updated and get a new updated_at.
     Unchanged rows are left alone, so the Copy job doesn't copy them again.
 
 Works with SQL Server on your own computer (the lab setup) or Azure SQL Database.
-How it signs in is set by TESSITURA_SQL_AUTH in .env:
+How it signs in is set per system in .env (TESSITURA_SQL_AUTH, MIP_SQL_AUTH):
   windows  your Windows account (on-premises SQL Server)
   sql      a SQL login from SQL_USER and SQL_PASSWORD
   entra    your az login account (Azure SQL Database; the default)
 On SQL Server the database is created if it doesn't exist yet.
 Needs the Microsoft ODBC Driver 18 for SQL Server on this computer.
 
-Run: uv run python scripts/11_load_tessitura_db.py [--load-date 2026-09-28] [--dry-run]
+Run: uv run python scripts/11_load_source_db.py [--source mip_db] [--load-date 2026-09-28] [--dry-run]
+     (no --source = every database source)
 """
 
 import csv
@@ -68,17 +74,17 @@ def ensure_database(pyodbc, conn_str: str, database: str, auth: str):
             conn.execute(f"CREATE DATABASE [{database}]")
 
 
-def connect(db: dict):
+def connect(db: dict, prefix: str):
     import pyodbc
 
     drivers = [d for d in pyodbc.drivers() if d.startswith("ODBC Driver") and "SQL Server" in d]
     if not drivers:
         sys.exit("No SQL Server ODBC driver found. Install ODBC Driver 18 for SQL Server:\n"
                  "https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server")
-    auth = os.getenv("TESSITURA_SQL_AUTH", "entra").lower()
+    auth = os.getenv(f"{prefix}_SQL_AUTH", "entra").lower()
     # A local SQL Server usually has a self-signed certificate. Trusting it is fine on your own
     # computer; never turn this on for a server you reach over a network.
-    trust = "yes" if os.getenv("TESSITURA_SQL_TRUST_SERVER_CERT", "no").lower() in ("yes", "true", "1") else "no"
+    trust = "yes" if os.getenv(f"{prefix}_SQL_TRUST_SERVER_CERT", "no").lower() in ("yes", "true", "1") else "no"
     conn_str = (f"Driver={{{sorted(drivers)[-1]}}};Server={db['server']};Database={db['database']};"
                 f"Encrypt=yes;TrustServerCertificate={trust};Connection Timeout=60")
     if auth in ("windows", "sql"):
@@ -156,32 +162,27 @@ def load_table_day(cur, schema: str, ent: dict, path: Path):
     return len(rows), inserted, updated
 
 
-def main():
-    ap = std_args(__doc__)
-    ap.add_argument("--data", type=Path, default=ROOT / "data" / "tessitura_db")
-    ap.add_argument("--load-date", help="only apply this day (default: every day not applied yet)")
-    a = ap.parse_args()
-
-    src = next(s for s in sources_config()["sources"] if s["source"] == "tessitura_db")
+def load_source(src: dict, data: Path, load_date: str | None, dry_run: bool):
     db = src["ingestion"]["source_db"]
     schema = db["schema"]
+    prefix = (src.get("system") or src["source"]).upper()           # TESSITURA, MIP: names the .env settings
     if unfilled(db):
-        sys.exit("Add TESSITURA_SQL_SERVER and TESSITURA_SQL_DATABASE to .env first.")
+        sys.exit(f"Add {prefix}_SQL_SERVER and {prefix}_SQL_DATABASE to .env first.")
 
-    days = sorted({p.name.split("=")[1] for p in a.data.glob("*/load_date=*")})
-    if a.load_date:
-        days = [d for d in days if d == a.load_date]
+    days = sorted({p.name.split("=")[1] for p in data.glob("*/load_date=*") if p.is_dir()})   # skips _manifests files
+    if load_date:
+        days = [d for d in days if d == load_date]
     if not days:
-        sys.exit(f"No data in {a.data}. Run: uv run python -m data_generator.generate full")
-    banner(f"Tessitura database {db['server']}/{db['database']} (schema {schema})")
+        sys.exit(f"No data in {data}. Run: uv run python -m data_generator.generate full")
+    banner(f"{src['source']}: {db['server']}/{db['database']} (schema {schema})")
 
-    if a.dry_run:
+    if dry_run:
         for ent in src["entities"]:
             print(create_table_sql(schema, ent), "\n")
         print(f"   [dry-run] would apply {len(days)} day(s): {days[0]} .. {days[-1]}")
         return
 
-    conn = connect(db)
+    conn = connect(db, prefix)
     cur = conn.cursor()
     cur.execute(f"IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA [{schema}]');")
     for ent in src["entities"]:
@@ -197,7 +198,7 @@ def main():
         for ent in src["entities"]:                       # lookup tables first, in the order of sources.yaml
             if (d, ent["name"]) in done:
                 continue
-            path = a.data / ent["name"] / f"load_date={d}" / f"{ent['name']}.csv"
+            path = data / ent["name"] / f"load_date={d}" / f"{ent['name']}.csv"
             if not path.exists():
                 continue
             rows_in, ins, upd = load_table_day(cur, schema, ent, path)
@@ -206,6 +207,19 @@ def main():
             conn.commit()
             print(f"   {ent['name']:<15} {rows_in:>9,} in   {ins:>9,} new   {upd:>7,} changed")
     print("\n  Done. The next Copy job run picks up the new and changed rows.")
+
+
+def main():
+    db_sources = [s for s in sources_config()["sources"] if (s.get("ingestion") or {}).get("source_db")]
+    ap = std_args(__doc__)
+    ap.add_argument("--source", choices=[s["source"] for s in db_sources], help="one source (default: all)")
+    ap.add_argument("--data", type=Path, help="folder with the generated CSVs (default: data/<source>)")
+    ap.add_argument("--load-date", help="only apply this day (default: every day not applied yet)")
+    a = ap.parse_args()
+    for src in db_sources:
+        if a.source and src["source"] != a.source:
+            continue
+        load_source(src, a.data or ROOT / "data" / src["source"], a.load_date, a.dry_run)
 
 
 if __name__ == "__main__":

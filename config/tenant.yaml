@@ -48,6 +48,8 @@ security_groups:
   analysts_audience:    { name: "sg-hh-analysts-audience",    purpose: "Ticketing and marketing analysts." }
   analysts_development: { name: "sg-hh-analysts-development", purpose: "Fundraising analysts. Can see donor giving history." }
   education_team:       { name: "sg-hh-education-team",       purpose: "Education program staff. Education data only." }
+  analysts_finance:     { name: "sg-hh-analysts-finance",     purpose: "Finance office (CFO). Ledger, income statement and revenue-to-ledger reconciliation." }
+  analysts_operations:  { name: "sg-hh-analysts-operations",  purpose: "Hall Operations, Event Services and Rentals. Hall calendar, room use and rental revenue; no ledger." }
   report_viewers:       { name: "sg-hh-report-viewers",       purpose: "Staff who use the published report apps." }
   # Dataflow Gen2 can't run as a workspace identity or service principal yet
   # (ADR-003), so a service account owns the Dataflow: one for dev and test,
@@ -72,11 +74,19 @@ domains:
   - key: audience
     parent: org
     name: "Audience & Development"
-    description: "Ticketing, subscriptions, patrons and fundraising analytics."
+    description: "Marketing, Ticketing Services and Development: ticket sales, subscriptions, patrons and fundraising."
   - key: education
     parent: org
     name: "Education & Community"
-    description: "Music education and social-impact program analytics."
+    description: "Music education and community programs: sessions, schools and reach."
+  - key: finance
+    parent: org
+    name: "Finance"
+    description: "Finance office (CFO): general ledger, income statement and revenue-to-ledger reconciliation (ADR-009)."
+  - key: operations
+    parent: org
+    name: "Operations"
+    description: "Hall Operations, Event Services and Rentals: the hall calendar, room use and rental revenue (ADR-009)."
 
 # Items have the same names in every environment, so code moves from dev to
 # test to prod without any changes.
@@ -85,12 +95,16 @@ environments: [dev, test, prod]
 # -----------------------------------------------------------------------------
 # Workspaces. Each family gets one workspace per environment,
 # named {org}-{family}-{env}, for example hh-dataplatform-dev.
+# "serves" says who the workspace is for, in the business's own words. It becomes
+# the workspace description ("DEV - Marketing, Ticketing Services, Development"),
+# so anyone browsing Fabric can tell what a workspace is for without asking.
 # Builders can edit in dev and test. In prod they can only view, so prod only
 # changes through a deployment pipeline.
 # -----------------------------------------------------------------------------
 workspace_families:
   - key: dataplatform
     display: "Data Platform"
+    serves: "Data engineering for every domain"
     domain: platform
     git_directory: fabric/de           # repo folder the dev workspace syncs to
     items:
@@ -108,6 +122,7 @@ workspace_families:
 
   - key: audience
     display: "Audience & Development BI"
+    serves: "Marketing, Ticketing Services, Development"
     domain: audience
     git_directory: fabric/bi-audience
     items: {}                           # models and reports are built in Fabric, then saved to Git
@@ -118,12 +133,38 @@ workspace_families:
 
   - key: education
     display: "Education & Community BI"
+    serves: "Music Education and Community Programs"
     domain: education
     git_directory: fabric/bi-education
     items: {}
     roles:
       dev:  { fabric_admins: Admin, bi_developers: Contributor }
       test: { fabric_admins: Admin, bi_developers: Contributor, education_team: Viewer }
+      prod: { fabric_admins: Admin, bi_developers: Viewer }
+
+  # Finance and Operations are separate spokes: different leaders, different sensitivity.
+  # The ledger never reaches the operations workspace. Both read the same Gold in the hub,
+  # so "rental revenue vs the ledger" still works without copying data (ADR-009).
+  - key: finance
+    display: "Finance BI"
+    serves: "Finance, CFO office"
+    domain: finance
+    git_directory: fabric/bi-finance
+    items: {}
+    roles:
+      dev:  { fabric_admins: Admin, bi_developers: Contributor }
+      test: { fabric_admins: Admin, bi_developers: Contributor, analysts_finance: Viewer }
+      prod: { fabric_admins: Admin, bi_developers: Viewer }
+
+  - key: operations
+    display: "Operations BI"
+    serves: "Hall Operations, Event Services, Rentals"
+    domain: operations
+    git_directory: fabric/bi-operations
+    items: {}
+    roles:
+      dev:  { fabric_admins: Admin, bi_developers: Contributor }
+      test: { fabric_admins: Admin, bi_developers: Contributor, analysts_operations: Viewer }
       prod: { fabric_admins: Admin, bi_developers: Viewer }
 
 # One deployment pipeline per workspace family.
@@ -174,3 +215,9 @@ onelake_security:
     - name: EducationReaders
       members: [education_team]
       tables: [education/programs, education/schools, education/enrollments]
+    - name: FinanceReaders
+      members: [analysts_finance]
+      tables: [mip/gl_transaction, mip/gl_account, mip/fund, mip/department]
+    - name: OperationsReaders
+      members: [analysts_operations]
+      tables: [diese/room, diese/event, diese/booking]

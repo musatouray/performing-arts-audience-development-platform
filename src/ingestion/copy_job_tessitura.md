@@ -4,7 +4,7 @@ Copies new and changed Tessitura rows from the on-premises SQL Server into Bronz
 
 ## Before you start
 
-Runbook Phase 8.1: the data loaded with `scripts/11_load_tessitura_db.py`, the read-only login `svc_fabric_reader`, and a SQL Server connection through your gateway.
+Runbook Phase 8.1: the data loaded with `scripts/11_load_source_db.py --source tessitura_db`, the read-only login `svc_fabric_reader`, and a SQL Server connection through your gateway.
 
 ## Build it
 
@@ -21,7 +21,7 @@ Runbook Phase 8.1: the data loaded with `scripts/11_load_tessitura_db.py`, the r
 
 - The first run copies everything (~510k rows); later runs copy only the rows changed since the last one.
 - `lh_bronze` › Tables › `tessitura` has seven tables with real data types (not text).
-- Run `11_load_tessitura_db.py` again after an incremental generator run, then run the Copy job: the row counts should be in the hundreds, not thousands.
+- Run `11_load_source_db.py --source tessitura_db` again after an incremental generator run, then run the Copy job: the row counts should be in the hundreds, not thousands.
 
 ## Why these choices
 

@@ -4,7 +4,8 @@
 #   error = the row is set aside in dq.quarantine and not loaded
 #   warn  = the row is loaded and the problem is logged
 # Every run records a pass rate per rule in lh_silver.dq.dq_results.
-# Rule types: not_null, accepted_values, range, regex, foreign_key, not_future
+# Rule types: not_null, accepted_values, range, regex, foreign_key, not_future,
+#   expression (a Spark SQL condition every row must meet, for checks across columns)
 # =============================================================================
 
 rules:
@@ -36,6 +37,26 @@ rules:
     - { rule: range,     column: amount, min: -1000000, max: 10000000, severity: error }
     - { rule: accepted_values, column: contribution_type, values: [Cash, Credit Card, Stock, Pledge Payment, Reversal], severity: warn }
     - { rule: foreign_key, column: constituent_id, ref_entity: tessitura.constituent, ref_column: constituent_id, severity: warn }
+
+  mip.gl_transaction:
+    - { rule: not_null,    column: account_code, severity: error }
+    - { rule: foreign_key, column: account_code, ref_entity: mip.gl_account, ref_column: account_code, severity: error }
+    - { rule: foreign_key, column: fund_code, ref_entity: mip.fund, ref_column: fund_code, severity: error }
+    - { rule: foreign_key, column: department_code, ref_entity: mip.department, ref_column: department_code, severity: warn }
+    - { rule: range,       column: debit_amount,  min: 0, max: 100000000, severity: error }
+    - { rule: range,       column: credit_amount, min: 0, max: 100000000, severity: error }
+    - { rule: expression,  check: "NOT (debit_amount > 0 AND credit_amount > 0)", severity: error }   # a line is a debit or a credit, not both
+
+  diese.event:
+    - { rule: accepted_values, column: event_type, values: [Concert, Rental, Rehearsal], severity: warn }
+    - { rule: accepted_values, column: status, values: [Tentative, Confirmed, Completed, Cancelled], severity: warn }
+    - { rule: foreign_key, column: tessitura_performance_id, ref_entity: tessitura.performance, ref_column: performance_id, severity: warn }
+
+  diese.booking:
+    - { rule: foreign_key, column: room_id,  ref_entity: diese.room,  ref_column: room_id,  severity: error }
+    - { rule: foreign_key, column: event_id, ref_entity: diese.event, ref_column: event_id, severity: error }
+    - { rule: expression,  check: "end_datetime > start_datetime", severity: error }
+    - { rule: range,       column: rental_fee, min: 0, max: 250000, severity: error }
 
   education.enrollments:
     - { rule: range,       column: participants, min: 1, max: 2000, severity: error }
