@@ -9,13 +9,13 @@ BEGIN
 
     /* ---- venue ---- */
     UPDATE t SET venue_name = s.venue_name, capacity = s.capacity
-    FROM dim.venue AS t JOIN [lh_silver].[ticketing].[venues] AS s ON t.venue_id = s.venue_id
+    FROM dim.venue AS t JOIN [lh_silver].[tessitura].[venue] AS s ON t.venue_id = s.venue_id
     WHERE t.venue_name <> s.venue_name OR ISNULL(t.capacity, -9) <> ISNULL(s.capacity, -9);
     SET @upd += @@ROWCOUNT;
     SELECT @max = ISNULL(MAX(venue_key), 0) FROM dim.venue WHERE venue_key > 0;
     INSERT INTO dim.venue
     SELECT @max + ROW_NUMBER() OVER (ORDER BY s.venue_id), s.venue_id, s.venue_name, s.capacity
-    FROM [lh_silver].[ticketing].[venues] AS s
+    FROM [lh_silver].[tessitura].[venue] AS s
     WHERE NOT EXISTS (SELECT 1 FROM dim.venue AS t WHERE t.venue_id = s.venue_id);
     SET @ins += @@ROWCOUNT;
     IF NOT EXISTS (SELECT 1 FROM dim.venue WHERE venue_key = -1)
@@ -28,9 +28,9 @@ BEGIN
                CONVERT(int, CONVERT(varchar(8), CAST(p.performance_datetime AS date), 112)) AS performance_date_key,
                CASE WHEN DATEPART(hour, p.performance_datetime) < 17 THEN 'Matinee' ELSE 'Evening' END AS day_part,
                p.capacity, p.[status]
-        FROM [lh_silver].[ticketing].[performances] AS p
-        LEFT JOIN [lh_silver].[ticketing].[seasons] AS s ON s.season_id = p.season_id
-        LEFT JOIN [lh_silver].[ticketing].[venues]  AS v ON v.venue_id = p.venue_id
+        FROM [lh_silver].[tessitura].[performance] AS p
+        LEFT JOIN [lh_silver].[tessitura].[season] AS s ON s.season_id = p.season_id
+        LEFT JOIN [lh_silver].[tessitura].[venue]   AS v ON v.venue_id = p.venue_id
     )
     UPDATE t SET title = s.title, series = s.series, genre = s.genre, season_id = s.season_id,
                  season_name = s.season_name, fiscal_year = s.fiscal_year, venue_id = s.venue_id,
@@ -49,9 +49,9 @@ BEGIN
            CONVERT(int, CONVERT(varchar(8), CAST(p.performance_datetime AS date), 112)),
            CASE WHEN DATEPART(hour, p.performance_datetime) < 17 THEN 'Matinee' ELSE 'Evening' END,
            p.capacity, p.[status]
-    FROM [lh_silver].[ticketing].[performances] AS p
-    LEFT JOIN [lh_silver].[ticketing].[seasons] AS s ON s.season_id = p.season_id
-    LEFT JOIN [lh_silver].[ticketing].[venues]  AS v ON v.venue_id = p.venue_id
+    FROM [lh_silver].[tessitura].[performance] AS p
+    LEFT JOIN [lh_silver].[tessitura].[season] AS s ON s.season_id = p.season_id
+    LEFT JOIN [lh_silver].[tessitura].[venue]   AS v ON v.venue_id = p.venue_id
     WHERE NOT EXISTS (SELECT 1 FROM dim.performance AS t WHERE t.performance_id = p.performance_id);
     SET @ins += @@ROWCOUNT;
     IF NOT EXISTS (SELECT 1 FROM dim.performance WHERE performance_key = -1)
@@ -62,7 +62,7 @@ BEGIN
     SELECT @max = ISNULL(MAX(channel_key), 0) FROM dim.channel WHERE channel_key > 0;
     INSERT INTO dim.channel
     SELECT @max + ROW_NUMBER() OVER (ORDER BY c.channel), c.channel
-    FROM (SELECT DISTINCT channel FROM [lh_silver].[ticketing].[orders] WHERE channel IS NOT NULL) AS c
+    FROM (SELECT DISTINCT channel FROM [lh_silver].[tessitura].[order] WHERE channel IS NOT NULL) AS c
     WHERE NOT EXISTS (SELECT 1 FROM dim.channel AS t WHERE t.channel_name = c.channel);
     SET @ins += @@ROWCOUNT;
     IF NOT EXISTS (SELECT 1 FROM dim.channel WHERE channel_key = -1)
@@ -71,13 +71,13 @@ BEGIN
     /* ---- campaign ---- */
     UPDATE t SET campaign_name = s.campaign_name, campaign_type = s.campaign_type,
                  fiscal_year = s.fiscal_year, goal_amount = s.goal_amount
-    FROM dim.campaign AS t JOIN [lh_silver].[fundraising].[campaigns] AS s ON t.campaign_id = s.campaign_id
+    FROM dim.campaign AS t JOIN [lh_silver].[tessitura].[campaign] AS s ON t.campaign_id = s.campaign_id
     WHERE ISNULL(t.goal_amount, -1) <> ISNULL(s.goal_amount, -1) OR ISNULL(t.campaign_name, '') <> ISNULL(s.campaign_name, '');
     SET @upd += @@ROWCOUNT;
     SELECT @max = ISNULL(MAX(campaign_key), 0) FROM dim.campaign WHERE campaign_key > 0;
     INSERT INTO dim.campaign
     SELECT @max + ROW_NUMBER() OVER (ORDER BY s.campaign_id), s.campaign_id, s.campaign_name, s.campaign_type, s.fiscal_year, s.goal_amount
-    FROM [lh_silver].[fundraising].[campaigns] AS s
+    FROM [lh_silver].[tessitura].[campaign] AS s
     WHERE NOT EXISTS (SELECT 1 FROM dim.campaign AS t WHERE t.campaign_id = s.campaign_id);
     SET @ins += @@ROWCOUNT;
     IF NOT EXISTS (SELECT 1 FROM dim.campaign WHERE campaign_key = -1)
@@ -87,7 +87,7 @@ BEGIN
     SELECT @max = ISNULL(MAX(fund_key), 0) FROM dim.fund WHERE fund_key > 0;
     INSERT INTO dim.fund
     SELECT @max + ROW_NUMBER() OVER (ORDER BY s.fund_id), s.fund_id, s.fund_name, s.is_restricted
-    FROM [lh_silver].[fundraising].[funds] AS s
+    FROM [lh_silver].[tessitura].[fund] AS s
     WHERE NOT EXISTS (SELECT 1 FROM dim.fund AS t WHERE t.fund_id = s.fund_id);
     SET @ins += @@ROWCOUNT;
     IF NOT EXISTS (SELECT 1 FROM dim.fund WHERE fund_key = -1)

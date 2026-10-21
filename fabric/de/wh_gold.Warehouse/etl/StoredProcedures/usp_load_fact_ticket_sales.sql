@@ -15,8 +15,8 @@ BEGIN
     EXEC etl.usp_get_watermark 'fact.ticket_sales', @wm OUTPUT;
 
     SELECT @new_wm = MAX(x) FROM (
-        SELECT MAX(_silver_updated_at) AS x FROM [lh_silver].[ticketing].[order_lines]
-        UNION ALL SELECT MAX(_silver_updated_at) FROM [lh_silver].[ticketing].[orders]) AS t;
+        SELECT MAX(_silver_updated_at) AS x FROM [lh_silver].[tessitura].[order_line]
+        UNION ALL SELECT MAX(_silver_updated_at) FROM [lh_silver].[tessitura].[order]) AS t;
 
     -- Pick up lines that changed, and lines whose order changed (for example, was returned).
     DROP TABLE IF EXISTS etl.stg_ticket_sales;
@@ -38,9 +38,9 @@ BEGIN
            CAST(ISNULL(ol.is_comp, 0) AS bit)                                             AS is_comp,
            CAST(CASE WHEN o.[status] = 'Returned' THEN 1 ELSE 0 END AS bit)               AS is_returned,
            CAST(SYSUTCDATETIME() AS datetime2(6))                                         AS loaded_at   -- Warehouse only stores up to 6 decimal places
-    FROM [lh_silver].[ticketing].[order_lines] AS ol
-    LEFT JOIN [lh_silver].[ticketing].[orders]      AS o  ON o.order_id = ol.order_id
-    LEFT JOIN [lh_silver].[core].[patron_xref]      AS x  ON x.source_system = 'ticketing' AND x.source_id = o.customer_id
+    FROM [lh_silver].[tessitura].[order_line] AS ol
+    LEFT JOIN [lh_silver].[tessitura].[order]      AS o  ON o.order_id = ol.order_id
+    LEFT JOIN [lh_silver].[core].[patron_xref]      AS x  ON x.source_system = 'tessitura' AND x.source_id = o.constituent_id
     LEFT JOIN dim.patron                            AS p  ON p.patron_id = x.patron_id
                                                          AND o.order_datetime >= p.valid_from AND o.order_datetime < p.valid_to
     LEFT JOIN dim.performance                       AS dp ON dp.performance_id = ol.performance_id

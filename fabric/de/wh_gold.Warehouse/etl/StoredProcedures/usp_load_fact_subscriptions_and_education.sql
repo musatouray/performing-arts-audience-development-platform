@@ -10,9 +10,9 @@ BEGIN
            ISNULL(CONVERT(int, CONVERT(varchar(8), CAST(s.purchased_at AS date), 112)), -1),
            s.season_id, se.fiscal_year, s.package_name, ISNULL(s.seats, 0), ISNULL(s.package_amount, 0),
            CAST(ISNULL(s.is_renewal, 0) AS bit), SYSUTCDATETIME()
-    FROM [lh_silver].[ticketing].[subscriptions] AS s
-    JOIN [lh_silver].[ticketing].[seasons]       AS se ON se.season_id = s.season_id
-    LEFT JOIN [lh_silver].[core].[patron_xref]   AS x  ON x.source_system = 'ticketing' AND x.source_id = s.customer_id
+    FROM [lh_silver].[tessitura].[subscription]  AS s
+    JOIN [lh_silver].[tessitura].[season]        AS se ON se.season_id = s.season_id
+    LEFT JOIN [lh_silver].[core].[patron_xref]   AS x  ON x.source_system = 'tessitura' AND x.source_id = s.constituent_id
     LEFT JOIN dim.patron                         AS p  ON p.patron_id = x.patron_id
                                                       AND s.purchased_at >= p.valid_from AND s.purchased_at < p.valid_to;
     SET @n1 = @@ROWCOUNT;
