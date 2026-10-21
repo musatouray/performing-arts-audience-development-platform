@@ -68,33 +68,27 @@ in
 [BindToDefaultDestination = true]
 shared programs = let
   // Load SharePoint contents
-  Source = SharePoint.Contents(SiteUrl, [ApiVersion = 15]),
-  Navigation = Source{[Name = "Shared Documents"]}[Content],
-  #"Navigation 1" = Navigation{[Name = "Education"]}[Content],
-  #"Navigation 2" = #"Navigation 1"{[Name = "Program Reference.xlsx"]}[Content],
-  #"Imported Excel workbook" = Excel.Workbook(#"Navigation 2", true, true),
-  #"Navigation 3" = #"Imported Excel workbook"{[Item = "Programs", Kind = "Sheet"]}[Data],
-  Renamed = Table.RenameColumns(#"Navigation 3", {{"Program ID", "program_id"}, {"Program Name", "program_name"}, {"Program Type", "program_type"}, {"Audience", "audience"}}),
+  Files = SharePoint.Files(SiteUrl, [ApiVersion = 15]),
+  Workbook = Table.SelectRows(Files, each [Name] = "Program Reference.xlsx"){0}[Content],
+  Sheet    = Excel.Workbook(Workbook, true){[Item = "Programs", Kind = "Sheet"]}[Data],
+  Renamed = Table.RenameColumns(Sheet, {{"Program ID", "program_id"}, {"Program Name", "program_name"}, {"Program Type", "program_type"}, {"Audience", "audience"}}),
   Typed = Table.TransformColumnTypes(Renamed, {{"program_id", type text}, {"program_name", type text}, {"program_type", type text}, {"audience", type text}}),
-  #"Current date and time" = Table.AddColumn(Typed, "_ingested_at", each DateTimeZone.RemoveZone(DateTimeZone.UtcNow()), type datetime)
+  IngestedDateTime = Table.AddColumn(Typed, "_ingested_at", each DateTimeZone.RemoveZone(DateTimeZone.UtcNow()), type datetime)
 
   
 in
-  #"Current date and time";
+  IngestedDateTime;
 [BindToDefaultDestination = true]
 shared schools = let
   // Load SharePoint contents
-  Source = SharePoint.Contents(SiteUrl, [ApiVersion = 15]),
-  Navigation = Source{[Name = "Shared Documents"]}[Content],
-  #"Navigation 1" = Navigation{[Name = "Education"]}[Content],
-  #"Navigation 2" = #"Navigation 1"{[Name = "Program Reference.xlsx"]}[Content],
-  #"Imported Excel workbook" = Excel.Workbook(#"Navigation 2", true, true),
-  #"Navigation 3" = #"Imported Excel workbook"{[Item = "Schools", Kind = "Sheet"]}[Data],
-  Renamed = Table.RenameColumns(#"Navigation 3", {{"School ID", "school_id"}, {"School Name", "school_name"}, {"Borough", "borough"}, {"Title I", "is_title_i"}}),
+  Files = SharePoint.Files(SiteUrl, [ApiVersion = 15]),
+  Workbook = Table.SelectRows(Files, each [Name] = "Program Reference.xlsx"){0}[Content],
+  Sheet    = Excel.Workbook(Workbook, true){[Item = "Schools", Kind = "Sheet"]}[Data],
+  Renamed = Table.RenameColumns(Sheet, {{"School ID", "school_id"}, {"School Name", "school_name"}, {"Borough", "borough"}, {"Title I", "is_title_i"}}),
   TitleI = Table.TransformColumns(Renamed, {{"is_title_i", each _ = "Yes", type logical}}),
   Typed = Table.TransformColumnTypes(TitleI, {
         {"school_id", type text}, {"school_name", type text}, {"borough", type text}}),
-  Stamped = Table.AddColumn(Typed, "_ingested_at", each DateTimeZone.RemoveZone(DateTimeZone.UtcNow()), type datetime)
+  IngestedDateTime = Table.AddColumn(Typed, "_ingested_at", each DateTimeZone.RemoveZone(DateTimeZone.UtcNow()), type datetime)
 in
-    Stamped;
+    IngestedDateTime;
 shared DefaultDestination = Lakehouse.Contents([EnableFolding = false]){[workspaceId = "9f9f5fa0-6a89-4f39-987e-240311772371"]}[Data]{[lakehouseId = "e4b5b873-13f4-4335-827c-bf8d757c7554"]}[Data];

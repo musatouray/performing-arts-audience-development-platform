@@ -38,14 +38,19 @@
   },
   "connections": [
     {
-      "path": "Lakehouse",
-      "kind": "Lakehouse",
-      "connectionId": "{\"ClusterId\":\"c0bd670e-0ed5-4a5f-b3cf-4aa383521abc\",\"DatasourceId\":\"f81828be-1226-45a2-bdb6-f2ebc30589db\"}"
-    },
-    {
       "path": "https://amigomusa.sharepoint.com/sites/HarmoniaHallEducationPrograms",
       "kind": "SharePoint",
       "connectionId": "{\"ClusterId\":\"c0bd670e-0ed5-4a5f-b3cf-4aa383521abc\",\"DatasourceId\":\"799bb24d-a147-4d8e-af21-11c294ff6902\"}"
+    },
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"c0bd670e-0ed5-4a5f-b3cf-4aa383521abc\",\"DatasourceId\":\"62c4ea5f-a69d-47dd-9fab-19217d984797\"}"
+    },
+    {
+      "path": "https://amigomusa.sharepoint.com/sites/HarmoniaHallEducationPrograms/",
+      "kind": "SharePoint",
+      "connectionId": "{\"ClusterId\":\"c0bd670e-0ed5-4a5f-b3cf-4aa383521abc\",\"DatasourceId\":\"9102c394-6e61-4bc8-b5de-0d95c2c63e0c\"}"
     }
   ]
 }
