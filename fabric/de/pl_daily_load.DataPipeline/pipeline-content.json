@@ -154,6 +154,12 @@
             "dependencyConditions": [
               "Succeeded"
             ]
+          },
+          {
+            "activity": "cj_mip",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
           }
         ]
       },
@@ -245,6 +251,25 @@
             ]
           }
         ]
+      },
+      {
+        "type": "InvokeCopyJob",
+        "typeProperties": {
+          "copyJobId": "f53efeb7-9006-ab6d-4d03-88e8cd297d8b",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "externalReferences": {
+          "connection": "37cf9619-df47-4406-9a00-4be684ffd66c"
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 120,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "cj_mip",
+        "dependsOn": []
       }
     ],
     "parameters": {
