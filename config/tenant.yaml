@@ -36,6 +36,10 @@ git:
 # Security groups in Microsoft Entra.
 # Permissions are always given to groups, never to individual people.
 # scripts/00_create_security_groups.py creates any group that's missing.
+# Service groups (svc_*) each hold ONE non-human account for ONE job, and never
+# people. They're split by prod and non-prod: engineers sign in as the non-prod
+# account to build in dev, so it must never reach prod. They're never nested in a
+# human group, so a service account can't pick up access meant for the team.
 # -----------------------------------------------------------------------------
 security_groups:
   fabric_admins:        { name: "sg-hh-fabric-admins",        purpose: "Platform owners. Admin on every workspace." }
@@ -45,6 +49,11 @@ security_groups:
   analysts_development: { name: "sg-hh-analysts-development", purpose: "Fundraising analysts. Can see donor giving history." }
   education_team:       { name: "sg-hh-education-team",       purpose: "Education program staff. Education data only." }
   report_viewers:       { name: "sg-hh-report-viewers",       purpose: "Staff who use the published report apps." }
+  # Dataflow Gen2 can't run as a workspace identity or service principal yet
+  # (ADR-003), so a service account owns the Dataflow: one for dev and test,
+  # one for prod.
+  svc_dataflows_nonprod: { name: "sg-hh-svc-dataflows-nonprod", purpose: "Service account that owns and runs Dataflow Gen2 in dev and test. No people." }
+  svc_dataflows_prod:    { name: "sg-hh-svc-dataflows-prod",    purpose: "Service account that owns and runs Dataflow Gen2 in prod. No people; password held by the platform owner." }
 
 # -----------------------------------------------------------------------------
 # Domains group workspaces by business area so people can find data in the
@@ -91,9 +100,11 @@ workspace_families:
       warehouses:
         - { name: wh_gold,   description: "Star schema for reporting. The layer the semantic models read." }
     roles:
-      dev:  { fabric_admins: Admin, data_engineers: Contributor }
-      test: { fabric_admins: Admin, data_engineers: Contributor }
-      prod: { fabric_admins: Admin, data_engineers: Viewer }
+      dev:  { fabric_admins: Admin, data_engineers: Contributor, svc_dataflows_nonprod: Contributor }
+      test: { fabric_admins: Admin, data_engineers: Contributor, svc_dataflows_nonprod: Contributor }
+      # The service group is the one non-admin writer in prod: the Dataflow has to
+      # run there, and only a service account (never a person) holds that role.
+      prod: { fabric_admins: Admin, data_engineers: Viewer, svc_dataflows_prod: Contributor }
 
   - key: audience
     display: "Audience & Development BI"
@@ -152,11 +163,11 @@ onelake_security:
   roles:
     - name: AudienceReaders
       members: [analysts_audience]
-      tables: [ticketing/performances, ticketing/orders, ticketing/order_lines, ticketing/subscriptions,
+      tables: [tessitura/performance, tessitura/order, tessitura/order_line, tessitura/subscription,
                marketing/email_campaigns, marketing/ad_spend_daily]   # not email_clicks: it holds email addresses
     - name: DevelopmentReaders
       members: [analysts_development]
-      tables: [fundraising/gifts, fundraising/campaigns, fundraising/funds, core/patron]
+      tables: [tessitura/contribution, tessitura/campaign, tessitura/fund, core/patron]
       # Only these columns are visible. Email, phone and street address are left out.
       allow_columns:
         core/patron: [patron_id, first_name, last_name, city, state, postal_code, country, patron_type, first_seen_date, source_systems]

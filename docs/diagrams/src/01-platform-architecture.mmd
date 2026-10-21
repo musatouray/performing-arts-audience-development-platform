@@ -7,12 +7,15 @@ flowchart LR
   classDef bi fill:#E3F2FD,stroke:#1565C0,color:#0D2A4D
   classDef gov fill:#EDE7F6,stroke:#5E35B1,color:#26134D
   classDef user fill:#E8F5E9,stroke:#2E7D32,color:#123D16
+  classDef planned fill:#FAFAFA,stroke:#9E9E9E,color:#424242,stroke-dasharray: 5 4
 
   subgraph SRC["Source systems"]
-    T["Ticketing & CRM<br/>(Tessitura-style)<br/>on-prem SQL Server"]:::src
-    F["Fundraising system<br/>REST API · paged JSON"]:::src
+    T["Tessitura database<br/>(ticketing & CRM)<br/>on-prem SQL Server"]:::src
+    F["Tessitura REST API<br/>(fundraising) · paged JSON"]:::src
     E["Education programs<br/>Excel · SharePoint"]:::src
     M["Marketing exports<br/>email + ads · ADLS Gen2"]:::src
+    V["PLANNED · Venue bookings<br/>(Dièse-style) · REST API"]:::planned
+    L["PLANNED · General ledger<br/>(MIP-style) · SQL Server"]:::planned
   end
 
   subgraph DP["Workspace: hh-dataplatform-{env} · Domain: Data Platform"]
@@ -20,7 +23,7 @@ flowchart LR
     subgraph ING["Ingest"]
       CJ["Copy job via gateway<br/>incremental on updated_at"]
       NBAPI["Notebook nb_05<br/>(API paging, retries)"]
-      DF["Dataflow Gen2<br/>(analyst-owned)"]
+      DF["Dataflow Gen2<br/>(analyst-maintained rules)<br/>runs as svc-fabric-dataflows-nonprod / -prod"]
       SC["OneLake shortcut<br/>(zero copy)"]
     end
     subgraph OL["OneLake"]
@@ -31,11 +34,15 @@ flowchart LR
     PL{{"pl_daily_load<br/>05:00 ET · retries · Teams alert"}}
   end
 
-  subgraph BI["Workspaces: hh-audience-{env} · hh-education-{env}"]
+  subgraph BI["Spokes: hh-audience-{env} · hh-education-{env}"]
     SM1["sm_audience_development<br/>Direct Lake on OneLake<br/>RLS/OLS · Certified"]:::bi
     SM2["sm_education_impact<br/>Direct Lake · Certified"]:::bi
     APP1["Audience & Development App"]:::bi
     APP2["Education Impact App"]:::bi
+  end
+
+  subgraph FIN["PLANNED spoke: hh-finance-{env}"]
+    SM3["sm_finance · sm_venue_operations<br/>revenue-to-ledger reconciliation<br/>hall utilisation via dim.event"]:::planned
   end
 
   subgraph CONS["Consumers"]
@@ -52,10 +59,13 @@ flowchart LR
   F --> NBAPI -- "files" --> B
   E --> DF -- "tables" --> B
   M --> SC -- "files, read in place" --> B
+  V -. "API notebook" .-> B
+  L -. "Copy job, after close" .-> B
   B -- "nb_10 loads files<br/>+ reconciliation<br/>nb_20 reads all Bronze" --> S
   S -- "nb_20 silver transform<br/>conform · dedupe · DQ · MERGE<br/>identity resolution" --> G
   PL -. orchestrates .-> B & S & G
   G --> SM1 --> APP1 --> U1
   G --> SM2 --> APP2 --> U2
+  G -.-> SM3
   G -- "SQL endpoint<br/>rpt.* views" --> U3
   GOV ~~~ OL

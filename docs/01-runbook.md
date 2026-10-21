@@ -24,7 +24,7 @@ uv run pytest -q                          # generator unit tests
 - Confirm the **Fabric trial** is active: Settings (gear) › **Admin portal** › Capacity settings › Trial.
 - Confirm you're a **Fabric administrator**: the Admin portal opens and shows Tenant settings.
 
-✅ `validate_config.py` prints `OK: 7 groups, 4 domains, 9 workspaces, 17 entities, 27 DQ rules`. The WARN lines about placeholders are expected until Phase 8.
+✅ `validate_config.py` prints `OK: 9 groups, 4 domains, 9 workspaces, 17 entities, 27 DQ rules`. The WARN lines about placeholders are expected until Phase 8.
 
 ---
 
@@ -35,7 +35,15 @@ uv run python scripts/00_create_security_groups.py --dry-run
 uv run python scripts/00_create_security_groups.py --add-me-to fabric_admins
 ```
 
-- This creates the seven `sg-hh-*` groups and writes `config/.generated/principals.json`.
+- This creates the nine `sg-hh-*` groups and writes `config/.generated/principals.json`: seven for people, and two service groups, `sg-hh-svc-dataflows-nonprod` and `sg-hh-svc-dataflows-prod`.
+- **Service accounts** are created by hand in Entra, because only an admin should hold their passwords. There are two, split by prod and non-prod:
+
+  | Account | Group | Workspaces | Who uses the password |
+  |---|---|---|---|
+  | `svc-fabric-dataflows-nonprod@<tenant>` | `sg-hh-svc-dataflows-nonprod` | `hh-dataplatform-dev`, `-test` (Contributor) | Engineers, to take over and fix Dataflows |
+  | `svc-fabric-dataflows-prod@<tenant>` | `sg-hh-svc-dataflows-prod` | `hh-dataplatform-prod` (Contributor) | Platform owner only, once per prod deploy |
+
+  Why two and not one: engineers sign in as the non-prod account every day, so if it could also write to prod, anyone who knew its password could change prod data without going through the deployment pipeline. Each account goes **only** into its own service group, never into a human group such as `sg-hh-data-engineers`. Give each a Fabric licence, no mailbox, a long random password kept in a password manager or Key Vault, and a named owner. Leave MFA on: you complete it once when the account takes over a Dataflow.
 - To **test RLS** later, create one or two test users in Entra (e.g. `audience.tester@…`) and add them to `sg-hh-analysts-audience`.
 
 ✅ Entra admin center › Groups shows `sg-hh-*`.
@@ -133,8 +141,8 @@ Each source reaches Fabric the way it would in real life (see [ADR-003](adr/ADR-
 
 | Source | You put it in | Fabric reads it with |
 |---|---|---|
-| Ticketing | SQL Server on your computer, through the on-premises data gateway | Copy job `cj_ticketing` |
-| Fundraising | A GitHub Pages site (mock API) | Notebook `nb_05_fundraising_api` |
+| Tessitura (database) | SQL Server on your computer, through the on-premises data gateway | Copy job `cj_tessitura` |
+| Tessitura (REST API) | A GitHub Pages site (mock API) | Notebook `nb_05_tessitura_api` |
 | Education | A SharePoint document library | Dataflow Gen2 `df_education_sharepoint` |
 | Marketing | An ADLS Gen2 container | Shortcut `lh_bronze/Files/landing/marketing` |
 
@@ -144,7 +152,7 @@ Each source reaches Fabric the way it would in real life (see [ADR-003](adr/ADR-
 uv run python -m data_generator.generate full --start 2023-07-01 --end 2026-09-27
 ```
 
-This writes four folders under `data/`: `ticketing_db`, `fundraising_api`, `education_sharepoint` and `marketing_adls`. About 645k rows in total, with **deliberate defects** for the quality checks to catch: duplicate patrons, bad emails and zip codes, orphan and negative order lines, future-dated gifts, sessions with no participants, clicks exported twice, overlapping API pages and negative ad spend.
+This writes four folders under `data/`: `tessitura_db`, `tessitura_api`, `education_sharepoint` and `marketing_adls`. About 645k rows in total, with **deliberate defects** for the quality checks to catch: duplicate patrons, bad emails and zip codes, orphan and negative order lines, future-dated gifts, sessions with no participants, clicks exported twice, overlapping API pages and negative ad spend.
 
 Copy the config to the lakehouse (run it again whenever you change `.env` or the config):
 
@@ -153,17 +161,17 @@ uv run python scripts/validate_config.py     # WARN lines disappear once .env ha
 uv run python scripts/06_upload_config.py --env dev
 ```
 
-### 8.1 Ticketing: on-premises SQL Server → gateway → Copy job
+### 8.1 Tessitura database: on-premises SQL Server → gateway → Copy job
 
 The mock Tessitura runs on SQL Server on your own computer. Fabric reaches it through the **on-premises data gateway**, which is how most real ticketing databases are reached: they sit inside the organization's network, not in the cloud.
 
 1. **Driver.** The loader needs the ODBC Driver 18 for SQL Server. Check with `Get-OdbcDriver -Name "ODBC Driver 18*"`; if nothing comes back, [install it](https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server).
-2. **Settings in `.env`:** `TICKETING_SQL_SERVER=localhost` (or `localhost\INSTANCE` for a named instance), `TICKETING_SQL_DATABASE=HarmoniaTicketing`, `TICKETING_SQL_AUTH=windows`, and `TICKETING_SQL_TRUST_SERVER_CERT=yes`. A local SQL Server uses a self-signed certificate, which is fine to trust on your own computer only.
+2. **Settings in `.env`:** `TESSITURA_SQL_SERVER=localhost` (or `localhost\INSTANCE` for a named instance), `TESSITURA_SQL_DATABASE=HarmoniaTicketing`, `TESSITURA_SQL_AUTH=windows`, and `TESSITURA_SQL_TRUST_SERVER_CERT=yes`. A local SQL Server uses a self-signed certificate, which is fine to trust on your own computer only.
 3. **Load the data** with your Windows account. The script creates the database the first time:
 
    ```powershell
-   uv run python scripts/11_load_ticketing_db.py --dry-run   # prints the CREATE TABLE statements
-   uv run python scripts/11_load_ticketing_db.py             # ~510k rows, a few minutes
+   uv run python scripts/11_load_tessitura_db.py --dry-run   # prints the CREATE TABLE statements
+   uv run python scripts/11_load_tessitura_db.py             # ~510k rows, a few minutes
    ```
 
 4. **A read-only login for Fabric.** Fabric should never use your own account. In SSMS:
@@ -174,7 +182,7 @@ The mock Tessitura runs on SQL Server on your own computer. Fabric reaches it th
       CREATE LOGIN svc_fabric_reader WITH PASSWORD = '<strong password>', CHECK_POLICY = ON;
       USE HarmoniaTicketing;
       CREATE USER svc_fabric_reader FOR LOGIN svc_fabric_reader;
-      GRANT SELECT ON SCHEMA::tix TO svc_fabric_reader;   -- read the ticketing tables, nothing else
+      GRANT SELECT ON SCHEMA::tix TO svc_fabric_reader;   -- read the Tessitura tables, nothing else
       ```
 
 5. **Gateway.** Your gateway shows *Microsoft Fabric: Ready*. Two things before you rely on it:
@@ -184,11 +192,11 @@ The mock Tessitura runs on SQL Server on your own computer. Fabric reaches it th
    - Gateway cluster: your gateway. Connection type: **SQL Server**. Server `localhost`, database `HarmoniaTicketing`.
    - Authentication: **Basic**, as `svc_fabric_reader`.
    - If the test fails on the certificate, untick encryption for this lab connection. The traffic never leaves your computer. In production you'd install a trusted certificate instead.
-7. Build the Copy job: [`src/ingestion/copy_job_ticketing.md`](../src/ingestion/copy_job_ticketing.md).
+7. Build the Copy job: [`src/ingestion/copy_job_tessitura.md`](../src/ingestion/copy_job_tessitura.md).
 
-✅ `tix` has seven tables, and `lh_bronze` › Tables › `ticketing` has the same seven after the Copy job runs. The source is on-premises, read through a gateway with a read-only service login, and loaded incrementally.
+✅ `tix` has seven tables, and `lh_bronze` › Tables › `tessitura` has the same seven after the Copy job runs. The source is on-premises, read through a gateway with a read-only service login, and loaded incrementally.
 
-### 8.2 Fundraising: a mock API on GitHub Pages
+### 8.2 Tessitura REST API: a mock API on GitHub Pages
 
 The API is a set of static JSON files with paging, so it costs nothing and needs no server. It lives in its own public repo so your portfolio site stays clean (the data is synthetic, so public is fine).
 
@@ -197,15 +205,15 @@ The API is a set of static JSON files with paging, so it costs nothing and needs
    ```powershell
    cd C:\dev
    git clone https://github.com/musatouray/harmonia-hall-api.git
-   Copy-Item -Recurse -Force .\performing-arts-audience-development-platform\data\fundraising_api\* .\harmonia-hall-api\
+   Copy-Item -Recurse -Force .\performing-arts-audience-development-platform\data\tessitura_api\* .\harmonia-hall-api\
    cd harmonia-hall-api
-   git add -A; git commit -m "Fundraising API data"; git push
+   git add -A; git commit -m "Tessitura API data"; git push
    cd ..\performing-arts-audience-development-platform
    ```
 
 2. In the repo: **Settings › Pages › Deploy from a branch**, branch `main`, folder `/ (root)`.
 3. After a minute or two, open `https://musatouray.github.io/harmonia-hall-api/v1/index.json`. It lists the available days.
-4. Set `FUNDRAISING_API_BASE_URL=https://musatouray.github.io/harmonia-hall-api/v1` in `.env`.
+4. Set `TESSITURA_API_BASE_URL=https://musatouray.github.io/harmonia-hall-api/v1` in `.env`.
 
 ✅ The index opens in a browser, and `.../v1/gifts/2026-09-27/page-1.json` shows `count`, `value` and `next_link`. The notebook runs in Phase 9.
 
@@ -214,7 +222,8 @@ The API is a set of static JSON files with paging, so it costs nothing and needs
 1. Upload `data/education_sharepoint/` to a SharePoint document library as described in [`src/ingestion/dataflow_education.md`](../src/ingestion/dataflow_education.md).
 2. Set `EDUCATION_SHAREPOINT_SITE` in `.env` (for your records; the Dataflow has its own `SiteUrl` parameter).
 3. Build `df_education_sharepoint` from the spec.
-4. **Let the workspace identity read the site** (only if the SharePoint connection uses *Workspace identity*). An app identity can't be added with the site's Share button; it needs `Sites.Selected`, which gives no access until one site is granted. As a tenant admin, in PowerShell:
+4. **Run the Dataflow as a service account.** Dataflow Gen2 always runs as its owner, and its Lakehouse destination only accepts an organizational account (no service principal or workspace identity yet). Use `svc-fabric-dataflows-nonprod` from Phase 1, which is in `sg-hh-svc-dataflows-nonprod` and so already Contributor on `hh-dataplatform-dev` (`tenant.yaml`). Give that **group** (and `sg-hh-svc-dataflows-prod`) Read on the SharePoint site (site › Settings › Site permissions › Share site only, *Read*) and make the account a **User** of the SharePoint and Lakehouse connections. Then sign in as the account, take over the Dataflow (**Settings › Take over**) and sign in to both connections. See ADR-003.
+5. **Optional, for a notebook-based alternative: let the workspace identity read the site.** This does *not* make the Dataflow user-independent (see step 4), but a notebook calling Microsoft Graph as the workspace identity can use it. An app identity can't be added with the site's Share button; it needs `Sites.Selected`, which gives no access until one site is granted. As a tenant admin, in PowerShell:
 
    ```powershell
    ./scripts/12_grant_sharepoint_site_access.ps1 -WorkspaceIdentityAppId "<app ID>" -SiteUrl "<site URL>"
@@ -268,17 +277,17 @@ The notebooks live in [`fabric/de`](../fabric/de), which the DEV workspace syncs
 
 1. In `hh-dataplatform-dev`, open **Source control** and **Update** to pull them from Git. To change a notebook, edit it in Fabric and **Commit**; don't hand-edit the files in `fabric/de`.
 2. Open each notebook and attach only the lakehouses it uses:
-   - `nb_05_fundraising_api` and `nb_10_bronze_ingest`: **lh_bronze** only. They read and write Bronze, nothing else.
+   - `nb_05_tessitura_api` and `nb_10_bronze_ingest`: **lh_bronze** only. They read and write Bronze, nothing else.
    - `nb_20_silver_transform`: **lh_silver** (default) + lh_bronze. It reads Bronze and writes Silver.
    - `nb_90_maintenance`: **lh_silver** (default) + lh_bronze. It maintains tables in both.
    - `nb_00_common`: nothing. It's a helper that runs inside whichever notebook calls it (`%run`).
-3. Run `nb_05_fundraising_api`, then `nb_10_bronze_ingest`, then `nb_20_silver_transform`.
+3. Run `nb_05_tessitura_api`, then `nb_10_bronze_ingest`, then `nb_20_silver_transform`.
 
 ✅ You should see:
 
 - `nb_05` prints a note that gifts and donors returned more records than their count. That's the overlapping-pages defect; Silver removes the duplicates.
-- Bronze has tables under schemas `ticketing`, `fundraising`, `marketing` and `dbo` (education).
-- `audit.reconciliation` shows all fundraising and marketing rows **OK** (ticketing and education are checked in their Copy job and Dataflow run history).
+- Bronze has tables under schemas `tessitura`, `marketing` and `dbo` (education).
+- `audit.reconciliation` shows all Tessitura API and marketing rows **OK** (the Tessitura database and education are checked in their Copy job and Dataflow run history).
 - Silver has typed tables, `dq.dq_results`, `dq.quarantine` (several hundred rows, including clicks for an unknown email campaign and negative ad spend), `core.patron_xref` and `core.patron`.
 - The run log message reads "N source records → M patrons (x% de-duplicated)".
 
@@ -365,7 +374,7 @@ Follow [`src/semantic_model/model.md`](../src/semantic_model/model.md).
 
 1. In `dp-hh-dataplatform`, **Deploy** Development › Test.
    - Deployment rules: for notebooks, set the *Default lakehouse* rule to the Test stage's `lh_bronze`/`lh_silver`. Same-workspace names usually auto-bind, but verify.
-2. Set up TEST's ingestion: run `06_upload_config.py --env test` and `10_create_shortcuts.py --env test`. Open `cj_ticketing` and `df_education_sharepoint` in TEST and check their destination is **TEST's** `lh_bronze`; fix it if it still points at DEV. (In this lab all three environments read the same sources. In production each one would have its own connection.) In TEST, run the SQL files, then the pipeline. **Share TEST `wh_gold` with `sg-hh-bi-developers`** as in Phase 13, step 0, and run `09_verify_item_shares.py --env test`. Do the same for PROD before promoting the BI models.
+2. Set up TEST's ingestion: run `06_upload_config.py --env test` and `10_create_shortcuts.py --env test`. Open `cj_tessitura` and `df_education_sharepoint` in TEST and check their destination is **TEST's** `lh_bronze`; fix it if it still points at DEV. A deployment copies item definitions, **not data**: TEST and PROD start empty and load their own data by running `pl_daily_load` from their own connections. The person who deploys a Dataflow becomes its owner, so after each deploy have the right service account take it over (Phase 8.3, step 4): `svc-fabric-dataflows-nonprod` in TEST, `svc-fabric-dataflows-prod` in PROD. (In this lab all three environments read the same sources. In production each one would have its own connection.) In TEST, run the SQL files, then the pipeline. **Share TEST `wh_gold` with `sg-hh-bi-developers`** as in Phase 13, step 0, and run `09_verify_item_shares.py --env test`. Do the same for PROD before promoting the BI models.
 3. In `dp-hh-audience`, **Deploy** Development › Test. **Rebind the model** to TEST's `wh_gold`. Use a deployment rule if the UI offers the data source; otherwise run this in a notebook:
 
    ```python
@@ -387,12 +396,12 @@ Follow [`src/semantic_model/model.md`](../src/semantic_model/model.md).
 
 ```powershell
 uv run python -m data_generator.generate incremental --days 3
-uv run python scripts/11_load_ticketing_db.py      # ticketing changes into SQL Server
+uv run python scripts/11_load_tessitura_db.py      # Tessitura changes into SQL Server
 ```
 
 Then hand the other three sources their new data:
 
-- **Fundraising:** copy `data/fundraising_api/*` into your `harmonia-hall-api` clone again and push (same commands as 8.2).
+- **Tessitura API:** copy `data/tessitura_api/*` into your `harmonia-hall-api` clone again and push (same commands as 8.2).
 - **Education:** upload the changed `Sessions YYYY-MM.xlsx` workbook(s) to SharePoint, replacing the old ones.
 - **Marketing:** upload `data/marketing_adls/` to the container again (same command as 8.4). Old files are just overwritten, and nb_10 skips days it has already loaded.
 

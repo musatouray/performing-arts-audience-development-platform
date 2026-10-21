@@ -32,12 +32,12 @@
   },
   "activities": [
     {
-      "id": "e84b5f77-ee09-4cea-ab5a-ae8636626719",
+      "id": "3de13b98-b59c-40c0-a786-35c25bcfcf13",
       "properties": {
         "source": {
           "datasetSettings": {
             "schema": "tix",
-            "table": "customers"
+            "table": "constituent"
           },
           "changeDataSettings": {
             "readMethod": "SnapshotPlusIncremental",
@@ -57,8 +57,8 @@
         "destination": {
           "writeBehavior": "Append",
           "datasetSettings": {
-            "schema": "ticketing",
-            "table": "customers"
+            "schema": "tessitura",
+            "table": "constituent"
           },
           "applyVOrder": false,
           "enableTimestampNtz": false,
@@ -70,13 +70,13 @@
           "mappings": [
             {
               "source": {
-                "name": "customer_id",
+                "name": "constituent_id",
                 "type": "String",
                 "physicalType": "nvarchar",
                 "length": "400"
               },
               "destination": {
-                "name": "customer_id",
+                "name": "constituent_id",
                 "physicalType": "string"
               }
             },
@@ -190,13 +190,13 @@
             },
             {
               "source": {
-                "name": "customer_type",
+                "name": "constituent_type",
                 "type": "String",
                 "physicalType": "nvarchar",
                 "length": "400"
               },
               "destination": {
-                "name": "customer_type",
+                "name": "constituent_type",
                 "physicalType": "string"
               }
             },
@@ -246,12 +246,12 @@
       }
     },
     {
-      "id": "ecef3085-8ca4-41f3-a973-1690b9e8b5e3",
+      "id": "f7e5eaac-df38-45c3-bee2-3404bfe25f99",
       "properties": {
         "source": {
           "datasetSettings": {
             "schema": "tix",
-            "table": "order_lines"
+            "table": "order_line"
           },
           "changeDataSettings": {
             "readMethod": "SnapshotPlusIncremental",
@@ -271,8 +271,8 @@
         "destination": {
           "writeBehavior": "Append",
           "datasetSettings": {
-            "schema": "ticketing",
-            "table": "order_lines"
+            "schema": "tessitura",
+            "table": "order_line"
           },
           "applyVOrder": false,
           "enableTimestampNtz": false,
@@ -405,12 +405,12 @@
       }
     },
     {
-      "id": "744e85f2-d421-426d-8cca-9b7b57911afb",
+      "id": "1f20fb3b-b6df-4083-8654-5d438782a5c8",
       "properties": {
         "source": {
           "datasetSettings": {
             "schema": "tix",
-            "table": "orders"
+            "table": "order"
           },
           "changeDataSettings": {
             "readMethod": "SnapshotPlusIncremental",
@@ -430,8 +430,8 @@
         "destination": {
           "writeBehavior": "Append",
           "datasetSettings": {
-            "schema": "ticketing",
-            "table": "orders"
+            "schema": "tessitura",
+            "table": "order"
           },
           "applyVOrder": false,
           "enableTimestampNtz": false,
@@ -455,13 +455,13 @@
             },
             {
               "source": {
-                "name": "customer_id",
+                "name": "constituent_id",
                 "type": "String",
                 "physicalType": "nvarchar",
                 "length": "400"
               },
               "destination": {
-                "name": "customer_id",
+                "name": "constituent_id",
                 "physicalType": "string"
               }
             },
@@ -524,12 +524,12 @@
       }
     },
     {
-      "id": "529614fc-3c5c-4178-8aee-a8cf9b10826a",
+      "id": "fc81f61e-8b37-4153-9889-be17dcac6297",
       "properties": {
         "source": {
           "datasetSettings": {
             "schema": "tix",
-            "table": "performances"
+            "table": "performance"
           },
           "changeDataSettings": {
             "readMethod": "SnapshotPlusIncremental",
@@ -549,8 +549,8 @@
         "destination": {
           "writeBehavior": "Append",
           "datasetSettings": {
-            "schema": "ticketing",
-            "table": "performances"
+            "schema": "tessitura",
+            "table": "performance"
           },
           "applyVOrder": false,
           "enableTimestampNtz": false,
@@ -690,12 +690,12 @@
       }
     },
     {
-      "id": "f6b0cb1c-e171-45e5-b3e1-fbe7e5e98b3e",
+      "id": "0b4f9f1f-ac6d-42e2-bef4-b3046408bf06",
       "properties": {
         "source": {
           "datasetSettings": {
             "schema": "tix",
-            "table": "seasons"
+            "table": "season"
           },
           "changeDataSettings": {
             "readMethod": "SnapshotPlusIncremental",
@@ -715,8 +715,8 @@
         "destination": {
           "writeBehavior": "Append",
           "datasetSettings": {
-            "schema": "ticketing",
-            "table": "seasons"
+            "schema": "tessitura",
+            "table": "season"
           },
           "applyVOrder": false,
           "enableTimestampNtz": false,
@@ -806,12 +806,12 @@
       }
     },
     {
-      "id": "3ee39573-5874-4599-8f4d-cd9dc37ace3f",
+      "id": "431d020d-6611-41d8-a379-0d6f2235464c",
       "properties": {
         "source": {
           "datasetSettings": {
             "schema": "tix",
-            "table": "subscriptions"
+            "table": "subscription"
           },
           "changeDataSettings": {
             "readMethod": "SnapshotPlusIncremental",
@@ -831,8 +831,8 @@
         "destination": {
           "writeBehavior": "Append",
           "datasetSettings": {
-            "schema": "ticketing",
-            "table": "subscriptions"
+            "schema": "tessitura",
+            "table": "subscription"
           },
           "applyVOrder": false,
           "enableTimestampNtz": false,
@@ -856,13 +856,13 @@
             },
             {
               "source": {
-                "name": "customer_id",
+                "name": "constituent_id",
                 "type": "String",
                 "physicalType": "nvarchar",
                 "length": "400"
               },
               "destination": {
-                "name": "customer_id",
+                "name": "constituent_id",
                 "physicalType": "string"
               }
             },
@@ -962,12 +962,12 @@
       }
     },
     {
-      "id": "3b310962-ec96-451e-b88c-296a7c210705",
+      "id": "4e27e96d-eca7-477f-aeaa-6a7a9650e487",
       "properties": {
         "source": {
           "datasetSettings": {
             "schema": "tix",
-            "table": "venues"
+            "table": "venue"
           },
           "changeDataSettings": {
             "readMethod": "SnapshotPlusIncremental",
@@ -987,8 +987,8 @@
         "destination": {
           "writeBehavior": "Append",
           "datasetSettings": {
-            "schema": "ticketing",
-            "table": "venues"
+            "schema": "tessitura",
+            "table": "venue"
           },
           "applyVOrder": false,
           "enableTimestampNtz": false,

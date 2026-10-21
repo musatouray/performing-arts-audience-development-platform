@@ -29,7 +29,7 @@ GO
 -- Sales and gifts stay linked to where the patron lived at the time.
 CREATE TABLE dim.patron (
     patron_key       int           NOT NULL,
-    patron_id        varchar(20)   NOT NULL,   -- one ID per person, matched across ticketing and fundraising
+    patron_id        varchar(20)   NOT NULL,   -- one ID per person, merged across duplicate source records
     first_name       varchar(100)  NULL,
     last_name        varchar(100)  NULL,
     full_name        varchar(210)  NULL,
@@ -43,7 +43,7 @@ CREATE TABLE dim.patron (
     region           varchar(30)   NULL,       -- 'NYC', 'NY Metro', 'Domestic', 'Unknown'
     patron_type      varchar(20)   NULL,
     email_opt_in     bit           NULL,
-    source_systems   varchar(50)   NULL,       -- 'fundraising,ticketing' means the person is in both systems
+    source_systems   varchar(50)   NULL,       -- systems the person was found in, e.g. 'tessitura'
     first_seen_date  date          NULL,
     scd_hash         varchar(64)   NULL,
     valid_from       datetime2(6)  NOT NULL,

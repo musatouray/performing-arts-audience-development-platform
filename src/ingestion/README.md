@@ -4,8 +4,8 @@ Four sources, four landing patterns. The tool follows the source (see [ADR-003](
 
 | Source | Lives in | Tool | Lands in | Built by |
 |---|---|---|---|---|
-| Ticketing (Tessitura-style) | On-premises SQL Server, schema `tix`, via the on-premises data gateway | **Copy job** `cj_ticketing`, incremental on `updated_at` | `lh_bronze.ticketing.<table>` (appended) | Fabric UI, see [copy_job_ticketing.md](copy_job_ticketing.md) |
-| Fundraising (SaaS) | REST API with paging (mock on GitHub Pages) | **Notebook** `nb_05_fundraising_api` | `Files/landing/fundraising/` → nb_10 → `lh_bronze.fundraising.<table>` | Imported notebook |
+| Tessitura database | On-premises SQL Server, schema `tix`, via the on-premises data gateway | **Copy job** `cj_tessitura`, incremental on `updated_at` | `lh_bronze.tessitura.<table>` (appended) | Fabric UI, see [copy_job_tessitura.md](copy_job_tessitura.md) |
+| Tessitura REST API | REST API with paging (mock on GitHub Pages) | **Notebook** `nb_05_tessitura_api` | `Files/landing/tessitura_api/` → nb_10 → `lh_bronze.tessitura.<table>` | Imported notebook |
 | Education programs | Excel workbooks in SharePoint | **Dataflow Gen2** `df_education_sharepoint` | `lh_bronze.dbo.<table>` (replaced each run) | Fabric UI, see [dataflow_education.md](dataflow_education.md) |
 | Marketing exports | ADLS Gen2 container `marketing-exports` | **Shortcut** `Files/landing/marketing` | read in place → nb_10 → `lh_bronze.marketing.<table>` | `scripts/10_create_shortcuts.py` |
 

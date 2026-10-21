@@ -99,7 +99,11 @@ def main() -> int:
                     errors.append(f"family {fam['key']}/{env}: unknown group {g}")
                 if role not in VALID_ROLES:
                     errors.append(f"family {fam['key']}/{env}: invalid role {role}")
-                if env == "prod" and role in ("Contributor", "Member") and g != "fabric_admins":
+                # Service groups end in _prod or _nonprod: the account people use in dev must never reach prod.
+                if g.startswith("svc_") and g.endswith("_prod") != (env == "prod"):
+                    errors.append(f"family {fam['key']}/{env}: service group {g} doesn't belong in {env}")
+                # People can't edit prod; only admins and that environment's service group can write there.
+                if env == "prod" and role in ("Contributor", "Member") and g != "fabric_admins" and not g.startswith("svc_"):
                     errors.append(f"family {fam['key']}/prod: {g} has {role} (prod should only change through a deployment pipeline)")
 
     warnings: list[str] = []
@@ -119,14 +123,18 @@ def main() -> int:
     entities = {}
     restricted_by_table: dict[str, set] = {}
     for s in sources["sources"]:
-        names = [s["source"], (s.get("ingestion") or {}).get("bronze_schema") or s["source"]]
+        system = s.get("system") or s["source"]   # several sources can feed one system (e.g. tessitura)
+        names = [s["source"], system, (s.get("ingestion") or {}).get("bronze_schema") or system]
         for e in s["entities"]:
             names += [e["name"], *e["columns"]]
         for n in names:
             if not SAFE_NAME.match(n):
                 errors.append(f"{s['source']}: '{n}' isn't a safe name (letters, digits and _ only)")
         for e in s["entities"]:
-            entities[f"{s['source']}.{e['name']}"] = set(e["columns"])
+            key = f"{system}.{e['name']}"   # tables are named <system>.<table> in Silver and in dq_rules
+            if key in entities:
+                errors.append(f"{s['source']}: table {key} is already declared by another source of {system}")
+            entities[key] = set(e["columns"])
             for pk in e["primary_key"]:
                 if pk not in e["columns"]:
                     errors.append(f"{s['source']}.{e['name']}: primary key {pk} not in columns")
@@ -137,7 +145,7 @@ def main() -> int:
                 errors.append(f"{s['source']}.{e['name']}: pii columns not in columns {sorted(pii - set(e['columns']))}")
             if restricted - pii:
                 errors.append(f"{s['source']}.{e['name']}: restricted columns must also be pii {sorted(restricted - pii)}")
-            restricted_by_table[f"{s['source']}/{e['name']}"] = restricted
+            restricted_by_table[f"{system}/{e['name']}"] = restricted
 
     for ent, rules in dq["rules"].items():
         if ent not in entities:
@@ -170,9 +178,8 @@ def main() -> int:
             errors.append(f"item_share {sh['item']}: permissions must include Read and only use {sorted(item_perms)}")
 
     known_tables = {k.replace(".", "/"): v for k, v in entities.items()} | {k: set(v) for k, v in CORE_TABLES.items()}
-    # core/patron is built from ticket buyers and donors, so it carries their restricted columns.
-    restricted_by_table["core/patron"] = ((restricted_by_table.get("ticketing/customers", set())
-                                           | restricted_by_table.get("fundraising/donors", set()))
+    # core/patron is built from Tessitura constituents, so it carries their restricted columns.
+    restricted_by_table["core/patron"] = (restricted_by_table.get("tessitura/constituent", set())
                                           & set(CORE_TABLES["core/patron"]))
     for role in tenant["onelake_security"]["roles"]:
         for m in role["members"]:

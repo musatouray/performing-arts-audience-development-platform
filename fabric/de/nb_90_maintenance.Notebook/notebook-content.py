@@ -64,7 +64,7 @@ sources = load_json_config("sources")["sources"]
 inventory = {
     "lh_bronze": [(bronze_schema(s), e["name"]) for s in sources for e in s["entities"]]
                  + [("audit", "ingest_log"), ("audit", "reconciliation"), ("audit", "run_log")],
-    "lh_silver": [(s["source"], e["name"]) for s in sources for e in s["entities"]]
+    "lh_silver": [(system(s), e["name"]) for s in sources for e in s["entities"]]
                  + [("core", "patron"), ("core", "patron_xref"), ("dq", "dq_results"), ("dq", "quarantine"),
                     ("audit", "run_log"), ("audit", "watermarks")],
 }

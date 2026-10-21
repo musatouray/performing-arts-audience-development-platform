@@ -22,24 +22,24 @@
 
 # MARKDOWN ********************
 
-# # nb_05_fundraising_api: pull new data from the fundraising API
+# # nb_05_tessitura_api: pull new data from the Tessitura REST API
 # 
 # Default lakehouse: lh_bronze (the only one it needs: it reads config and writes files, both in Bronze).
 # Run by the `pl_daily_load` pipeline before `nb_10_bronze_ingest`, or by hand.
 # 
-# The fundraising system is a SaaS product, so the only way in is its REST API.
-# This notebook:
+# Contributions, campaigns and funds come from Tessitura's REST API rather than its database,
+# the way a hosted Tessitura usually shares them. This notebook:
 # 1. Reads the API's index to see which days of data exist.
 # 2. Skips days it has already saved.
 # 3. Follows each table's pages (page 1 links to page 2, and so on), retrying when the API is busy.
-# 4. Saves the records to `Files/landing/fundraising/<table>/load_date=D/`, one JSON record per line,
+# 4. Saves the records to `Files/landing/tessitura_api/<table>/load_date=D/`, one JSON record per line,
 #    plus a manifest with the record counts the API reported.
 # 
-# nb_10 then loads those files into Bronze, the same way it loads the marketing files.
+# nb_10 then loads those files into `lh_bronze.tessitura`, the same way it loads the marketing files.
 # 
-# The mock API is a set of static JSON files on GitHub Pages, shaped like real fundraising APIs
-# (for example Blackbaud SKY API: `count`, `value`, `next_link`). A real API would also need a
-# key or token; keep it in Azure Key Vault and read it with `notebookutils.credentials.getSecret`.
+# The mock API is a set of static JSON files on GitHub Pages, with simple paging
+# (`count`, `value`, `next_link`). The real Tessitura REST API needs a service login;
+# keep it in Azure Key Vault and read it with `notebookutils.credentials.getSecret`.
 
 
 # PARAMETERS CELL ********************
@@ -75,10 +75,10 @@ from urllib.parse import urljoin
 
 import requests
 
-source = next(s for s in load_json_config("sources")["sources"] if s["source"] == "fundraising")
+source = next(s for s in load_json_config("sources")["sources"] if s["source"] == "tessitura_api")
 base_url = source["ingestion"]["api_base_url"].rstrip("/") + "/"
 entities = [e["name"] for e in source["entities"]]
-landing = f"{lakehouse_path(BRONZE)}/Files/landing/fundraising"
+landing = f"{lakehouse_path(BRONZE)}/Files/landing/{source['source']}"
 _local = threading.local()
 
 
@@ -153,8 +153,8 @@ for d in todo:
             print(f"   note: {entity} {d} returned {len(records):,} records for a count of {expected:,}")
         path = f"{landing}/{entity}/load_date={d}/{entity}.json"
         nbu.fs.put(path, "\n".join(json.dumps(r) for r in records), True)
-        manifest["files"].append({"source": "fundraising", "entity": entity, "rows": len(records), "api_count": expected})
-        log_run("nb_05_fundraising_api", f"fundraising.{entity}", "api", expected, len(records), started=started,
+        manifest["files"].append({"source": system(source), "entity": entity, "rows": len(records), "api_count": expected})
+        log_run("nb_05_tessitura_api", f"{system(source)}.{entity}", "api", expected, len(records), started=started,
                 message=f"{pages} page(s) for {d}", lakehouse=BRONZE)
     # The manifest goes last, so a day only counts as saved once every table is in.
     nbu.fs.put(f"{landing}/_manifests/load_date={d}.json", json.dumps(manifest, indent=2), True)

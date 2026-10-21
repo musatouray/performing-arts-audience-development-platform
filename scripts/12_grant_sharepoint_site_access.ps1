@@ -1,7 +1,8 @@
 <#
   Lets a Fabric workspace identity read ONE SharePoint site, and nothing else.
 
-  Why: the education Dataflow signs in to SharePoint as the workspace identity.
+  Why: a notebook or pipeline that reads SharePoint as the workspace identity needs
+  site access. (Dataflow Gen2 can't run user-free yet, see ADR-003.)
   That identity is an app, not a person, so it can't be added through the site's
   Share button. Sites.Selected gives an app no access at all until a site is
   granted to it explicitly, which keeps it to exactly the site it needs.

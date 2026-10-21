@@ -11,7 +11,7 @@ STEPS = [
     ("05", "uv run python scripts/05_connect_git.py", "GitHub integration for DEV workspaces"),
     ("data", "uv run python -m data_generator.generate full", "Synthetic data for all four sources"),
     ("06", "uv run python scripts/06_upload_config.py --env dev", "Config files for the notebooks"),
-    ("11", "uv run python scripts/11_load_ticketing_db.py", "Ticketing data into SQL Server"),
+    ("11", "uv run python scripts/11_load_tessitura_db.py", "Tessitura data into SQL Server"),
     ("10", "uv run python scripts/10_create_shortcuts.py --env dev", "Shortcut to the marketing ADLS container"),
     ("07", "uv run python scripts/07_apply_onelake_security.py --env dev", "OneLake security roles"),
     ("09", "uv run python scripts/09_verify_item_shares.py", "Share wh_gold with BI developers (UI) + verify"),

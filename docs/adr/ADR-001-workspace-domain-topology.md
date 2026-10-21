@@ -27,6 +27,7 @@ Roles:
 
 - Every environment has `sg-hh-fabric-admins` as Admin.
 - Builders are Contributors in DEV and TEST, Viewers in PROD, so PROD is changed only by deployment.
+- Each Data Platform workspace also gives Contributor to a service group: `sg-hh-svc-dataflows-nonprod` in DEV and TEST, `sg-hh-svc-dataflows-prod` in PROD. Each holds one service account and no people, and owns the Dataflow, which can't yet run as a workspace identity (ADR-003). The prod group is the only non-admin writer in PROD, and `validate_config.py` fails if the non-prod group appears in PROD or the prod group anywhere else.
 - Consumers get **Org Apps**, never workspace roles.
 
 **Microsoft deployment pattern:** this is **Pattern 2, multiple workspaces on a single capacity**, combining the hub-and-spoke, per-workload and data-mesh-via-domains sub-variants. The planned evolution is **Pattern 3, per-environment capacities** (dedicated PROD capacity, ADR-008). Full mapping: [architecture §9](../02-architecture.md#9-microsoft-fabric-deployment-pattern).
@@ -77,7 +78,7 @@ Not built yet, on purpose. It's the first domain to add once the audience, fundr
 
 **How it would fit the current design:**
 
-- **Workspaces:** a new family, `hh-finance-{dev,test,prod}`, in a new subdomain **Finance & Operations**, with its own deployment pipeline and a `sg-hh-finance-analysts` group. One family added to `tenant.yaml`, then re-run scripts 02–05.
+- **Workspaces:** a new family, `hh-finance-{dev,test,prod}`, in a new subdomain **Finance & Operations**, holding both the finance model and the venue operations model (ADR-009), with its own deployment pipeline and a `sg-hh-finance-analysts` group. One family added to `tenant.yaml`, then re-run scripts 02–05.
 - **Data:** engineers still own the data plane. The general ledger is ingested into `lh_bronze` and `lh_silver` like any other source. Gold gains a small finance star schema: `fact_gl_entry`, `dim_account`, `dim_fund` (restricted vs unrestricted, matching the existing fundraising funds) and `dim_department`.
 - **First deliverable: reconciliations, not dashboards.**
   - Box-office daily settlement vs bank deposits.

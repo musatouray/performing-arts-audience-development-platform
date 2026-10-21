@@ -4,9 +4,9 @@ flowchart LR
   classDef bad fill:#FFEBEE,stroke:#C62828,color:#4A0E0E
   classDef step fill:#F5F5F5,stroke:#616161,color:#212121
 
-  CJ["Copy job → ticketing tables<br/>(new rows by updated_at)"]:::step
+  CJ["Copy job → tessitura tables<br/>(new rows by updated_at)"]:::step
   DF["Dataflow → education tables<br/>(replaced each run)"]:::step
-  A["Files/landing/…/load_date=D<br/>fundraising (API) · marketing (shortcut)<br/>+ _manifests"]:::step
+  A["Files/landing/…/load_date=D<br/>tessitura (API) · marketing (shortcut)<br/>+ _manifests"]:::step
   B["nb_10 Bronze append<br/>+ _load_date, _source_file,<br/>_ingested_at, _batch_id"]:::step
   R{"Row counts =<br/>manifest?"}
   C["Conform<br/>try_cast · trim · lower(email)"]:::step

@@ -1,7 +1,7 @@
 """Writes each source system's data in the shape that system really hands it over.
 
-  ticketing    -> data/ticketing_db/<table>/load_date=D/<table>.csv     (loaded into SQL Server)
-  fundraising  -> data/fundraising_api/v1/<table>/D/page-N.json       (a static JSON API)
+  tessitura_db  -> data/tessitura_db/<table>/load_date=D/<table>.csv   (loaded into SQL Server)
+  tessitura_api -> data/tessitura_api/v1/<table>/D/page-N.json      (a static JSON API, like Tessitura's REST API)
   education    -> data/education_sharepoint/*.xlsx                     (spreadsheets for SharePoint)
   marketing    -> data/marketing_adls/<table>/load_date=D/<table>.csv  (exports for ADLS Gen2)
 """
@@ -14,8 +14,8 @@ from datetime import date, datetime
 from pathlib import Path
 
 FOLDERS = {
-    "ticketing": "ticketing_db",
-    "fundraising": "fundraising_api",
+    "tessitura_db": "tessitura_db",
+    "tessitura_api": "tessitura_api",
     "education": "education_sharepoint",
     "marketing": "marketing_adls",
 }
@@ -27,8 +27,8 @@ def write_all(load_date: date, batch: dict, out: Path, full: bool) -> dict:
     for (source, entity), rows in batch.items():
         by_source.setdefault(source, {})[entity] = rows
     files = []
-    files += _csv_partitions(out / FOLDERS["ticketing"], "ticketing", load_date, by_source["ticketing"])
-    files += _api_pages(out / FOLDERS["fundraising"], load_date, by_source["fundraising"], full)
+    files += _csv_partitions(out / FOLDERS["tessitura_db"], "tessitura_db", load_date, by_source["tessitura_db"])
+    files += _api_pages(out / FOLDERS["tessitura_api"], load_date, by_source["tessitura_api"], full)
     files += _workbooks(out / FOLDERS["education"], by_source["education"])
     files += _csv_partitions(out / FOLDERS["marketing"], "marketing", load_date, by_source["marketing"])
     return {"load_date": load_date.isoformat(), "files": files}
@@ -74,19 +74,19 @@ def _api_pages(root: Path, load_date: date, tables: dict, full: bool) -> list[di
                 chunk = [chunks[n - 2][-1]] + chunk
             page = {"count": len(rows), "value": chunk, "next_link": f"page-{n + 1}.json" if n < len(chunks) else None}
             (folder / f"page-{n}.json").write_text(json.dumps(page, separators=(",", ":")))
-        files.append({"source": "fundraising", "entity": entity, "rows": len(rows),
+        files.append({"source": "tessitura_api", "entity": entity, "rows": len(rows),
                       "where": f"{root.name}/v1/{entity}/{d}/ ({len(chunks)} page(s))"})
 
     # index.json tells the notebook which days exist; a static site can't filter by date itself.
     v1 = root / "v1"
     load_dates = sorted({p.name for e in v1.iterdir() if e.is_dir() for p in e.iterdir() if p.is_dir()})
-    index = {"api": "Harmonia Hall fundraising API (synthetic data)", "version": "v1", "page_size": API_PAGE_SIZE,
+    index = {"api": "Harmonia Hall Tessitura REST API mock (synthetic data)", "version": "v1", "page_size": API_PAGE_SIZE,
              "entities": sorted(e.name for e in v1.iterdir() if e.is_dir()), "load_dates": load_dates,
              "first_page": "{entity}/{load_date}/page-1.json"}
     (v1 / "index.json").write_text(json.dumps(index, indent=2))
     (root / ".nojekyll").write_text("")              # tells GitHub Pages to serve the files as they are
     (root / "README.md").write_text(
-        "# Harmonia Hall fundraising API (mock)\n\nSynthetic data for a Microsoft Fabric practice project. "
+        "# Harmonia Hall Tessitura REST API (mock)\n\nContributions, campaigns and funds. Synthetic data for a Microsoft Fabric practice project. "
         "Start at `v1/index.json`.\nNo real people or donations.\n")
     return files
 

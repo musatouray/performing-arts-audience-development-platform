@@ -1,13 +1,17 @@
 """Generates fake source data for the platform.
 
-It imitates four source systems. Each one ends up somewhere different,
-the same way it would in real life (see docs/adr/ADR-003-ingestion-tools.md):
+It imitates Tessitura (through its database and its REST API), the education
+team's spreadsheets and the marketing platforms. Each one ends up somewhere
+different, the same way it would in real life (see docs/adr/ADR-003-ingestion-tools.md):
 
-  data/ticketing_db/        CSV extracts that scripts/11_load_ticketing_db.py loads
-                            into your SQL Server database (the mock Tessitura).
-                            A Fabric Copy job then copies changes into Bronze.
-  data/fundraising_api/     A read-only JSON API with paging. Publish this folder
-                            on GitHub Pages; the nb_05 notebook calls it.
+  data/tessitura_db/        CSV extracts that scripts/11_load_tessitura_db.py loads
+                            into your SQL Server database (the mock Tessitura):
+                            constituents, seasons, venues, performances, orders,
+                            order lines, subscriptions. A Fabric Copy job then
+                            copies changes into Bronze.
+  data/tessitura_api/       A read-only JSON API with paging, like Tessitura's REST
+                            API: contributions, campaigns, funds. Publish this
+                            folder on GitHub Pages; the nb_05 notebook calls it.
   data/education_sharepoint/ Excel workbooks. Upload them to a SharePoint
                             document library; a Dataflow Gen2 reads them.
   data/marketing_adls/      CSV exports. Upload them to an ADLS Gen2 container;
@@ -21,8 +25,8 @@ Modes:
   incremental  one day of new and changed rows
 
 Some bad data is added on purpose so the data quality checks have something to
-catch: duplicate patrons, bad emails and zip codes, unknown performances,
-negative prices, gifts dated in the future, sessions with no participants,
+catch: duplicate constituent records, bad emails and zip codes, unknown performances,
+negative prices, contributions dated in the future, sessions with no participants,
 clicks sent twice, overlapping API pages and negative ad spend.
 
 Run: uv run python -m data_generator.generate full
@@ -82,6 +86,7 @@ class State:
     subscriptions: int = 0
     enrollments: int = 0
     last_load_date: str = ""
+    donor_constituent: dict = field(default_factory=dict)  # donor number -> the constituent ID their gifts use
     recent_campaigns: dict = field(default_factory=dict)  # recent email campaigns and the list size when sent
 
     def save(self, path: Path = STATE_FILE):
@@ -198,7 +203,7 @@ class Universe:
         }
 
     def customer(self, cid: int, created: date, version: int = 0):
-        """A ticket buyer. About 3% are the same person as an earlier buyer, under a new ID."""
+        """A ticket buyer's constituent record. About 3% are the same person as an earlier buyer, under a new ID."""
         rng, p = self._person(cid, salt=1)
         if cid > 60 and rng.random() < 0.03:                        # bad data: same person, new ID
             _, p = self._person(cid - rng.randint(1, 50), salt=1)
@@ -213,26 +218,37 @@ class Universe:
             p.update(address_line1=f"{vr.randint(1, 999)} {vr.choice(ref.STREETS)}", city=city, state=state,
                      postal_code=f"{zip3}{vr.randint(1, 99):02d}")
         created_dt = datetime.combine(created, time(rng.randint(8, 21), rng.randint(0, 59)))
-        return {"customer_id": f"T{cid:07d}", **p,
-                "customer_type": weighted(rng, [("Individual", 90), ("Household", 8), ("Organization", 2)]),
+        return {"constituent_id": f"T{cid:07d}", **p,
+                "constituent_type": weighted(rng, [("Individual", 90), ("Household", 8), ("Organization", 2)]),
                 "email_opt_in": rng.random() < 0.65,
                 "created_at": ts(created_dt), "updated_at": ts(created_dt)}
 
     def donor(self, did: int, since: date, max_customer: int):
-        """A donor. About 60% also buy tickets, but have a different ID in the fundraising system."""
+        """A donor, as Tessitura sees them: a constituent. Returns (constituent_id, new_record or None).
+
+        About 60% already buy tickets and give under their existing record. A quarter of those gave
+        online without signing in, so Tessitura holds a second record for them (bad data: a duplicate
+        constituent). The other 40% are new people, whose first gift creates their record.
+        """
         rng = random.Random(self.seed * 7_919 + did)
+        created = datetime.combine(since, time(9, 0))
+        new_id = f"T{5_000_000 + did:07d}"                           # own range, so it never clashes with buyers
         if max_customer > 0 and rng.random() < 0.6:
-            c = self.customer(rng.randint(1, max_customer), since)
-            p = {k: c[k] for k in ("first_name", "last_name", "email", "city", "state", "postal_code")}
+            cid = rng.randint(1, max_customer)
+            if rng.random() >= 0.25:
+                return f"T{cid:07d}", None                          # gives under the record they already have
+            c = self.customer(cid, since)
+            p = {k: c[k] for k in ("first_name", "last_name", "email", "phone", "address_line1",
+                                   "city", "state", "postal_code", "country")}
             if rng.random() < 0.15:
                 p["email"] = ""                                      # no email, so matching has to use name and zip
             elif rng.random() < 0.3:
                 p["email"] = p["email"].upper()
+            p["phone"], p["address_line1"] = "", ""                  # an online gift form asks for less
         else:
-            _, full = self._person(900_000 + did, salt=2)
-            p = {k: full[k] for k in ("first_name", "last_name", "email", "city", "state", "postal_code")}
-        return {"donor_id": f"D{did:06d}", **p, "donor_since": since.isoformat(),
-                "updated_at": ts(datetime.combine(since, time(9, 0)))}
+            _, p = self._person(900_000 + did, salt=2)
+        return new_id, {"constituent_id": new_id, **p, "constituent_type": "Individual", "email_opt_in": False,
+                        "created_at": ts(created), "updated_at": ts(created)}
 
 
 # ----------------------------------------------------------------------------- generator
@@ -264,7 +280,7 @@ class Generator:
         self.st.orders += 1
         returned = rng.random() < 0.02
         orders.append({
-            "order_id": f"O{self.st.orders:08d}", "customer_id": f"T{cust_id:07d}", "order_datetime": ts(order_dt),
+            "order_id": f"O{self.st.orders:08d}", "constituent_id": f"T{cust_id:07d}", "order_datetime": ts(order_dt),
             "channel": weighted(rng, ref.CHANNELS), "status": "Returned" if returned else "Complete",
             "updated_at": ts(order_dt + timedelta(days=rng.randint(1, 5)) if returned else order_dt),
         })
@@ -343,14 +359,14 @@ class Generator:
             day = window[0] + timedelta(days=rng.randint(0, (window[1] - window[0]).days))
             self.st.subscriptions += 1
             subs.append({
-                "subscription_id": f"SUB{self.st.subscriptions:07d}", "customer_id": f"T{cust:07d}",
+                "subscription_id": f"SUB{self.st.subscriptions:07d}", "constituent_id": f"T{cust:07d}",
                 "season_id": season["season_id"], "package_name": pkg, "seats": seats,
                 "package_amount": round(amount * seats * rng.uniform(0.95, 1.05), 2), "is_renewal": is_renewal,
                 "purchased_at": ts(datetime.combine(day, time(rng.randint(8, 22), rng.randint(0, 59)))),
             })
         return subs, current
 
-    # -- gifts ----------------------------------------------------------------
+    # -- contributions ----------------------------------------------------------
     def _gift(self, donor_num: int, gdate: date, rng: random.Random, campaigns_by_fy, as_of: date):
         self.st.gifts += 1
         fy = fiscal_year(gdate)
@@ -362,14 +378,14 @@ class Generator:
         gift_type = weighted(rng, ref.GIFT_TYPES)
         if rng.random() < 0.004:
             gift_type, amount = "Reversal", -amount                   # a real refund, not an error
-        donor_id = f"D{donor_num:06d}"
+        constituent_id = self.st.donor_constituent[str(donor_num)]
         if rng.random() < 0.002:
-            donor_id = "D999999"                                      # bad data: donor that doesn't exist
+            constituent_id = "T9999999"                               # bad data: constituent that doesn't exist
         if rng.random() < 0.003:
             gdate = as_of + timedelta(days=30)                        # bad data: gift dated in the future
         fund = "F02" if "Education" in camp["campaign_name"] else "F04" if "Endowment" in camp["campaign_name"] else rng.choice(["F01", "F01", "F03", "F05"])
-        return {"gift_id": f"G{self.st.gifts:08d}", "donor_id": donor_id, "gift_date": gdate.isoformat(),
-                "amount": amount, "gift_type": gift_type, "campaign_id": camp["campaign_id"], "fund_id": fund,
+        return {"contribution_id": f"G{self.st.gifts:08d}", "constituent_id": constituent_id,
+                "contribution_date": gdate.isoformat(), "amount": amount, "contribution_type": gift_type, "campaign_id": camp["campaign_id"], "fund_id": fund,
                 "is_anonymous": rng.random() < 0.02, "updated_at": ts(datetime.combine(min(gdate, as_of), time(12, 0)))}
 
     def _enrollments_for_day(self, d: date, rng, schools):
@@ -506,13 +522,16 @@ class Generator:
             subs += new_subs
 
         # Each donor has a chance of giving again the next year, which creates lapsed donors.
-        donors = []
+        donor_records = []
         n_donors = 8000
         for i in range(1, n_donors + 1):
             drng = random.Random(self.st.seed * 17 + i)
             since = start + timedelta(days=drng.randint(0, max(1, (end - start).days - 30)))
             self.st.donors += 1
-            donors.append(self.u.donor(i, since, self.st.customers))
+            cid, record = self.u.donor(i, since, self.st.customers)
+            self.st.donor_constituent[str(i)] = cid
+            if record:
+                donor_records.append(record)
             loyalty, fy = drng.uniform(0.35, 0.85), fiscal_year(since)
             active = True
             while fy <= fiscal_year(end):
@@ -539,17 +558,16 @@ class Generator:
         ad_spend = [r for d in daterange(start, end) for r in self._ad_rows(d, end)]
 
         batch = {
-            ("ticketing", "customers"): self._new_customers,
-            ("ticketing", "seasons"): self.u.seasons,
-            ("ticketing", "venues"): self.u.venues(),
-            ("ticketing", "performances"): self.u.performances_snapshot(end),
-            ("ticketing", "orders"): orders,
-            ("ticketing", "order_lines"): lines,
-            ("ticketing", "subscriptions"): subs,
-            ("fundraising", "donors"): donors,
-            ("fundraising", "campaigns"): campaigns,
-            ("fundraising", "funds"): self.u.funds(),
-            ("fundraising", "gifts"): gifts,
+            ("tessitura_db", "constituent"): self._new_customers + donor_records,
+            ("tessitura_db", "season"): self.u.seasons,
+            ("tessitura_db", "venue"): self.u.venues(),
+            ("tessitura_db", "performance"): self.u.performances_snapshot(end),
+            ("tessitura_db", "order"): orders,
+            ("tessitura_db", "order_line"): lines,
+            ("tessitura_db", "subscription"): subs,
+            ("tessitura_api", "campaign"): campaigns,
+            ("tessitura_api", "fund"): self.u.funds(),
+            ("tessitura_api", "contribution"): gifts,
             ("education", "programs"): self.u.programs(),
             ("education", "schools"): schools,
             ("education", "enrollments"): enrollments,
@@ -575,7 +593,7 @@ class Generator:
         # A few recent orders are returned: same order ID, newer updated_at.
         returns = []
         for oid in rng.sample(range(max(1, self.st.orders - 2000), self.st.orders + 1), k=5):
-            returns.append({"order_id": f"O{oid:08d}", "customer_id": f"T{rng.randint(1, self.st.customers):07d}",
+            returns.append({"order_id": f"O{oid:08d}", "constituent_id": f"T{rng.randint(1, self.st.customers):07d}",
                             "order_datetime": ts(datetime.combine(d - timedelta(days=rng.randint(1, 20)), time(12, 0))),
                             "channel": "Web", "status": "Returned", "updated_at": ts(datetime.combine(d, time(4, 0)))})
         # Silver keeps the latest version of each order, so the return replaces the original.
@@ -584,11 +602,14 @@ class Generator:
         campaigns_by_fy = {}
         for c in campaigns:
             campaigns_by_fy.setdefault(c["fiscal_year"], []).append(c)
-        gifts = [self._gift(rng.randint(1, self.st.donors), d, rng, campaigns_by_fy, d) for _ in range(rng.randint(10, 30))]
         new_donors = []
         for _ in range(rng.randint(1, 4)):
             self.st.donors += 1
-            new_donors.append(self.u.donor(self.st.donors, d, self.st.customers))
+            cid, record = self.u.donor(self.st.donors, d, self.st.customers)
+            self.st.donor_constituent[str(self.st.donors)] = cid
+            if record:
+                new_donors.append(record)
+        gifts = [self._gift(rng.randint(1, self.st.donors), d, rng, campaigns_by_fy, d) for _ in range(rng.randint(10, 30))]
 
         # Email stats keep growing for a week after a send, so the export repeats
         # the last 7 days of campaigns with their latest numbers.
@@ -605,17 +626,16 @@ class Generator:
         ad_spend = [r for back in (2, 1, 0) for r in self._ad_rows(d - timedelta(days=back), d)]
 
         batch = {
-            ("ticketing", "customers"): self._new_customers + changed,
-            ("ticketing", "seasons"): self.u.seasons,
-            ("ticketing", "venues"): self.u.venues(),
-            ("ticketing", "performances"): self.u.performances_snapshot(d),
-            ("ticketing", "orders"): orders + returns,
-            ("ticketing", "order_lines"): lines,
-            ("ticketing", "subscriptions"): [],
-            ("fundraising", "donors"): new_donors,
-            ("fundraising", "campaigns"): campaigns,
-            ("fundraising", "funds"): self.u.funds(),
-            ("fundraising", "gifts"): gifts,
+            ("tessitura_db", "constituent"): self._new_customers + changed + new_donors,
+            ("tessitura_db", "season"): self.u.seasons,
+            ("tessitura_db", "venue"): self.u.venues(),
+            ("tessitura_db", "performance"): self.u.performances_snapshot(d),
+            ("tessitura_db", "order"): orders + returns,
+            ("tessitura_db", "order_line"): lines,
+            ("tessitura_db", "subscription"): [],
+            ("tessitura_api", "campaign"): campaigns,
+            ("tessitura_api", "fund"): self.u.funds(),
+            ("tessitura_api", "contribution"): gifts,
             ("education", "programs"): self.u.programs(),
             ("education", "schools"): self.u.schools(),
             ("education", "enrollments"): self._enrollments_for_day(d, rng, self.u.schools()),
@@ -658,7 +678,7 @@ def main(argv=None):
         total = sum(x["rows"] for x in m["files"])
         print(f"load_date={m['load_date']}: {total:,} rows")
         for x in m["files"]:
-            print(f"   {x['source']:<12}{x['entity']:<16}{x['rows']:>9,}   -> {x['where']}")
+            print(f"   {x['source']:<15}{x['entity']:<16}{x['rows']:>9,}   -> {x['where']}")
     print(f"\nNext: see docs/01-runbook.md, Phase 8, for where each folder under {a.out}/ goes.")
 
 
