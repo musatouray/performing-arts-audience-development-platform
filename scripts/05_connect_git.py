@@ -3,6 +3,8 @@
   hh-dataplatform-dev  syncs with  main:/fabric/de
   hh-audience-dev      syncs with  main:/fabric/bi-audience
   hh-education-dev     syncs with  main:/fabric/bi-education
+  hh-finance-dev       syncs with  main:/fabric/bi-finance
+  hh-operations-dev    syncs with  main:/fabric/bi-operations
 
 Only dev is connected. Test and prod get changes through deployment pipelines,
 so prod always matches what was reviewed and merged.
@@ -10,6 +12,9 @@ so prod always matches what was reviewed and merged.
 Before running: create a GitHub connection in Fabric (Settings > Manage
 connections and gateways > New > GitHub - Source control) using a fine-grained
 personal access token, then put its ID in .env (FABRIC_GIT_CONNECTION_ID).
+
+Safe to run again: workspaces that are already connected are left alone, so adding a
+family to tenant.yaml and re-running only connects the new one.
 
 Run: uv run python scripts/05_connect_git.py [--dry-run]
 """
@@ -45,7 +50,15 @@ def main():
             print("  = already connected")
 
         # On the first sync, keep what is in the workspace, since the items were created there.
-        init = c.post(f"/workspaces/{ws['id']}/git/initializeConnection", {"initializationStrategy": "PreferWorkspace"})
+        # A workspace that has synced before is already initialised; its changes go through
+        # Source control (commit / update), so there's nothing more to do here.
+        try:
+            init = c.post(f"/workspaces/{ws['id']}/git/initializeConnection", {"initializationStrategy": "PreferWorkspace"})
+        except ApiError as e:
+            if "AlreadyInitialized" not in e.code:
+                raise
+            print("  = already initialised (use Source control to commit or update)")
+            continue
         action = init.get("requiredAction", "None")
         print(f"  requiredAction: {action}")
         if action == "CommitToGit":
