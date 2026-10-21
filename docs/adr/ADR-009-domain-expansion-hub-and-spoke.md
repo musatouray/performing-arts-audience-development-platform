@@ -1,6 +1,6 @@
 # ADR-009: Adding venue operations and finance: hub and spoke, not one platform per domain
 
-**Status:** Accepted (design). Not built yet; see the build order below.
+**Status:** Accepted and built (dev): MIP and Diese ingestion, `fin.*`, `dim.event`, `dim.room`, `fact.venue_booking`, the reconciliation and the `hh-finance-{env}` family. See [`70_finance_and_venue_ops.sql`](../../src/warehouse/70_finance_and_venue_ops.sql).
 
 ## Context
 
@@ -23,7 +23,16 @@ That raises the question of whether each business domain (ticketing, finance, ve
 **B, hub and spoke.**
 
 - **Hub:** `hh-dataplatform-{env}` keeps all ingestion, Bronze, Silver and the one Gold warehouse. The new sources land there like the existing ones.
-- **Spokes:** one BI workspace family per consuming domain, holding its semantic models, reports and app. The existing Audience & Development and Education families stay. The planned **Finance & Operations** family (`hh-finance-{env}`, ADR-001) holds both the finance model and the venue operations model.
+- **Spokes:** one BI workspace family per consuming domain, holding its semantic models, reports and app, each matching a part of the organisation:
+
+  | Spoke | Serves | Workspaces | Model |
+  |---|---|---|---|
+  | Audience & Development | Marketing, Ticketing Services, Development | `hh-audience-{env}` | `sm_audience_development` |
+  | Education & Community | Music Education and Community Programs | `hh-education-{env}` | `sm_education_impact` |
+  | **Finance** | Finance, CFO office | `hh-finance-{env}` | `sm_finance` |
+  | **Operations** | Hall Operations, Event Services, Rentals | `hh-operations-{env}` | `sm_operations` |
+
+- **Finance and Operations are separate spokes**, not one: they answer to different leaders, and the ledger is far more sensitive than the hall calendar. With separate spokes, the ledger never reaches the operations workspace, and the calendar can go to a wider operations audience. The cost is three more workspaces, a deployment pipeline and an app. The cross-question ("rental revenue vs the ledger") still works because both spokes read the same Gold in the hub: the reconciliation lives in Finance and reads Diese's side from Gold.
 - **Isolation for sensitive data** comes from security, not from separate platforms: finance tables live in their own Gold schema (`fin.*`) with their own grants, and their own model with its own roles (ADR-006).
 
 ## Data design
@@ -44,22 +53,26 @@ That raises the question of whether each business domain (ticketing, finance, ve
 | `dim.venue` | Existing | `capacity` already drives sell-through; it's now shared by ticketing and venue operations |
 | `fin.fact_gl_entry` | One journal line | With `fin.dim_account`, `fin.dim_department` and the existing `dim.fund` (ADR-001) |
 
-**Reconciliation, the first finance deliverable:** ticket and gift revenue from the ticketing and fundraising systems is posted to the ledger, so the two must agree.
+**Reconciliation, the first finance deliverable:** Tessitura posts ticket, subscription and gift revenue to the ledger, and Diese's rental fees are invoiced through it, so the two sides must agree.
 
-- `rpt.vw_recon_revenue_to_gl`: ticket net revenue and gifts by fund and fiscal month, next to the matching GL accounts, with the variance and a tolerance flag.
-- Shown on the Data Trust page, and a variance over tolerance blocks certification of that month's finance model.
+- `fin.recon_revenue_to_gl`, rebuilt by every Gold load: month × revenue stream (single tickets, subscriptions, contributions by fund, venue rentals) × fund, with source amount, ledger amount, variance, tolerance (the larger of $1,000 or 1%) and a status (Matched, Within tolerance, Investigate).
+- It's a table computed by the load, not a view, because the load runs as the ETL identity and sees every gift, anonymous ones included; people only ever see the monthly totals.
+- Finance explains variances in `fin.recon_note` (cause, note, resolution, owner); the next load copies the note onto the line, and `rpt.vw_recon_revenue_to_gl` shows it live.
+- Shown on the finance model's Reconciliation and Data Trust pages; open items over tolerance block certification of that month's numbers.
+- `sm_finance` holds the ledger and the reconciliation; `sm_operations` holds the hall calendar and has no ledger tables at all, so no hiding rules are needed.
 
 ## Build order
 
 1. Data freshness and the cube-style semantic model on the existing Gold (no new source needed).
 2. Venue bookings: synthetic data, ingestion, `dim.event`, `fact.venue_booking`.
 3. General ledger: synthetic data, ingestion, `fin.*`, the reconciliation view.
-4. The `hh-finance-{env}` family in `tenant.yaml`, scripts 02 to 05, then its models.
+4. The `hh-finance-{env}` and `hh-operations-{env}` families in `tenant.yaml`, scripts 00 to 05, then their models.
 
 ## Consequences
 
 - The hub team owns more sources; the config-driven loads (`sources.yaml`) keep each new source to config plus one ingestion item.
-- The event bridge needs an owner: venue operations confirms the performance-to-event mapping for unmatched public events.
+- The event bridge needs an owner: Operations confirms the performance-to-event mapping for unmatched public events.
+- Domains follow data ownership, not the org chart for its own sake: if rentals turn out to be owned by Finance rather than Event Services, the Diese tables move spokes with a `tenant.yaml` change, not a rebuild.
 - Cross-domain questions stay simple: one Gold warehouse, shared dimensions.
 
 > [!NOTE]

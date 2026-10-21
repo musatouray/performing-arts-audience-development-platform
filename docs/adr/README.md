@@ -5,7 +5,7 @@ They're written the way you'd defend them to a CIO. Every one ends with a **Note
 
 | # | Decision | Status |
 |---|---|---|
-| [ADR-001](ADR-001-workspace-domain-topology.md) | Workspace families × environments, grouped by domain; Finance & Operations planned next | Accepted |
+| [ADR-001](ADR-001-workspace-domain-topology.md) | Workspace families × environments, grouped by domain; Finance and Operations added by ADR-009 | Accepted |
 | [ADR-002](ADR-002-medallion-storage.md) | Lakehouse for Bronze/Silver, Warehouse for Gold | Accepted |
 | [ADR-003](ADR-003-ingestion-tools.md) | Ingestion tool per source: Copy job, API notebook, Dataflow Gen2, shortcut | Accepted |
 | [ADR-004](ADR-004-semantic-model-mode.md) | Direct Lake on OneLake + fixed identity for enterprise models | Accepted |

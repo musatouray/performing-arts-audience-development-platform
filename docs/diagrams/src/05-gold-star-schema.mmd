@@ -14,12 +14,16 @@ erDiagram
   DIM_PROGRAM ||--o{ FACT_EDUCATION_SESSIONS : delivers
   DIM_SCHOOL ||--o{ FACT_EDUCATION_SESSIONS : "hosted at"
   DIM_VENUE ||--o{ FACT_TICKET_SALES : "held in"
-  DIM_VENUE ||--o{ DIM_EVENT : "booked in (planned)"
-  DIM_PERFORMANCE |o--o{ DIM_EVENT : "ticketed as (optional, planned)"
-  DIM_EVENT ||--o{ FACT_VENUE_BOOKING : "planned"
-  DIM_DATE ||--o{ FACT_VENUE_BOOKING : "booking date (planned)"
-  DIM_FUND ||--o{ FIN_FACT_GL_ENTRY : "planned"
-  DIM_DATE ||--o{ FIN_FACT_GL_ENTRY : "posting date (planned)"
+  DIM_VENUE ||--o{ DIM_ROOM : "hall is a venue"
+  DIM_PERFORMANCE |o--o{ DIM_EVENT : "ticketed as (optional bridge)"
+  DIM_EVENT ||--o{ FACT_VENUE_BOOKING : "booked for"
+  DIM_ROOM ||--o{ FACT_VENUE_BOOKING : "in room"
+  DIM_DATE ||--o{ FACT_VENUE_BOOKING : booking_date
+  FIN_DIM_ACCOUNT ||--o{ FIN_FACT_GL_ENTRY : "posted to"
+  FIN_DIM_DEPARTMENT ||--o{ FIN_FACT_GL_ENTRY : "charged to"
+  DIM_FUND ||--o{ FIN_FACT_GL_ENTRY : "fund (mip_fund_code)"
+  DIM_DATE ||--o{ FIN_FACT_GL_ENTRY : effective_date
+  DIM_FUND ||--o{ FIN_RECON_REVENUE_TO_GL : "by fund"
 
   FACT_TICKET_SALES {
     string order_line_id "grain: order line"
@@ -71,25 +75,50 @@ erDiagram
     string venue_name
     int capacity "sell-through"
   }
+  DIM_ROOM {
+    int room_key PK
+    string room_name "Diese room"
+    int venue_key FK "-1 if not a hall"
+    decimal hourly_rate
+  }
   DIM_EVENT {
-    int event_key PK "PLANNED bridge"
-    string booking_event_id "booking system"
-    int performance_key FK "or -1 if not ticketed"
-    int venue_key FK
-    string event_type "Concert, Rental, Rehearsal, Education"
+    int event_key PK "bridge: Diese event"
+    string event_id
+    int performance_key FK "-1 if not ticketed"
+    string event_type "Concert, Rental, Rehearsal"
+    bit is_linked
   }
   FACT_VENUE_BOOKING {
-    int event_key FK "PLANNED grain: event x room x day"
-    int venue_key FK
-    int date_key FK
+    string booking_id "grain: room booking"
+    int event_key FK
+    int room_key FK
+    int booking_date_key FK
     decimal hours_booked
+    decimal rental_fee
+  }
+  FIN_DIM_ACCOUNT {
+    int account_key PK
+    string account_code "MIP chart of accounts"
+    string account_group
+  }
+  FIN_DIM_DEPARTMENT {
+    int department_key PK
+    string department_code
   }
   FIN_FACT_GL_ENTRY {
-    string journal_line_id "PLANNED grain: journal line"
+    string gl_transaction_id "grain: journal line"
     int account_key FK
     int fund_key FK
     int department_key FK
-    decimal amount
+    int effective_date_key FK
+    decimal net_amount "credit - debit"
+  }
+  FIN_RECON_REVENUE_TO_GL {
+    date month_start "grain: month x stream x fund"
+    string revenue_stream
+    decimal source_amount
+    decimal gl_amount
+    string status "Matched, Within tolerance, Investigate"
   }
   DIM_DATE {
     int date_key PK

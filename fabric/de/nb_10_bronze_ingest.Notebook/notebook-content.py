@@ -28,7 +28,7 @@
 # Run by the `pl_daily_load` pipeline, or by hand.
 # 
 # This covers the sources that arrive as files under `Files/landing`:
-# * Tessitura's REST API data (contributions, campaigns, funds), saved there by `nb_05_tessitura_api`
+# * Tessitura's REST API data (contributions, campaigns, funds), saved there by `nb_05_api_ingest`
 # * marketing, which `Files/landing/marketing` shows through a shortcut to ADLS Gen2
 # 
 # Tessitura's database tables (Copy job) and education (Dataflow Gen2) write their Bronze tables directly,

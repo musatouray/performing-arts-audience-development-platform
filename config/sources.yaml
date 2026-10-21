@@ -41,9 +41,9 @@ sources:
   #                  reads it through the on-premises data gateway, copies only the
   #                  rows changed since its last run (by updated_at) and appends
   #                  them to lh_bronze.tessitura.<table>.
-  #                  scripts/11_load_tessitura_db.py creates the tables and loads the data.
+  #                  scripts/11_load_source_db.py --source tessitura_db creates the tables and loads the data.
   #   tessitura_api  its REST API, used for contributions (a mock on GitHub Pages).
-  #                  nb_05_tessitura_api follows the pages and saves the records to
+  #                  nb_05_api_ingest follows the pages and saves the records to
   #                  Files/landing/tessitura_api; nb_10 then loads them into Bronze.
   # Both share system: tessitura, so they land in the same Bronze and Silver schema.
   # Donors are constituents like ticket buyers, so contributions carry a
@@ -169,6 +169,106 @@ sources:
           campaign_id: string
           fund_id: string
           is_anonymous: boolean
+          updated_at: timestamp
+
+  # ---------------------------------------------------------------------------
+  # MIP Fund Accounting, the general ledger. Kept on-premises in SQL Server, like
+  # Tessitura, so it uses the same pattern: a Copy job (cj_mip) reads it through the
+  # gateway with a read-only login and appends changed rows to lh_bronze.mip.<table>.
+  # scripts/11_load_source_db.py --source mip_db creates the tables and loads the data.
+  # Finance owns the fund crosswalk: fund.tessitura_fund_id says which Tessitura fund
+  # each MIP fund matches, which is how gifts are reconciled to the ledger.
+  # ---------------------------------------------------------------------------
+  - source: mip_db
+    system: mip
+    owner: "Finance (Controller)"
+    ingestion:
+      method: copy_job
+      lands_in: bronze_table
+      change_column: updated_at
+      source_db:
+        server: "${MIP_SQL_SERVER}"
+        database: "${MIP_SQL_DATABASE}"
+        schema: dbo
+    entities:
+      - name: gl_account
+        primary_key: [account_code]
+        order_by: account_code
+        columns: { account_code: string, account_name: string, account_type: string, account_group: string, normal_balance: string, is_active: boolean }
+      - name: department
+        primary_key: [department_code]
+        order_by: department_code
+        columns: { department_code: string, department_name: string }
+      - name: fund
+        primary_key: [fund_code]
+        order_by: fund_code
+        columns: { fund_code: string, fund_name: string, restriction: string, tessitura_fund_id: string }
+      - name: gl_transaction
+        primary_key: [gl_transaction_id]
+        order_by: updated_at
+        columns:
+          gl_transaction_id: string
+          journal_id: string
+          line_number: int
+          session_id: string
+          source_module: string
+          effective_date: date
+          posted_at: timestamp
+          account_code: string
+          fund_code: string
+          department_code: string
+          debit_amount: "decimal(14,2)"
+          credit_amount: "decimal(14,2)"
+          description: string
+          reference: string
+          updated_at: timestamp
+
+  # ---------------------------------------------------------------------------
+  # Diese, the hall and room booking system: concerts, outside rentals and
+  # rehearsals. Its REST API is mocked on GitHub Pages like Tessitura's, so the same
+  # notebook (nb_05_api_ingest) reads it: a new API source is config, not code.
+  # Concert events carry the Tessitura performance they belong to; Gold uses that
+  # link to build dim.event (docs/adr/ADR-009).
+  # ---------------------------------------------------------------------------
+  - source: diese_api
+    system: diese
+    format: json
+    owner: "Venue Operations & Rentals"
+    ingestion:
+      method: notebook_api
+      lands_in: files
+      api_base_url: "${DIESE_API_BASE_URL}"
+    entities:
+      - name: room
+        primary_key: [room_id]
+        order_by: room_id
+        columns: { room_id: string, room_name: string, room_type: string, venue_id: string, capacity: int, hourly_rate: "decimal(10,2)" }
+      - name: event
+        primary_key: [event_id]
+        order_by: updated_at
+        pii: [client_name]          # private clients are named people (a family, a wedding)
+        columns:
+          event_id: string
+          event_name: string
+          event_type: string
+          client_name: string
+          client_type: string
+          tessitura_performance_id: string
+          event_date: date
+          status: string
+          created_at: timestamp
+          updated_at: timestamp
+      - name: booking
+        primary_key: [booking_id]
+        order_by: updated_at
+        columns:
+          booking_id: string
+          event_id: string
+          room_id: string
+          booking_type: string
+          start_datetime: timestamp
+          end_datetime: timestamp
+          rental_fee: "decimal(12,2)"
           updated_at: timestamp
 
   # ---------------------------------------------------------------------------

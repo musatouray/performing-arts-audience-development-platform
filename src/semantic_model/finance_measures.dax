@@ -1,0 +1,83 @@
+// =============================================================================
+// DAX measures for sm_finance, the Finance spoke's model (Direct Lake on OneLake over wh_gold).
+// Same conventions as measures.dax: everything in a "_Measures" table, in display folders.
+// Ledger sign convention: fact_gl_entry[net_amount] = credit - debit, so revenue is
+// positive and expenses are negative. Measures flip expenses so people read them as positive.
+// =============================================================================
+
+// ---------------------------------------------------------------- Ledger
+// Display folder: Ledger
+Revenue =
+CALCULATE ( SUM ( fact_gl_entry[net_amount] ), dim_account[account_type] = "Revenue" )
+
+Expenses =
+CALCULATE ( - SUM ( fact_gl_entry[net_amount] ), dim_account[account_type] = "Expense" )
+
+Net Surplus =
+[Revenue] - [Expenses]
+
+Earned Revenue =
+CALCULATE ( [Revenue], dim_account[account_group] = "Earned Revenue" )
+
+Contributed Revenue =
+CALCULATE ( [Revenue], dim_account[account_group] = "Contributed Revenue" )
+
+// Share of revenue the organisation earns (tickets, rentals) rather than raises.
+Earned Revenue % =
+DIVIDE ( [Earned Revenue], [Revenue] )
+
+Debits =
+SUM ( fact_gl_entry[debit_amount] )
+
+Credits =
+SUM ( fact_gl_entry[credit_amount] )
+
+// Should always be 0: every journal balances. Shown on the Data Trust page.
+Out of Balance =
+[Debits] - [Credits]
+
+// ---------------------------------------------------------------- Reconciliation
+// Display folder: Reconciliation
+Source Amount =
+SUM ( recon_revenue_to_gl[source_amount] )
+
+Ledger Amount =
+SUM ( recon_revenue_to_gl[gl_amount] )
+
+Variance =
+[Ledger Amount] - [Source Amount]
+
+Variance % =
+DIVIDE ( [Variance], [Source Amount] )
+
+Lines to Investigate =
+CALCULATE ( COUNTROWS ( recon_revenue_to_gl ), recon_revenue_to_gl[status] = "Investigate" )
+
+Open Items =
+CALCULATE ( COUNTROWS ( recon_revenue_to_gl ), recon_revenue_to_gl[resolution] = "Open" )
+
+// Share of month x stream x fund lines that tie out (matched or within tolerance).
+Reconciled % =
+DIVIDE (
+    CALCULATE ( COUNTROWS ( recon_revenue_to_gl ), recon_revenue_to_gl[status] <> "Investigate" ),
+    COUNTROWS ( recon_revenue_to_gl )
+)
+
+// ---------------------------------------------------------------- Data trust
+// Display folder: Data Trust
+Last Loaded (UTC) =
+MAX ( source_freshness[last_loaded_utc] )
+
+Data Through =
+MAX ( source_freshness[data_through] )
+
+Hours Since Load =
+DATEDIFF ( [Last Loaded (UTC)], UTCNOW (), HOUR )
+
+Freshness Status =
+SWITCH (
+    TRUE (),
+    ISBLANK ( [Last Loaded (UTC)] ), "Never loaded",
+    [Hours Since Load] <= 26, "Fresh",
+    "Stale"
+)

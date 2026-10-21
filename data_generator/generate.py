@@ -4,7 +4,7 @@ It imitates Tessitura (through its database and its REST API), the education
 team's spreadsheets and the marketing platforms. Each one ends up somewhere
 different, the same way it would in real life (see docs/adr/ADR-003-ingestion-tools.md):
 
-  data/tessitura_db/        CSV extracts that scripts/11_load_tessitura_db.py loads
+  data/tessitura_db/        CSV extracts that scripts/11_load_source_db.py loads
                             into your SQL Server database (the mock Tessitura):
                             constituents, seasons, venues, performances, orders,
                             order lines, subscriptions. A Fabric Copy job then
@@ -16,6 +16,11 @@ different, the same way it would in real life (see docs/adr/ADR-003-ingestion-to
                             document library; a Dataflow Gen2 reads them.
   data/marketing_adls/      CSV exports. Upload them to an ADLS Gen2 container;
                             a OneLake shortcut makes them visible in lh_bronze.
+  data/mip_db/              CSV extracts of the general ledger (the mock MIP Fund
+                            Accounting), loaded into a second SQL Server database
+                            by scripts/11_load_source_db.py --source mip_db.
+  data/diese_api/           A JSON API like data/tessitura_api, for the hall
+                            booking system (the mock Diese): rooms, events, bookings.
 
 Folder-based outputs keep one folder per day (load_date=YYYY-MM-DD) and a
 _manifests/ file with row counts, used to check nothing went missing.
@@ -44,6 +49,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
+from data_generator import finance_ops as fo
 from data_generator import reference as ref
 from data_generator.writers import write_all
 
@@ -88,6 +94,8 @@ class State:
     last_load_date: str = ""
     donor_constituent: dict = field(default_factory=dict)  # donor number -> the constituent ID their gifts use
     recent_campaigns: dict = field(default_factory=dict)  # recent email campaigns and the list size when sent
+    journals: int = 0                                      # MIP journal and line numbers
+    gl_lines: int = 0
 
     def save(self, path: Path = STATE_FILE):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -383,9 +391,15 @@ class Generator:
             constituent_id = "T9999999"                               # bad data: constituent that doesn't exist
         if rng.random() < 0.003:
             gdate = as_of + timedelta(days=30)                        # bad data: gift dated in the future
-        fund = "F02" if "Education" in camp["campaign_name"] else "F04" if "Endowment" in camp["campaign_name"] else rng.choice(["F01", "F01", "F03", "F05"])
+        if "Education" in camp["campaign_name"]:
+            fund = "F02"
+        elif "Endowment" in camp["campaign_name"]:
+            fund = "F04"
+        else:
+            fund = rng.choice(["F01", "F01", "F03", "F05"])
         return {"contribution_id": f"G{self.st.gifts:08d}", "constituent_id": constituent_id,
-                "contribution_date": gdate.isoformat(), "amount": amount, "contribution_type": gift_type, "campaign_id": camp["campaign_id"], "fund_id": fund,
+                "contribution_date": gdate.isoformat(), "amount": amount, "contribution_type": gift_type,
+                "campaign_id": camp["campaign_id"], "fund_id": fund,
                 "is_anonymous": rng.random() < 0.02, "updated_at": ts(datetime.combine(min(gdate, as_of), time(12, 0)))}
 
     def _enrollments_for_day(self, d: date, rng, schools):
@@ -494,6 +508,61 @@ class Generator:
                              "updated_at": ts(datetime.combine(as_of, time(6, 0)))})
         return rows
 
+    # -- finance and venue operations (MIP and Diese) ----------------------------
+    def _diese(self):
+        return fo.Diese(self.st.seed, self.u.performances)
+
+    @staticmethod
+    def _clean_line_amounts(orders, lines) -> dict:
+        """Net amount per order line, for lines Tessitura would post. The planted bad rows
+        (unknown show, negative price) are left out, so the ledger only differs from Gold
+        by the planted finance exceptions."""
+        out = {}
+        for line in lines:
+            if line["performance_id"] == "P999999" or line["unit_price"] < 0:
+                continue
+            out[line["order_line_id"]] = (line["order_id"], round(line["quantity"] * line["unit_price"] - line["discount_amount"], 2))
+        return out
+
+    def _month_end_inputs(self, month_end: date, ta_hours=None):
+        first = month_end.replace(day=1)
+        n_perfs = sum(1 for p in self.u.performances if p["status"] != "Cancelled"
+                      and first <= datetime.fromisoformat(p["performance_datetime"]).date() <= month_end)
+        ad = sum(r["spend"] for i in range(month_end.day)
+                 for r in self._ad_rows(first + timedelta(days=i), month_end + timedelta(days=30)) if r["spend"] > 0)
+        if ta_hours is None:                                   # daily runs only know today's sessions; estimate the month
+            ta_hours = sum(1 for i in range(month_end.day) if (first + timedelta(days=i)).weekday() < 5) * 4.5 * 1.9 \
+                if month_end.month not in (7, 8) else 0
+        return n_perfs, ta_hours, ad
+
+    def _post_ledger(self, ledger, diese, days, sales, returns, subs, gifts, ta_by_month=None):
+        """Post each day's journals, the year-end cut-off gifts and the month-end costs."""
+        start, end = date.fromisoformat(self.st.start), date.fromisoformat(self.st.end)
+        cutoff_day = fo.cutoff_day(end)                         # the planted one-time exceptions (finance_ops docstring)
+        reclass_month = date(cutoff_day.year, 5, 31)
+        for d in days:
+            day_gifts = gifts.get(d, {})
+            cutoff = d == cutoff_day
+            fo.post_day(ledger, diese, d, sales.get(d, 0), returns.get(d, 0), subs.get(d, 0),
+                        {} if cutoff else day_gifts, start)
+            if cutoff and day_gifts:
+                fo.post_cutoff_gifts(ledger, d, day_gifts)
+            if (d + timedelta(days=1)).month != d.month:
+                key = d.strftime("%Y-%m")
+                fo.post_month_end(ledger, diese, d, *self._month_end_inputs(d, (ta_by_month or {}).get(key)), reclass_month)
+
+    @staticmethod
+    def _gifts_by_day_fund(gifts, as_of: date) -> dict:
+        out: dict = {}
+        for g in gifts:
+            gd = date.fromisoformat(g["contribution_date"])
+            if gd > as_of:                                     # planted future-dated gifts aren't posted
+                continue
+            fund = fo.FUND_BY_TESSITURA[g["fund_id"]]
+            day = out.setdefault(gd, {})
+            day[fund] = round(day.get(fund, 0) + g["amount"], 2)
+        return out
+
     # -- modes ------------------------------------------------------------------
     def full(self):
         """First load: all history from start to end, in one batch."""
@@ -557,6 +626,29 @@ class Generator:
                     self.st.recent_campaigns[camp["email_campaign_id"]] = list_size
         ad_spend = [r for d in daterange(start, end) for r in self._ad_rows(d, end)]
 
+        # Diese: the hall calendar. MIP: the ledger, posted from Tessitura and Diese.
+        diese = self._diese()
+        events, bookings = diese.snapshot(start, end)
+        order_by_id = {o["order_id"]: o for o in orders}
+        sales, returns, subs_by_day = {}, {}, {}
+        for oid, amt in self._clean_line_amounts(orders, lines).values():
+            o = order_by_id[oid]
+            sold = datetime.fromisoformat(o["order_datetime"]).date()
+            sales[sold] = round(sales.get(sold, 0) + amt, 2)
+            if o["status"] == "Returned":
+                back = datetime.fromisoformat(o["updated_at"]).date()
+                if back <= end:
+                    returns[back] = round(returns.get(back, 0) + amt, 2)
+        for sub in subs:
+            day = datetime.fromisoformat(sub["purchased_at"]).date()
+            subs_by_day[day] = round(subs_by_day.get(day, 0) + sub["package_amount"], 2)
+        ta_by_month = {}
+        for e in enrollments:
+            ta_by_month[e["session_date"][:7]] = ta_by_month.get(e["session_date"][:7], 0) + e["teaching_artist_hours"]
+        ledger = fo.Ledger(self.st)
+        self._post_ledger(ledger, diese, daterange(start, end), sales, returns, subs_by_day,
+                          self._gifts_by_day_fund(gifts, end), ta_by_month)
+
         batch = {
             ("tessitura_db", "constituent"): self._new_customers + donor_records,
             ("tessitura_db", "season"): self.u.seasons,
@@ -574,6 +666,13 @@ class Generator:
             ("marketing", "email_campaigns"): campaigns_sent,
             ("marketing", "email_clicks"): self._messy_clicks(clicks, rng),
             ("marketing", "ad_spend_daily"): ad_spend,
+            ("mip_db", "gl_account"): fo.gl_accounts(),
+            ("mip_db", "department"): fo.departments(),
+            ("mip_db", "fund"): fo.gl_funds(),
+            ("mip_db", "gl_transaction"): ledger.rows,
+            ("diese_api", "room"): fo.rooms(),
+            ("diese_api", "event"): events,
+            ("diese_api", "booking"): bookings,
         }
         self.st.last_load_date = end.isoformat()
         return end, batch
@@ -625,6 +724,15 @@ class Generator:
         # Ad platforms restate the last two days, so each export covers three days.
         ad_spend = [r for back in (2, 1, 0) for r in self._ad_rows(d - timedelta(days=back), d)]
 
+        # Today's bookings and ledger postings. Returns processed today aren't posted yet:
+        # Tessitura sends them in a later batch, a small timing difference the reconciliation shows.
+        diese = self._diese()
+        events, bookings = diese.changes_on(d)
+        enrollments = self._enrollments_for_day(d, rng, self.u.schools())
+        sales = round(sum(a for _, a in self._clean_line_amounts(orders, lines).values()), 2)
+        ledger = fo.Ledger(self.st)
+        self._post_ledger(ledger, diese, [d], {d: sales}, {}, {}, self._gifts_by_day_fund(gifts, d))
+
         batch = {
             ("tessitura_db", "constituent"): self._new_customers + changed + new_donors,
             ("tessitura_db", "season"): self.u.seasons,
@@ -638,10 +746,17 @@ class Generator:
             ("tessitura_api", "contribution"): gifts,
             ("education", "programs"): self.u.programs(),
             ("education", "schools"): self.u.schools(),
-            ("education", "enrollments"): self._enrollments_for_day(d, rng, self.u.schools()),
+            ("education", "enrollments"): enrollments,
             ("marketing", "email_campaigns"): campaigns_sent,
             ("marketing", "email_clicks"): self._messy_clicks(clicks, rng),
             ("marketing", "ad_spend_daily"): ad_spend,
+            ("mip_db", "gl_account"): fo.gl_accounts(),
+            ("mip_db", "department"): fo.departments(),
+            ("mip_db", "fund"): fo.gl_funds(),
+            ("mip_db", "gl_transaction"): ledger.rows,
+            ("diese_api", "room"): fo.rooms(),
+            ("diese_api", "event"): events,
+            ("diese_api", "booking"): bookings,
         }
         self.st.last_load_date = d.isoformat()
         return d, batch

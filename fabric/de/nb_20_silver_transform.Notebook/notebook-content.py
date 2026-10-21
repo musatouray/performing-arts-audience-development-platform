@@ -33,7 +33,7 @@
 # For each table, in the order listed in `sources.json` (lookup tables first):
 # 1. Read only the Bronze rows that are new since the last run. How "new" is found depends on the source:
 #    * files loaded by nb_10: by `_load_date`
-#    * Tessitura's database tables, appended by the Copy job: by `updated_at`
+#    * tables appended by a Copy job (Tessitura, MIP): by `updated_at`
 #    * education, replaced by the Dataflow on every run: the whole (small) table is read
 # 2. Set the data types, trim text, turn empty text into nulls and lower-case emails.
 # 3. Keep only the latest version of each row, which also removes rows sent twice.
@@ -191,7 +191,7 @@ process_entity("tessitura.subscription")
 # MARKDOWN ********************
 
 # ## Tessitura: REST API
-# Source: the Tessitura REST API, landed by `nb_05_tessitura_api`. Overlapping API pages send some
+# Source: the Tessitura REST API, landed by `nb_05_api_ingest`. Overlapping API pages send some
 # records twice; step 3 keeps one of each.
 
 # CELL ********************
@@ -202,6 +202,53 @@ process_entity("tessitura.fund")
 
 # Contributions dated in the future, or for a constituent that doesn't exist, go to quarantine.
 process_entity("tessitura.contribution")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## MIP: the general ledger
+# Source: the on-premises MIP SQL Server, copied by `cj_mip`. Accounts, departments and funds
+# run first, because every journal line is checked against them. A line that is both a debit
+# and a credit, or points at an account that doesn't exist, goes to quarantine.
+
+# CELL ********************
+
+process_entity("mip.gl_account")
+
+process_entity("mip.department")
+
+process_entity("mip.fund")
+
+process_entity("mip.gl_transaction")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Diese: hall and room bookings
+# Source: the Diese booking API, landed by `nb_05_api_ingest`. Rooms and events run before
+# bookings, which are checked against both. Bookings that end before they start go to quarantine.
+# Concert events point at their Tessitura performance; a missing link is allowed here and
+# counted in Gold, where venue operations confirm the match.
+
+# CELL ********************
+
+process_entity("diese.room")
+
+process_entity("diese.event")
+
+process_entity("diese.booking")
 
 # METADATA ********************
 

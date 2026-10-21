@@ -1,4 +1,4 @@
-%% Platform architecture: sources -> OneLake medallion -> semantic models -> consumers
+%% Platform architecture: sources -> OneLake medallion (hub) -> domain spokes -> consumers
 flowchart LR
   classDef src fill:#FFF4E5,stroke:#B26A00,color:#3D2600
   classDef bronze fill:#F3E1D3,stroke:#8C5A3C,color:#3B2416
@@ -7,65 +7,75 @@ flowchart LR
   classDef bi fill:#E3F2FD,stroke:#1565C0,color:#0D2A4D
   classDef gov fill:#EDE7F6,stroke:#5E35B1,color:#26134D
   classDef user fill:#E8F5E9,stroke:#2E7D32,color:#123D16
-  classDef planned fill:#FAFAFA,stroke:#9E9E9E,color:#424242,stroke-dasharray: 5 4
 
   subgraph SRC["Source systems"]
     T["Tessitura database<br/>(ticketing & CRM)<br/>on-prem SQL Server"]:::src
     F["Tessitura REST API<br/>(fundraising) · paged JSON"]:::src
+    L["MIP Fund Accounting<br/>(general ledger)<br/>on-prem SQL Server"]:::src
+    V["Diese<br/>(hall & room bookings)<br/>REST API · paged JSON"]:::src
     E["Education programs<br/>Excel · SharePoint"]:::src
     M["Marketing exports<br/>email + ads · ADLS Gen2"]:::src
-    V["PLANNED · Venue bookings<br/>(Dièse-style) · REST API"]:::planned
-    L["PLANNED · General ledger<br/>(MIP-style) · SQL Server"]:::planned
   end
 
-  subgraph DP["Workspace: hh-dataplatform-{env} · Domain: Data Platform"]
+  subgraph DP["HUB · hh-dataplatform-{env} · Data Platform — data engineering for every domain (ingestion, Bronze, Silver, Gold)"]
     direction LR
     subgraph ING["Ingest"]
-      CJ["Copy job via gateway<br/>incremental on updated_at"]
-      NBAPI["Notebook nb_05<br/>(API paging, retries)"]
+      CJ["Copy jobs via gateway<br/>cj_tessitura · cj_mip<br/>incremental on updated_at<br/>one read-only login per system"]
+      NBAPI["Notebook nb_05_api_ingest<br/>every API in sources.yaml<br/>(paging, retries)"]
       DF["Dataflow Gen2<br/>(analyst-maintained rules)<br/>runs as svc-fabric-dataflows-nonprod / -prod"]
       SC["OneLake shortcut<br/>(zero copy)"]
     end
     subgraph OL["OneLake"]
       B[("lh_bronze<br/>Files/landing + raw Delta<br/>every version kept")]:::bronze
       S[("lh_silver<br/>typed · deduped · DQ-gated<br/>core.patron golden record")]:::silver
-      G[("wh_gold · Warehouse<br/>star schema · SCD2<br/>T-SQL procs · SQL security")]:::gold
+      G[("wh_gold · Warehouse<br/>dim · fact · fin · rpt<br/>SCD2 · revenue-to-ledger recon<br/>T-SQL procs · SQL security")]:::gold
     end
     PL{{"pl_daily_load<br/>05:00 ET · retries · Teams alert"}}
   end
 
-  subgraph BI["Spokes: hh-audience-{env} · hh-education-{env}"]
-    SM1["sm_audience_development<br/>Direct Lake on OneLake<br/>RLS/OLS · Certified"]:::bi
-    SM2["sm_education_impact<br/>Direct Lake · Certified"]:::bi
+  subgraph SP1["Audience & Development — Marketing, Ticketing Services, Development"]
+    SM1["SPOKE hh-audience-{env}<br/>sm_audience_development<br/>Direct Lake · RLS/OLS · Certified"]:::bi
     APP1["Audience & Development App"]:::bi
+  end
+  subgraph SP2["Education & Community — Music Education, Community Programs"]
+    SM2["SPOKE hh-education-{env}<br/>sm_education_impact<br/>Direct Lake · Certified"]:::bi
     APP2["Education Impact App"]:::bi
   end
-
-  subgraph FIN["PLANNED spoke: hh-finance-{env}"]
-    SM3["sm_finance · sm_venue_operations<br/>revenue-to-ledger reconciliation<br/>hall utilisation via dim.event"]:::planned
+  subgraph SP3["Finance — Finance, CFO office"]
+    SM3["SPOKE hh-finance-{env}<br/>sm_finance<br/>income statement · revenue-to-ledger<br/>reconciliation · Certified"]:::bi
+    APP3["Finance App · Excel (CUBEVALUE)"]:::bi
+  end
+  subgraph SP4["Operations — Hall Operations, Event Services, Rentals"]
+    SM4["SPOKE hh-operations-{env}<br/>sm_operations<br/>hall utilisation · rentals<br/>events linked to performances · Certified"]:::bi
+    APP4["Operations App"]:::bi
   end
 
   subgraph CONS["Consumers"]
-    U1["Ticketing · Marketing<br/>Development · Leadership"]:::user
+    U1["Marketing · Ticketing Services<br/>Development · Leadership"]:::user
     U2["Education staff · Grants"]:::user
+    U4["Finance · Auditors"]:::user
+    U5["Hall Operations · Event Services<br/>Rentals"]:::user
     U3["SQL analysts · Paginated reports<br/>Fabric Data Agent"]:::user
   end
 
   subgraph GOV["Governance (cross-cutting)"]
-    GV["Entra groups · Workspace roles · OneLake security<br/>Purview sensitivity labels · Endorsement · Domains<br/>DQ results · Run log · Capacity Metrics · Git + Deployment pipelines"]:::gov
+    GV["Entra groups · Workspace roles · OneLake security<br/>Purview sensitivity labels · Endorsement · Domains<br/>DQ results · Run log · Source freshness · Capacity Metrics<br/>Git + Deployment pipelines"]:::gov
   end
 
-  T --> CJ -- "tables" --> B
-  F --> NBAPI -- "files" --> B
+  T --> CJ
+  L --> CJ
+  CJ -- "tables" --> B
+  F --> NBAPI
+  V --> NBAPI
+  NBAPI -- "files" --> B
   E --> DF -- "tables" --> B
   M --> SC -- "files, read in place" --> B
-  V -. "API notebook" .-> B
-  L -. "Copy job, after close" .-> B
   B -- "nb_10 loads files<br/>+ reconciliation<br/>nb_20 reads all Bronze" --> S
   S -- "nb_20 silver transform<br/>conform · dedupe · DQ · MERGE<br/>identity resolution" --> G
   PL -. orchestrates .-> B & S & G
   G --> SM1 --> APP1 --> U1
   G --> SM2 --> APP2 --> U2
-  G -.-> SM3
+  G --> SM3 --> APP3 --> U4
+  G --> SM4 --> APP4 --> U5
   G -- "SQL endpoint<br/>rpt.* views" --> U3
   GOV ~~~ OL

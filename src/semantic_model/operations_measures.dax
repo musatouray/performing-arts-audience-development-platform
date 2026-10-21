@@ -1,0 +1,70 @@
+// =============================================================================
+// DAX measures for sm_operations, the Operations spoke's model (Hall Operations,
+// Event Services, Rentals). Direct Lake on OneLake over wh_gold.
+// Same conventions as measures.dax: everything in a "_Measures" table, in display folders.
+// =============================================================================
+
+// ---------------------------------------------------------------- Venue operations
+// Display folder: Venue Operations
+// Cancelled events don't use the hall, so they're left out of every booking measure.
+Hours Booked =
+CALCULATE ( SUM ( fact_venue_booking[hours_booked] ), dim_event[status] <> "Cancelled" )
+
+Concert Hours =
+CALCULATE ( [Hours Booked], dim_event[event_type] = "Concert" )
+
+Rental Hours =
+CALCULATE ( [Hours Booked], dim_event[event_type] = "Rental" )
+
+Rehearsal Hours =
+CALCULATE ( [Hours Booked], dim_event[event_type] = "Rehearsal" )
+
+// 14 bookable hours a day (9am to 11pm) for each real room in the filter.
+Hours Available =
+COUNTROWS ( dim_date ) * 14
+    * CALCULATE ( DISTINCTCOUNT ( dim_room[room_id] ), dim_room[room_key] > 0 )
+
+Utilisation % =
+DIVIDE ( [Hours Booked], [Hours Available] )
+
+Rental Events =
+CALCULATE (
+    DISTINCTCOUNT ( fact_venue_booking[event_key] ),
+    dim_event[event_type] = "Rental",
+    dim_event[status] <> "Cancelled"
+)
+
+// Rental fees as Diese records them. The ledger's side lives in sm_finance: the
+// reconciliation's "Venue rentals" line compares the two, so this model never needs the ledger.
+Rental Revenue =
+CALCULATE (
+    SUM ( fact_venue_booking[rental_fee] ),
+    dim_event[event_type] = "Rental",
+    dim_event[status] <> "Cancelled"
+)
+
+Average Rental Fee =
+DIVIDE ( [Rental Revenue], [Rental Events] )
+
+// Concert events in Diese with no Tessitura performance: the bridge's open items.
+Unlinked Concerts =
+CALCULATE ( COUNTROWS ( dim_event ), dim_event[event_type] = "Concert", dim_event[is_linked] = FALSE () )
+
+// ---------------------------------------------------------------- Data trust
+// Display folder: Data Trust
+Last Loaded (UTC) =
+MAX ( source_freshness[last_loaded_utc] )
+
+Data Through =
+MAX ( source_freshness[data_through] )
+
+Hours Since Load =
+DATEDIFF ( [Last Loaded (UTC)], UTCNOW (), HOUR )
+
+Freshness Status =
+SWITCH (
+    TRUE (),
+    ISBLANK ( [Last Loaded (UTC)] ), "Never loaded",
+    [Hours Since Load] <= 26, "Fresh",
+    "Stale"
+)

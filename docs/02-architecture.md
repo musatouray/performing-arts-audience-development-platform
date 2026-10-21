@@ -6,21 +6,32 @@
 
 | Layer | Item | Contract (what the layer guarantees) | Owner |
 |---|---|---|---|
-| Ingestion | Copy job (Tessitura database), notebook (Tessitura REST API), Dataflow Gen2 (education), shortcut (marketing) | Each source arrives through the tool that suits it; see [ADR-003](adr/ADR-003-ingestion-tools.md) | Data engineering |
-| Landing | `lh_bronze/Files/landing/<source>/<entity>/load_date=D/` (Tessitura API files; marketing through the shortcut) | Files exactly as received, plus a manifest with row counts | Data engineering |
+| Ingestion | Copy jobs (Tessitura database, MIP ledger), one API notebook (Tessitura and Diese APIs), Dataflow Gen2 (education), shortcut (marketing) | Each source arrives through the tool that suits it; see [ADR-003](adr/ADR-003-ingestion-tools.md) | Data engineering |
+| Landing | `lh_bronze/Files/landing/<source>/<entity>/load_date=D/` (API files; marketing through the shortcut) | Files exactly as received, plus a manifest with row counts | Data engineering |
 | **Bronze** | `lh_bronze.<source>.<entity>` (Delta) | Keeps every version received; nothing is overwritten, except education, which is small and replaced each run. File sources are stored as text with lineage columns (`_load_date`, `_source_file`, `_ingested_at`, `_batch_id`) and reconciled to their manifest. Database sources keep their types. | Data engineering |
 | **Silver** | `lh_silver.<source>.<entity>`, `core.*`, `dq.*`, `audit.*` | Typed to the schema contract, trimmed, one row per business key (latest), DQ-gated (errors quarantined), identity-resolved patrons | Data engineering |
-| **Gold** | `wh_gold.dim.*`, `fact.*`, `rpt.*`, `sec.*` | Star schema with a declared grain per fact, surrogate keys, unknown member -1, SCD2 patron, business definitions (sell-through, LYBUNT, renewal) | BI team |
-| **Semantic** | `sm_audience_development`, `sm_education_impact` | Certified measures, RLS/OLS, Direct Lake | BI team |
+| **Gold** | `wh_gold.dim.*`, `fact.*`, `fin.*`, `rpt.*`, `sec.*` | Star schema with a declared grain per fact, surrogate keys, unknown member -1, SCD2 patron, business definitions (sell-through, LYBUNT, renewal) | BI team |
+| **Semantic** | `sm_audience_development`, `sm_education_impact`, `sm_finance`, `sm_operations` | Certified measures, RLS/OLS, Direct Lake | BI team |
 
-**Hub and spoke.** The Data Platform workspaces are the hub: every source, Bronze, Silver and the one Gold warehouse. Each consuming domain is a spoke with its own BI workspaces, models and app. Venue operations and finance are planned as a Finance & Operations spoke on the same hub ([ADR-009](adr/ADR-009-domain-expansion-hub-and-spoke.md)).
 | **Consumption** | Org Apps, `rpt.*` views, paginated reports, Data Agent | The only thing business users touch | BI team with business owners |
+
+**Hub and spoke.** The Data Platform workspaces are the hub: every source, Bronze, Silver and the one Gold warehouse. Each consuming domain is a spoke with its own BI workspaces, model and app ([ADR-009](adr/ADR-009-domain-expansion-hub-and-spoke.md)).
 
 ## 2. Tenant topology
 
 ![Tenant topology](diagrams/02-tenant-topology.png)
 
 See [ADR-001](adr/ADR-001-workspace-domain-topology.md). The design lives in [`config/tenant.yaml`](../config/tenant.yaml) and is applied by `scripts/00–05`.
+
+Each domain matches a part of the organisation, and each workspace's description says who it's for (`DEV - Marketing, Ticketing Services, Development`), taken from `serves` in `tenant.yaml`:
+
+| Domain | Serves | Workspaces | Model |
+|---|---|---|---|
+| Data Platform (hub) | Data engineering for every domain | `hh-dataplatform-{env}` | (Gold warehouse) |
+| Audience & Development | Marketing, Ticketing Services, Development | `hh-audience-{env}` | `sm_audience_development` |
+| Education & Community | Music Education and Community Programs | `hh-education-{env}` | `sm_education_impact` |
+| Finance | Finance, CFO office | `hh-finance-{env}` | `sm_finance` |
+| Operations | Hall Operations, Event Services, Rentals | `hh-operations-{env}` | `sm_operations` |
 
 ## 3. Daily data flow and quality gates
 
@@ -69,11 +80,11 @@ Bronze and Silver keep the **source system's own names**, so a Tessitura admin o
 | System (what it stands for) | Mock in this repo | Ingestion | Bronze / Silver schema | Feeds Gold | Status |
 |---|---|---|---|---|---|
 | **Tessitura**, database (ticketing, CRM, constituents) | SQL Server `HarmoniaTessitura`, schema `tix` | Copy job `cj_tessitura` via gateway | `tessitura` (`constituent`, `season`, `venue`, `performance`, `order`, `order_line`, `subscription`) | `dim.patron`, `dim.performance`, `dim.venue`, `dim.channel`, `fact.ticket_sales`, `fact.subscriptions` | Live |
-| **Tessitura**, REST API (fundraising) | GitHub Pages JSON | Notebook `nb_05_tessitura_api` | `tessitura` (`campaign`, `fund`, `contribution`) | `dim.campaign`, `dim.fund`, `fact.gifts` | Live |
+| **Tessitura**, REST API (fundraising) | GitHub Pages JSON | Notebook `nb_05_api_ingest` | `tessitura` (`campaign`, `fund`, `contribution`) | `dim.campaign`, `dim.fund`, `fact.gifts` | Live |
 | **Education team** files | SharePoint Excel | Dataflow Gen2 `df_education_sharepoint` | `dbo` in Bronze, `education` in Silver | `dim.program`, `dim.school`, `fact.education_sessions` | Live |
 | **Email and ad platforms** | CSV exports in ADLS | OneLake shortcut + `nb_10` | `marketing` | Silver only for now (read by analysts through OneLake security) | Live |
-| **MIP** (fund accounting, general ledger) | Planned | Planned | `mip` | `fin.fact_gl_entry`, revenue-to-GL reconciliation | Planned (ADR-009) |
-| **Diese** (venue and event booking) | Planned | Planned | `diese` | `dim.event`, `fact.venue_booking` | Planned (ADR-009) |
+| **MIP** (fund accounting, general ledger) | SQL Server `HarmoniaMIP`, schema `dbo` | Copy job `cj_mip` via gateway, own read-only login | `mip` (`gl_account`, `department`, `fund`, `gl_transaction`) | `fin.dim_account`, `fin.dim_department`, `dim.fund.mip_fund_code`, `fin.fact_gl_entry`, `fin.recon_revenue_to_gl` | Live |
+| **Diese** (venue and event booking) | GitHub Pages JSON | Same notebook `nb_05_api_ingest` (config only) | `diese` (`room`, `event`, `booking`) | `dim.room`, `dim.event`, `fact.venue_booking` | Live |
 
 - One system can arrive through more than one tool. `sources.yaml` gives each source a `system`; the system names the schema, and the table names stay unique within it.
 - Tessitura often holds one person twice (for example a ticket buyer later entered again as a donor). Silver merges those duplicate constituent records into `core.patron`, so every sale and gift in Gold points at one person.

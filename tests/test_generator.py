@@ -35,14 +35,14 @@ class GeneratorTests(unittest.TestCase):
         main(["incremental", "--days", "2", "--out", str(cls.out), "--state", str(cls.state)])
 
     def _rows(self, source, entity, load_date):
-        folder = {"tessitura": "tessitura_db", "marketing": "marketing_adls"}[source]
+        folder = {"tessitura": "tessitura_db", "marketing": "marketing_adls", "mip": "mip_db"}[source]
         return read_csv(self.out / folder / entity / f"load_date={load_date}" / f"{entity}.csv")
 
-    def _api(self, entity, load_date):
+    def _api(self, entity, load_date, api="tessitura_api"):
         """Follow next_link from page 1, the way the notebook does."""
         rows, page, count = [], "page-1.json", None
         while page:
-            body = json.loads((self.out / "tessitura_api" / "v1" / entity / load_date / page).read_text())
+            body = json.loads((self.out / api / "v1" / entity / load_date / page).read_text())
             count = body["count"]
             rows += body["value"]
             page = body["next_link"]
@@ -50,7 +50,7 @@ class GeneratorTests(unittest.TestCase):
 
     def test_partitions_and_manifests_exist(self):
         for d in ("2025-12-31", "2026-01-01", "2026-01-02"):
-            for folder, n in (("tessitura_db", 7), ("marketing_adls", 3)):
+            for folder, n in (("tessitura_db", 7), ("marketing_adls", 3), ("mip_db", 4)):
                 m = json.loads((self.out / folder / "_manifests" / f"load_date={d}.json").read_text())
                 self.assertEqual(len(m["files"]), n)
 
@@ -111,6 +111,37 @@ class GeneratorTests(unittest.TestCase):
     def test_ad_spend_restates_last_two_days(self):
         days = {r["ad_date"] for r in self._rows("marketing", "ad_spend_daily", "2026-01-02")}
         self.assertEqual(days, {"2025-12-31", "2026-01-01", "2026-01-02"})
+
+    def test_every_ledger_journal_balances(self):
+        for d in ("2025-12-31", "2026-01-01", "2026-01-02"):
+            totals = {}
+            for r in self._rows("mip", "gl_transaction", d):
+                totals[r["journal_id"]] = totals.get(r["journal_id"], 0) + float(r["credit_amount"]) - float(r["debit_amount"])
+            self.assertTrue(totals, f"no journals on {d}")
+            self.assertTrue(all(abs(v) < 0.01 for v in totals.values()), f"unbalanced journal on {d}")
+
+    def test_rental_revenue_ties_to_diese_except_planted(self):
+        """The ledger's rental revenue equals Diese's rentals, plus the few planted ones that
+        were cancelled after invoicing (so the ledger can only be higher)."""
+        _, events = self._api("event", "2025-12-31", "diese_api")
+        _, bookings = self._api("booking", "2025-12-31", "diese_api")
+        ev = {e["event_id"]: e for e in events}
+        bookings = list({b["booking_id"]: b for b in bookings}.values())   # pages overlap; Silver dedupes the same way
+        diese = sum(b["rental_fee"] for b in bookings if ev[b["event_id"]]["event_type"] == "Rental"
+                    and ev[b["event_id"]]["status"] != "Cancelled" and ev[b["event_id"]]["event_date"] <= "2025-12-31")
+        gl = sum(float(r["credit_amount"]) - float(r["debit_amount"])
+                 for r in self._rows("mip", "gl_transaction", "2025-12-31") if r["account_code"] == "4300")
+        self.assertGreater(diese, 0)
+        self.assertGreaterEqual(round(gl, 2), round(diese, 2))
+        self.assertLess(gl - diese, 0.05 * diese)
+
+    def test_concert_events_link_to_tessitura(self):
+        _, events = self._api("event", "2025-12-31", "diese_api")
+        perf_ids = {p["performance_id"] for p in self._rows("tessitura", "performance", "2025-12-31")}
+        concerts = [e for e in events if e["event_type"] == "Concert"]
+        linked = [e for e in concerts if e["tessitura_performance_id"]]
+        self.assertTrue(all(e["tessitura_performance_id"] in perf_ids for e in linked))
+        self.assertGreater(len(linked), 0.95 * len(concerts))
 
     def test_deterministic_for_same_seed(self):
         a = Generator(State(seed=7, start="2025-09-01", end="2025-09-30")).full()[1]

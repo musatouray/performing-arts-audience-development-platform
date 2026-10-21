@@ -35,7 +35,7 @@ uv run python scripts/00_create_security_groups.py --dry-run
 uv run python scripts/00_create_security_groups.py --add-me-to fabric_admins
 ```
 
-- This creates the nine `sg-hh-*` groups and writes `config/.generated/principals.json`: seven for people, and two service groups, `sg-hh-svc-dataflows-nonprod` and `sg-hh-svc-dataflows-prod`.
+- This creates the eleven `sg-hh-*` groups and writes `config/.generated/principals.json`: nine for people (including `sg-hh-analysts-finance` and `sg-hh-analysts-operations`), and two service groups, `sg-hh-svc-dataflows-nonprod` and `sg-hh-svc-dataflows-prod`.
 - **Service accounts** are created by hand in Entra, because only an admin should hold their passwords. There are two, split by prod and non-prod:
 
   | Account | Group | Workspaces | Who uses the password |
@@ -78,7 +78,7 @@ uv run python scripts/01_create_domains.py --dry-run
 uv run python scripts/01_create_domains.py
 ```
 
-✅ In **Admin portal › Domains** you see Harmonia Hall › Data Platform / Audience & Development / Education & Community. Screenshot it.
+✅ In **Admin portal › Domains** you see Harmonia Hall › Data Platform / Audience & Development / Education & Community / Finance / Operations. Screenshot it.
 
 Domain admins appear on **Harmonia Hall** only; the subdomains inherit them. Domain roles don't give access to any workspace or data. Access comes from the workspace roles set in Phase 4.
 
@@ -93,7 +93,7 @@ uv run python scripts/02_create_workspaces.py --dry-run
 uv run python scripts/02_create_workspaces.py
 ```
 
-✅ There are nine workspaces (`hh-{dataplatform|audience|education}-{dev|test|prod}`), each on the trial capacity, assigned to its domain, with **group** roles only (Manage access). Screenshot the workspace list filtered by domain.
+✅ There are fifteen workspaces (`hh-{dataplatform|audience|education|finance|operations}-{dev|test|prod}`), each on the trial capacity, assigned to its domain, with **group** roles only (Manage access). Each description says who it's for, e.g. `DEV - Marketing, Ticketing Services, Development` (from `serves` in `tenant.yaml`; re-running the script updates existing workspaces). Screenshot the workspace list filtered by domain.
 
 ---
 
@@ -115,7 +115,7 @@ uv run python scripts/03_create_items.py
 uv run python scripts/04_create_deployment_pipelines.py
 ```
 
-✅ There are three pipelines (`dp-hh-dataplatform`, `dp-hh-audience`, `dp-hh-education`), each Development › Test › Production with its workspaces assigned. Screenshot one.
+✅ There are five pipelines (`dp-hh-dataplatform`, `dp-hh-audience`, `dp-hh-education`, `dp-hh-finance`, `dp-hh-operations`), each Development › Test › Production with its workspaces assigned. Screenshot one.
 
 ---
 
@@ -131,28 +131,30 @@ uv run python scripts/04_create_deployment_pipelines.py
    uv run python scripts/05_connect_git.py
    ```
 
-✅ Each DEV workspace shows Source control connected to `main`, in folders `fabric/de`, `fabric/bi-audience` and `fabric/bi-education`. Commits appear in GitHub.
+✅ Each DEV workspace shows Source control connected to `main`, in folders `fabric/de`, `fabric/bi-audience`, `fabric/bi-education`, `fabric/bi-finance` and `fabric/bi-operations`. Commits appear in GitHub.
 
 ---
 
-## Phase 8 — Land the data: four sources, four patterns (about 2 hours)
+## Phase 8 — Land the data: six source systems, four patterns (about 3 hours)
 
 Each source reaches Fabric the way it would in real life (see [ADR-003](adr/ADR-003-ingestion-tools.md) and [`src/ingestion/`](../src/ingestion/README.md)):
 
 | Source | You put it in | Fabric reads it with |
 |---|---|---|
 | Tessitura (database) | SQL Server on your computer, through the on-premises data gateway | Copy job `cj_tessitura` |
-| Tessitura (REST API) | A GitHub Pages site (mock API) | Notebook `nb_05_tessitura_api` |
+| Tessitura (REST API) | A GitHub Pages site (mock API) | Notebook `nb_05_api_ingest` |
+| MIP (general ledger) | A second SQL Server database on your computer, through the same gateway | Copy job `cj_mip` |
+| Diese (hall bookings) | A second GitHub Pages site (mock API) | The same notebook, `nb_05_api_ingest` |
 | Education | A SharePoint document library | Dataflow Gen2 `df_education_sharepoint` |
 | Marketing | An ADLS Gen2 container | Shortcut `lh_bronze/Files/landing/marketing` |
 
 ### 8.0 Generate the data
 
 ```powershell
-uv run python -m data_generator.generate full --start 2023-07-01 --end 2026-09-27
+uv run python -m data_generator.generate full --start 2023-07-01 --end 2026-10-10
 ```
 
-This writes four folders under `data/`: `tessitura_db`, `tessitura_api`, `education_sharepoint` and `marketing_adls`. About 645k rows in total, with **deliberate defects** for the quality checks to catch: duplicate patrons, bad emails and zip codes, orphan and negative order lines, future-dated gifts, sessions with no participants, clicks exported twice, overlapping API pages and negative ad spend.
+This writes six folders under `data/`: `tessitura_db`, `tessitura_api`, `education_sharepoint`, `marketing_adls`, `mip_db` and `diese_api`. About 680k rows in total, with **deliberate defects** for the quality checks to catch: duplicate patrons, bad emails and zip codes, orphan and negative order lines, future-dated gifts, sessions with no participants, clicks exported twice, overlapping API pages and negative ad spend.
 
 Copy the config to the lakehouse (run it again whenever you change `.env` or the config):
 
@@ -170,8 +172,8 @@ The mock Tessitura runs on SQL Server on your own computer. Fabric reaches it th
 3. **Load the data** with your Windows account. The script creates the database the first time:
 
    ```powershell
-   uv run python scripts/11_load_tessitura_db.py --dry-run   # prints the CREATE TABLE statements
-   uv run python scripts/11_load_tessitura_db.py             # ~510k rows, a few minutes
+   uv run python scripts/11_load_source_db.py --source tessitura_db --dry-run   # prints the CREATE TABLE statements
+   uv run python scripts/11_load_source_db.py --source tessitura_db  # ~510k rows, a few minutes
    ```
 
 4. **A read-only login for Fabric.** Fabric should never use your own account. In SSMS:
@@ -205,7 +207,8 @@ The API is a set of static JSON files with paging, so it costs nothing and needs
    ```powershell
    cd C:\dev
    git clone https://github.com/musatouray/harmonia-hall-api.git
-   Copy-Item -Recurse -Force .\performing-arts-audience-development-platform\data\tessitura_api\* .\harmonia-hall-api\
+   # /MIR makes the repo an exact copy (old files are removed); /XD .git leaves git's folder alone
+   robocopy .\performing-arts-audience-development-platform\data\tessitura_api .\harmonia-hall-api /MIR /XD .git /NJH /NP
    cd harmonia-hall-api
    git add -A; git commit -m "Tessitura API data"; git push
    cd ..\performing-arts-audience-development-platform
@@ -216,6 +219,30 @@ The API is a set of static JSON files with paging, so it costs nothing and needs
 4. Set `TESSITURA_API_BASE_URL=https://musatouray.github.io/harmonia-hall-api/v1` in `.env`.
 
 ✅ The index opens in a browser, and `.../v1/gifts/2026-09-27/page-1.json` shows `count`, `value` and `next_link`. The notebook runs in Phase 9.
+
+### 8.2b MIP general ledger: a second on-premises database
+
+Finance's ledger lives on-premises like Tessitura, so it uses the same pattern, with its own login: finance owns it, so its access is granted and revoked on its own.
+
+1. `MIP_SQL_SERVER`, `MIP_SQL_DATABASE=HarmoniaMIP`, `MIP_SQL_AUTH`, `MIP_SQL_TRUST_SERVER_CERT` in `.env` (see `.env.example`).
+2. `uv run python scripts/11_load_source_db.py --source mip_db` creates `HarmoniaMIP` and loads about 11.7k journal lines.
+3. Login, connection and Copy job `cj_mip`: [`src/ingestion/copy_job_mip.md`](../src/ingestion/copy_job_mip.md).
+
+✅ `lh_bronze` › Tables › `mip` has four tables, and every journal balances.
+
+### 8.2c Diese bookings: a second mock API
+
+Diese is a separate system, so it gets its own GitHub Pages repo, `harmonia-hall-diese-api` (Settings › Pages › branch `main`, `/ (root)`):
+
+```powershell
+cd C:\dev
+robocopy .\performing-arts-audience-development-platform\data\diese_api .\harmonia-hall-diese-api /MIR /XD .git /NJH /NP
+cd .\harmonia-hall-diese-api; git add -A; git commit -m "Diese booking API data"; git push
+```
+
+Set `DIESE_API_BASE_URL=https://<you>.github.io/harmonia-hall-diese-api/v1` in `.env`. No new notebook: `nb_05_api_ingest` reads every `notebook_api` source in `sources.yaml`.
+
+✅ `.../v1/index.json` lists `room`, `event` and `booking`.
 
 ### 8.3 Education: SharePoint → Dataflow Gen2
 
@@ -277,17 +304,17 @@ The notebooks live in [`fabric/de`](../fabric/de), which the DEV workspace syncs
 
 1. In `hh-dataplatform-dev`, open **Source control** and **Update** to pull them from Git. To change a notebook, edit it in Fabric and **Commit**; don't hand-edit the files in `fabric/de`.
 2. Open each notebook and attach only the lakehouses it uses:
-   - `nb_05_tessitura_api` and `nb_10_bronze_ingest`: **lh_bronze** only. They read and write Bronze, nothing else.
+   - `nb_05_api_ingest` and `nb_10_bronze_ingest`: **lh_bronze** only. They read and write Bronze, nothing else.
    - `nb_20_silver_transform`: **lh_silver** (default) + lh_bronze. It reads Bronze and writes Silver.
    - `nb_90_maintenance`: **lh_silver** (default) + lh_bronze. It maintains tables in both.
    - `nb_00_common`: nothing. It's a helper that runs inside whichever notebook calls it (`%run`).
-3. Run `nb_05_tessitura_api`, then `nb_10_bronze_ingest`, then `nb_20_silver_transform`.
+3. Run `nb_05_api_ingest`, then `nb_10_bronze_ingest`, then `nb_20_silver_transform`.
 
 ✅ You should see:
 
 - `nb_05` prints a note that gifts and donors returned more records than their count. That's the overlapping-pages defect; Silver removes the duplicates.
-- Bronze has tables under schemas `tessitura`, `marketing` and `dbo` (education).
-- `audit.reconciliation` shows all Tessitura API and marketing rows **OK** (the Tessitura database and education are checked in their Copy job and Dataflow run history).
+- Bronze has tables under schemas `tessitura`, `mip`, `diese`, `marketing` and `dbo` (education).
+- `audit.reconciliation` shows all Tessitura API, Diese API and marketing rows **OK** (the Tessitura and MIP databases and education are checked in their Copy job and Dataflow run history).
 - Silver has typed tables, `dq.dq_results`, `dq.quarantine` (several hundred rows, including clicks for an unknown email campaign and negative ad spend), `core.patron_xref` and `core.patron`.
 - The run log message reads "N source records → M patrons (x% de-duplicated)".
 
@@ -309,6 +336,10 @@ Open `wh_gold` › **New SQL query** (or connect SSMS or VS Code to the SQL conn
 | `50_reporting_views.sql` | Sell-through, LYBUNT, renewal, education, DQ and ops views |
 | `60_security.sql` | GRANT, DDM, RLS |
 | `61_security_users.local.sql` | Who sees anonymous gifts and which venues each manager sees. Copy `61_security_users.example.sql` to this name (ignored by Git) and put in real sign-in names first. |
+| `70_finance_and_venue_ops.sql` | Finance and Operations: ledger, hall calendar, revenue-to-ledger reconciliation and their grants. Needs the `sg-hh-analysts-finance` and `sg-hh-analysts-operations` groups (step 00). |
+| `80_source_freshness.sql` | How current each source is (`rpt.vw_source_freshness`, and a snapshot table for the models) |
+
+Run `40_load_facts.sql` again after 70 and 80: the orchestrator calls their procedures.
 
 Then run:
 
@@ -317,6 +348,9 @@ EXEC etl.usp_load_gold @run_id = 'manual-001';
 SELECT * FROM rpt.vw_donor_retention ORDER BY fiscal_year;
 SELECT TOP 20 * FROM rpt.vw_performance_sell_through ORDER BY sell_through_pct DESC;
 SELECT * FROM rpt.vw_gold_integrity;
+SELECT * FROM rpt.vw_finance_integrity;
+SELECT [status], COUNT(*) FROM fin.recon_revenue_to_gl GROUP BY [status];
+SELECT * FROM rpt.vw_source_freshness;
 ```
 
 ✅ You should see a load log with row counts, a donor retention rate per FY, and sell-through per show. Screenshot the query results.
@@ -325,7 +359,7 @@ SELECT * FROM rpt.vw_gold_integrity;
 
 ## Phase 11 — Orchestration pipeline
 
-Build `pl_daily_load` and `pl_weekly_maintenance` in `hh-dataplatform-dev` exactly as specified in [`src/pipelines/pl_daily_load.md`](../src/pipelines/pl_daily_load.md), then run it.
+Build `pl_daily_load` and `pl_weekly_maintenance` in `hh-dataplatform-dev` exactly as specified in [`src/pipelines/pl_daily_load.md`](../src/pipelines/pl_daily_load.md), then run it. It runs both Copy jobs (`cj_tessitura`, `cj_mip`) side by side; `nb_silver` waits for both.
 
 ✅ The Monitoring hub shows a green run. `rpt.vw_pipeline_health` shows the Bronze, Silver and Gold steps under one `run_id`. Screenshot the pipeline canvas.
 
@@ -341,7 +375,7 @@ Build `pl_daily_load` and `pl_weekly_maintenance` in `hh-dataplatform-dev` exact
    uv run python scripts/07_apply_onelake_security.py --env dev
    ```
 
-✅ The roles AudienceReaders, DevelopmentReaders and EducationReaders are visible. DevelopmentReaders can't see `email`, `phone` or `address_line1` on `core.patron`. Screenshot the role editor.
+✅ The roles AudienceReaders, DevelopmentReaders, EducationReaders, FinanceReaders and OperationsReaders are visible. DevelopmentReaders can't see `email`, `phone` or `address_line1` on `core.patron`. Screenshot the role editor.
 
 ---
 
@@ -363,8 +397,8 @@ Follow [`src/semantic_model/model.md`](../src/semantic_model/model.md).
 4. **Connection:** Settings › *Gateway and cloud connections*: bind to a **shareable cloud connection** with a fixed identity (your admin account, or a service principal).
 5. Build the report pages from the spec.
 6. **Endorse** the model as *Promoted* now, and *Certified* after review. Apply the sensitivity label **Confidential**.
-7. Repeat a lighter version for `sm_education_impact` in `hh-education-dev`.
-8. **Commit** both BI workspaces to Git (Source control › Commit).
+7. Repeat a lighter version for `sm_education_impact` in `hh-education-dev`, `sm_finance` in `hh-finance-dev` and `sm_operations` in `hh-operations-dev` (tables, relationships and measures in `model.md`, `finance_measures.dax` and `operations_measures.dax`).
+8. **Commit** every BI workspace to Git (Source control › Commit).
 
 ✅ Screenshot the model diagram view, the RLS test as the Audience role (donor visuals empty), and the report.
 
@@ -396,12 +430,13 @@ Follow [`src/semantic_model/model.md`](../src/semantic_model/model.md).
 
 ```powershell
 uv run python -m data_generator.generate incremental --days 3
-uv run python scripts/11_load_tessitura_db.py      # Tessitura changes into SQL Server
+uv run python scripts/11_load_source_db.py         # Tessitura and MIP changes into SQL Server
 ```
 
 Then hand the other three sources their new data:
 
 - **Tessitura API:** copy `data/tessitura_api/*` into your `harmonia-hall-api` clone again and push (same commands as 8.2).
+- **Diese API:** the same for `data/diese_api/*` and `harmonia-hall-diese-api` (8.2c).
 - **Education:** upload the changed `Sessions YYYY-MM.xlsx` workbook(s) to SharePoint, replacing the old ones.
 - **Marketing:** upload `data/marketing_adls/` to the container again (same command as 8.4). Old files are just overwritten, and nb_10 skips days it has already loaded.
 
@@ -414,6 +449,62 @@ WHERE patron_id IN (SELECT patron_id FROM dim.patron GROUP BY patron_id HAVING C
 ```
 
 ✅ You should see small incremental row counts, watermarks advancing, and **SCD2 history** for patrons who moved. Screenshot the SCD2 query.
+
+---
+
+## Phase 15b — Add Finance and Operations to a running platform (ADR-009)
+
+Use this if the platform already runs the original sources (Phases 0–9 at least). It adds MIP (the ledger), Diese (hall bookings) and the Finance and Operations spokes **without rebuilding anything**, in three parts: the structure first, then the data, then Gold and the models. Each step links to the full instructions above.
+
+### Part A — Structure: workspaces, domains, groups, Git (no new data needed)
+
+1. **Push the repo, then pull it into Fabric.** First make sure `hh-dataplatform-dev` › Source control shows **no uncommitted changes** (commit them if it does), so your push goes on top of Fabric's work:
+   ```powershell
+   git checkout dev; git add -A; git commit -m "MIP, Diese, Finance and Operations spokes"
+   git checkout main; git pull
+   git checkout dev; git merge --no-ff main -m "Sync Fabric"
+   git checkout main; git merge --no-ff dev; git push; git push origin dev
+   ```
+   Then `hh-dataplatform-dev` › Source control › **Update all**. `nb_05_tessitura_api` is renamed `nb_05_api_ingest` (Phase 9). Don't run the pipeline yet: the Diese API isn't published until Part B.
+2. **Tenant.** Each script skips what already exists; add `--dry-run` to preview:
+   ```powershell
+   uv run python scripts/validate_config.py
+   uv run python scripts/00_create_security_groups.py      # + sg-hh-analysts-finance, sg-hh-analysts-operations (Phase 1)
+   uv run python scripts/01_create_domains.py              # + Finance, Operations (Phase 3)
+   uv run python scripts/02_create_workspaces.py           # + hh-finance-*, hh-operations-*; updates every description (Phase 4)
+   uv run python scripts/04_create_deployment_pipelines.py # + dp-hh-finance, dp-hh-operations (Phase 6)
+   uv run python scripts/05_connect_git.py                 # + fabric/bi-finance, fabric/bi-operations (Phase 7)
+   ```
+
+✅ Admin portal › Domains shows Finance and Operations. There are fifteen workspaces, and each description says who it's for (`DEV - Hall Operations, Event Services, Rentals`). `hh-finance-dev` and `hh-operations-dev` show Source control connected.
+
+### Part B — Data and sources (your computer, GitHub, Fabric)
+
+1. Generate with the **same end date as your current data**, so Tessitura comes out byte-for-byte identical and only MIP and Diese are new (the date is `end` in `data/state.json`):
+   ```powershell
+   uv run python -m data_generator.generate full --end <end in data/state.json>
+   ```
+2. MIP: load it, then give it its own read-only login, connection and Copy job `cj_mip` (8.2b).
+3. Diese: publish `data/diese_api` to its own GitHub Pages repo and set `DIESE_API_BASE_URL` in `.env` (8.2c).
+4. Upload the config, now listing `mip` and `diese`: `uv run python scripts/06_upload_config.py --env dev` (8.0).
+5. In `hh-dataplatform-dev`, add `cj_mip` to `pl_daily_load` (same connection and retry as `cj_tessitura`, **On success** → `nb_silver`), save, and **Commit** `cj_mip` and the pipeline (Phase 11). Then bring that commit down: `git checkout main; git pull; git checkout dev; git merge --no-ff main`.
+
+✅ `HarmoniaMIP` has four tables, the Diese API's `index.json` lists `room`, `event` and `booking`, and `cj_mip` has run once.
+
+### Part C — Gold, first run, security and models
+
+1. **Gold (Phase 10):** in `wh_gold`, run `70_finance_and_venue_ops.sql`, then `80_source_freshness.sql`, then `40_load_facts.sql` again (its orchestrator calls the new procedures). 70 needs the two groups from Part A.
+2. **Run `pl_daily_load`** with `load_date` blank, then check:
+   ```sql
+   SELECT procedure_name, rows_inserted, status, message FROM etl.load_log
+   WHERE run_id = (SELECT TOP 1 run_id FROM etl.load_log ORDER BY started_at DESC) ORDER BY started_at;
+   SELECT [status], COUNT(*) AS lines FROM fin.recon_revenue_to_gl GROUP BY [status];
+   SELECT * FROM rpt.vw_finance_integrity;
+   SELECT * FROM rpt.vw_source_freshness;
+   ```
+   ✅ Every step Succeeded. The reconciliation is mostly Matched or Within tolerance, with about 22 lines to Investigate, each a planted exception (see `data_generator/finance_ops.py`). No unbalanced journals.
+3. **OneLake security (Phase 12):** `uv run python scripts/07_apply_onelake_security.py --env dev`. It creates all five roles, including FinanceReaders and OperationsReaders, so it needs the Silver `mip` and `diese` tables from step 2.
+4. **Models (Phase 13):** `sm_audience_development`, `sm_education_impact`, `sm_finance` in `hh-finance-dev` and `sm_operations` in `hh-operations-dev`, from `model.md`.
 
 ---
 

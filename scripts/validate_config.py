@@ -89,6 +89,8 @@ def main() -> int:
     for fam in tenant["workspace_families"]:
         if fam["domain"] not in domains:
             errors.append(f"family {fam['key']}: unknown domain {fam['domain']}")
+        if not fam.get("serves"):
+            errors.append(f"family {fam['key']}: add 'serves' (who the workspace is for; it becomes the description)")
         for env in tenant["environments"]:
             roles = fam["roles"].get(env)
             if roles is None:

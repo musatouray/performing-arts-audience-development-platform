@@ -10,13 +10,13 @@ The whole tenant design (Entra groups, domains, nine workspaces, deployment pipe
 | Part | State |
 |---|---|
 | Tenant setup: groups, domains, workspaces, Git, deployment pipelines | Built and running (dev) |
-| Ingestion: Copy job via on-premises gateway, API notebook, Dataflow Gen2 from SharePoint, ADLS shortcut | Built and running (dev) |
+| Ingestion: six source systems (Tessitura database and API, MIP ledger, Diese bookings, education, marketing) through four patterns | Built and running (dev) |
 | Bronze → Silver: config-driven loads, DQ with quarantine, identity resolution | Built and running (dev) |
 | Gold warehouse: star schema, SCD2 patron, incremental facts, RLS and masking | Built and running (dev) |
 | `pl_daily_load` orchestration with failure alerting | Built (dev) |
-| Direct Lake semantic model and reports | Designed in [`src/semantic_model`](src/semantic_model), build in progress |
+| Direct Lake semantic models (`sm_audience_development`, `sm_education_impact`, `sm_finance`, `sm_operations`) and reports | Designed in [`src/semantic_model`](src/semantic_model), build in progress |
 | Promotion to test and prod | Designed, not yet run |
-| Venue operations and finance (event bridge, hall utilisation, revenue-to-ledger reconciliation) | Designed ([ADR-009](docs/adr/ADR-009-domain-expansion-hub-and-spoke.md)), not built |
+| Finance spoke (MIP ledger, revenue-to-ledger reconciliation) and Operations spoke (Diese hall calendar, event bridge, hall utilisation) | Built (dev), see [ADR-009](docs/adr/ADR-009-domain-expansion-hub-and-spoke.md) and [`70_finance_and_venue_ops.sql`](src/warehouse/70_finance_and_venue_ops.sql) |
 
 ## What it demonstrates
 
@@ -26,7 +26,7 @@ The whole tenant design (Entra groups, domains, nine workspaces, deployment pipe
 | Tenant topology as code: domains, workspaces × environments, group roles, capacity | [`config/tenant.yaml`](config/tenant.yaml), [`scripts/00–04`](scripts) |
 | Fabric REST API automation: idempotent, LRO-aware, throttle-aware, `--dry-run` | [`scripts/lib/fabric.py`](scripts/lib/fabric.py) |
 | Git integration (GitHub) and deployment pipelines Dev › Test › Prod | [`scripts/04`, `05`](scripts), [ADR-005](docs/adr/ADR-005-cicd.md) |
-| Four ingestion patterns: incremental Copy job from on-premises SQL Server through a gateway, paged REST API notebook, Dataflow Gen2 over SharePoint, ADLS shortcut | [`src/ingestion`](src/ingestion/README.md), [ADR-003](docs/adr/ADR-003-ingestion-tools.md) |
+| Four ingestion patterns, six source systems: incremental Copy jobs from on-premises SQL Server through a gateway (Tessitura, MIP), one config-driven REST API notebook (Tessitura, Diese), Dataflow Gen2 over SharePoint, ADLS shortcut | [`src/ingestion`](src/ingestion/README.md), [ADR-003](docs/adr/ADR-003-ingestion-tools.md) |
 | Metadata-driven Bronze load with source-to-Bronze reconciliation | [`config/sources.yaml`](config/sources.yaml), [`nb_10_bronze_ingest`](fabric/de/nb_10_bronze_ingest.Notebook/notebook-content.py) |
 | Declarative DQ with quarantine, CDC dedupe, hash-based MERGE | [`config/dq_rules.yaml`](config/dq_rules.yaml), [`nb_20_silver_transform`](fabric/de/nb_20_silver_transform.Notebook/notebook-content.py) |
 | Identity resolution: ticket buyers and donors in one golden patron | `nb_20_silver_transform` → `core.patron` |
@@ -73,7 +73,7 @@ tests/             generator unit tests
 
 | ADR | Decision |
 |---|---|
-| [001](docs/adr/ADR-001-workspace-domain-topology.md) | 3 workspace families × 3 environments, grouped by domain (Finance & Operations planned next) |
+| [001](docs/adr/ADR-001-workspace-domain-topology.md) | 5 workspace families × 3 environments, grouped by domain (Finance and Operations added by ADR-009) |
 | [002](docs/adr/ADR-002-medallion-storage.md) | Lakehouse Bronze/Silver, **Warehouse Gold** |
 | [003](docs/adr/ADR-003-ingestion-tools.md) | Ingestion tool follows the source: Copy job, notebook, Dataflow, shortcut |
 | [004](docs/adr/ADR-004-semantic-model-mode.md) | **Direct Lake on OneLake** + fixed identity |
