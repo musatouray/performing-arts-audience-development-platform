@@ -26,6 +26,8 @@ See [ADR-001](adr/ADR-001-workspace-domain-topology.md). The design lives in [`c
 
 ![Medallion data flow](diagrams/06-medallion-dataflow.png)
 
+The tables that record each step, and which gates stop a run, are described in [section 10](#10-audit-and-control-tables).
+
 ## 4. Gold star schema
 
 ![Gold star schema](diagrams/05-gold-star-schema.png)
@@ -66,7 +68,7 @@ Bronze and Silver keep the **source system's own names**, so a Tessitura admin o
 
 | System (what it stands for) | Mock in this repo | Ingestion | Bronze / Silver schema | Feeds Gold | Status |
 |---|---|---|---|---|---|
-| **Tessitura**, database (ticketing, CRM, constituents) | SQL Server `HarmoniaTicketing`, schema `tix` | Copy job `cj_tessitura` via gateway | `tessitura` (`constituent`, `season`, `venue`, `performance`, `order`, `order_line`, `subscription`) | `dim.patron`, `dim.performance`, `dim.venue`, `dim.channel`, `fact.ticket_sales`, `fact.subscriptions` | Live |
+| **Tessitura**, database (ticketing, CRM, constituents) | SQL Server `HarmoniaTessitura`, schema `tix` | Copy job `cj_tessitura` via gateway | `tessitura` (`constituent`, `season`, `venue`, `performance`, `order`, `order_line`, `subscription`) | `dim.patron`, `dim.performance`, `dim.venue`, `dim.channel`, `fact.ticket_sales`, `fact.subscriptions` | Live |
 | **Tessitura**, REST API (fundraising) | GitHub Pages JSON | Notebook `nb_05_tessitura_api` | `tessitura` (`campaign`, `fund`, `contribution`) | `dim.campaign`, `dim.fund`, `fact.gifts` | Live |
 | **Education team** files | SharePoint Excel | Dataflow Gen2 `df_education_sharepoint` | `dbo` in Bronze, `education` in Silver | `dim.program`, `dim.school`, `fact.education_sessions` | Live |
 | **Email and ad platforms** | CSV exports in ADLS | OneLake shortcut + `nb_10` | `marketing` | Silver only for now (read by analysts through OneLake security) | Live |
@@ -127,3 +129,33 @@ Pattern 1 (a single workspace) was rejected because it rules out deployment pipe
 
 > [!NOTE]
 > *"It's Microsoft's Pattern 2, multiple workspaces on one capacity. It's a hub-and-spoke design: a central data-platform workspace and business-area BI workspaces, grouped by domains, with dev, test and prod environments. That fits a single-region nonprofit with a four-person team. The first move to Pattern 3 is a dedicated production capacity, once reports need a performance guarantee."*
+
+## 10. Audit and control tables
+
+Every layer records what it loaded, and a shared `run_id` from `pl_daily_load` ties the records together. The tables play three roles:
+
+- **Control tables** let a step decide what to do next, so reruns are safe.
+- **Logs** record what happened, for people and monitoring.
+- **Quality gates** stop or flag a run when the numbers don't add up.
+
+| Layer | Table | Role | Question it answers | Grain | Written |
+|---|---|---|---|---|---|
+| Bronze | `audit.ingest_log` | Control | Which days have already been loaded? `nb_10` skips them, so a rerun never loads the same files twice. | Table × `load_date` | Appended |
+| Bronze | `audit.run_log` | Log | What did each step load, how long did it take, did it fail? | Notebook step × table × run | Appended |
+| Bronze | `audit.reconciliation` | Quality gate | Did we load every row the source said it sent? A `MISMATCH` fails the pipeline before Silver. | Table × `load_date` | Overwritten (current state) |
+| Silver | `audit.watermarks` | Control | Up to which point has each table been read from Bronze? | Table | Updated |
+| Silver | `audit.run_log` | Log | Same shape as Bronze. Stages are `silver` and `identity`. | Notebook step × table × run | Appended |
+| Silver | `dq.dq_results` | Quality gate | How many rows broke each rule? | Rule × table × run | Appended |
+| Silver | `dq.quarantine` | Quality gate | Which rows were held back, and why? Contact details are hashed. | Rejected row | Appended |
+| Gold | `etl.watermark` | Control | Up to which Silver change has each fact been loaded? | Fact table | Updated |
+| Gold | `etl.load_log` | Log | What did each load procedure insert or delete, and did it succeed? | Procedure × run | Appended |
+| Gold | `rpt.vw_gold_integrity` | Quality gate | Do facts point at unknown keys, or carry duplicates? | Check | View |
+
+**How the Bronze tables work together.** `nb_10` loads a day's files, then records the day in `ingest_log` and the step in `run_log`. Reconciliation compares the row counts in `ingest_log` with each source's manifest (`landing/<source>/_manifests/load_date=D.json`).
+
+Only file sources (the Tessitura API and marketing) send manifests, so only they are reconciled. The Copy job (Tessitura database) and the Dataflow (education) write tables directly; their completeness is checked in their own run history.
+
+**Why the split.** A control table must stay small and exact, because the pipeline's next decision depends on it. A log can be large and is read by people. A quality gate needs a clear pass or fail. Combining them into one table makes reruns fragile and monitoring noisy.
+
+> [!NOTE]
+> *"The source tells me what it sent in a manifest, I record what I loaded, and a mismatch stops the pipeline before bad data reaches Silver. Control tables make reruns safe, logs tell me what happened, and the integrity view checks that Gold is consistent."*

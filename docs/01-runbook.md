@@ -166,7 +166,7 @@ uv run python scripts/06_upload_config.py --env dev
 The mock Tessitura runs on SQL Server on your own computer. Fabric reaches it through the **on-premises data gateway**, which is how most real ticketing databases are reached: they sit inside the organization's network, not in the cloud.
 
 1. **Driver.** The loader needs the ODBC Driver 18 for SQL Server. Check with `Get-OdbcDriver -Name "ODBC Driver 18*"`; if nothing comes back, [install it](https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server).
-2. **Settings in `.env`:** `TESSITURA_SQL_SERVER=localhost` (or `localhost\INSTANCE` for a named instance), `TESSITURA_SQL_DATABASE=HarmoniaTicketing`, `TESSITURA_SQL_AUTH=windows`, and `TESSITURA_SQL_TRUST_SERVER_CERT=yes`. A local SQL Server uses a self-signed certificate, which is fine to trust on your own computer only.
+2. **Settings in `.env`:** `TESSITURA_SQL_SERVER=localhost` (or `localhost\INSTANCE` for a named instance), `TESSITURA_SQL_DATABASE=HarmoniaTessitura`, `TESSITURA_SQL_AUTH=windows`, and `TESSITURA_SQL_TRUST_SERVER_CERT=yes`. A local SQL Server uses a self-signed certificate, which is fine to trust on your own computer only.
 3. **Load the data** with your Windows account. The script creates the database the first time:
 
    ```powershell
@@ -180,7 +180,7 @@ The mock Tessitura runs on SQL Server on your own computer. Fabric reaches it th
 
       ```sql
       CREATE LOGIN svc_fabric_reader WITH PASSWORD = '<strong password>', CHECK_POLICY = ON;
-      USE HarmoniaTicketing;
+      USE HarmoniaTessitura;
       CREATE USER svc_fabric_reader FOR LOGIN svc_fabric_reader;
       GRANT SELECT ON SCHEMA::tix TO svc_fabric_reader;   -- read the Tessitura tables, nothing else
       ```
@@ -189,7 +189,7 @@ The mock Tessitura runs on SQL Server on your own computer. Fabric reaches it th
    - Install the **update** the gateway app offers. New Copy job features need a recent gateway, and Microsoft only supports the last few versions.
    - The gateway runs on your computer, so the Copy job only works while that computer is on and awake.
 6. **Connection.** Fabric › Settings › **Manage connections and gateways** › New › **On-premises**:
-   - Gateway cluster: your gateway. Connection type: **SQL Server**. Server `localhost`, database `HarmoniaTicketing`.
+   - Gateway cluster: your gateway. Connection type: **SQL Server**. Server `localhost`, database `HarmoniaTessitura`.
    - Authentication: **Basic**, as `svc_fabric_reader`.
    - If the test fails on the certificate, untick encryption for this lab connection. The traffic never leaves your computer. In production you'd install a trusted certificate instead.
 7. Build the Copy job: [`src/ingestion/copy_job_tessitura.md`](../src/ingestion/copy_job_tessitura.md).
