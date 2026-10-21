@@ -10,7 +10,7 @@
 | Layer | Control | Protects |
 |---|---|---|
 | Tenant | Tenant settings baseline (audited by `scripts/08`): publish-to-web off, external sharing off, item creation scoped | Everyone |
-| Identity | Entra security groups `sg-hh-*` (`scripts/00`) | Joiners and leavers are handled in one place |
+| Identity | Entra security groups `sg-hh-*` (`scripts/00`); service accounts only in their own group `sg-hh-svc-{job}-{nonprod|prod}`, never in a human group; the non-prod account can't reach prod | Joiners and leavers are handled in one place; a service account can't gain team access by accident |
 | Workspace | Roles per family and environment (`scripts/02`); Viewer-only in PROD | Builders |
 | Item | **Item share on `wh_gold` only** for BI developers (Read, ReadData, ReadAll), declared in `tenant.yaml › item_shares` and verified by `scripts/09` (warehouse sharing is UI-only) | Consumers across workspace families |
 | Lake | **OneLake security** roles on `lh_silver`: table access plus column permit-lists hiding contact PII (`scripts/07`) | Spark and lake readers |

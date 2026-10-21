@@ -5,6 +5,7 @@ flowchart TB
   classDef test fill:#FFF8E1,stroke:#F9A825,color:#3D2E00
   classDef prod fill:#E8F5E9,stroke:#2E7D32,color:#123D16
   classDef cap fill:#FCE4EC,stroke:#AD1457,color:#3D0A1F
+  classDef planned fill:#FAFAFA,stroke:#9E9E9E,color:#424242,stroke-dasharray: 5 4
 
   TEN["Fabric tenant · tenant settings audited (scripts/08)<br/>Capacity: F64 (trial in the mock) → all 9 workspaces<br/>BI models read Gold of the SAME env (deployment rules rebind)"]:::cap
   ORG["Parent domain: Harmonia Hall<br/>Domain admins: sg-hh-fabric-admins (inherited by subdomains)<br/>Domain roles organise & delegate — they grant NO data access"]:::dom
@@ -12,9 +13,9 @@ flowchart TB
 
   subgraph D1["Subdomain: Data Platform"]
     direction TB
-    W1D["hh-dataplatform-dev<br/>lh_bronze · lh_silver · wh_gold · notebooks · pipelines<br/>Admin: fabric-admins · Contributor: data-engineers<br/>Git ↔ main:/fabric/de"]:::dev
-    W1T["hh-dataplatform-test<br/>Admin: fabric-admins · Contributor: data-engineers"]:::test
-    W1P["hh-dataplatform-prod<br/>Admin: fabric-admins · Viewer: data-engineers"]:::prod
+    W1D["hh-dataplatform-dev<br/>lh_bronze · lh_silver · wh_gold · notebooks · pipelines<br/>Admin: fabric-admins · Contributor: data-engineers<br/>Contributor: svc-dataflows-nonprod (service account only)<br/>Git ↔ main:/fabric/de"]:::dev
+    W1T["hh-dataplatform-test<br/>Admin: fabric-admins · Contributor: data-engineers<br/>Contributor: svc-dataflows-nonprod (service account only)"]:::test
+    W1P["hh-dataplatform-prod<br/>Admin: fabric-admins · Viewer: data-engineers<br/>Contributor: svc-dataflows-prod (runs the Dataflow; no people,<br/>separate from the non-prod account)"]:::prod
     W1D -- "dp-hh-dataplatform" --> W1T --> W1P
   end
   subgraph D2["Subdomain: Audience & Development"]
@@ -31,4 +32,9 @@ flowchart TB
     W3P["hh-education-prod<br/>Admin: fabric-admins · Viewer: bi-developers<br/>Org App → education-team"]:::prod
     W3D -- "dp-hh-education" --> W3T --> W3P
   end
+  subgraph D4["PLANNED subdomain: Finance & Operations (ADR-001, ADR-009)"]
+    direction TB
+    W4["hh-finance-dev / -test / -prod<br/>sm_finance · sm_venue_operations<br/>Admin: fabric-admins · Contributor: bi-developers (dev/test)<br/>Viewer: finance-analysts (test) · Org App in prod"]:::planned
+  end
   ORG --> D1 & D2 & D3
+  ORG -.-> D4

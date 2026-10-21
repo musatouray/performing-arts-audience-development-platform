@@ -13,3 +13,4 @@ They're written the way you'd defend them to a CIO. Every one ends with a **Note
 | [ADR-006](ADR-006-security-model.md) | Layered security, groups only, enforced where each audience queries | Accepted |
 | [ADR-007](ADR-007-data-quality.md) | Declarative DQ gate in Silver with quarantine | Accepted |
 | [ADR-008](ADR-008-capacity-cost.md) | Capacity sizing, isolation and cost controls | Accepted |
+| [ADR-009](ADR-009-domain-expansion-hub-and-spoke.md) | Venue operations and finance join as hub and spoke, with an event bridge and revenue-to-ledger reconciliation | Accepted (design) |

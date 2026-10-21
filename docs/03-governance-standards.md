@@ -33,10 +33,17 @@ A semantic model is **Certified** only when all of these are true:
 | Error-rule pass rate per entity | ≥ 99.5% | `rpt.vw_dq_latest` |
 | Unknown-member facts | < 0.5% of rows | `rpt.vw_gold_integrity` |
 | Quarantine triage | Within 2 business days, by the data owner | `lh_silver.dq.quarantine` |
+| Revenue vs ledger, by fund and month (planned, ADR-009) | Variance within tolerance agreed with finance; over it blocks certification of that month's finance model | `rpt.vw_recon_revenue_to_gl` |
+| Public events matched to a ticketed performance (planned, ADR-009) | 100%, unmatched confirmed by venue operations | `rpt.vw_gold_integrity` |
 
 ## 4. Access model
 
 - Access is **always** granted by adding a person to an `sg-hh-*` group. Nobody is granted access directly.
+- **Non-human identities, in order of preference:** workspace identity, then service principal, then a service account only where the tool requires a user (today: Dataflow Gen2, ADR-003). Each service account:
+    - lives in its own group, `sg-hh-svc-{job}-{nonprod|prod}`, for one job, and is never added to a human group;
+    - is split by prod and non-prod: the non-prod account (which engineers sign in as) has no access to prod, and only the platform owner holds the prod password;
+    - has a named owner, a long random password in a password manager or Key Vault, no mailbox, and MFA on;
+    - is reviewed quarterly with the other groups, and disabled when its job goes away.
 - Consumers get **Apps**, not workspace roles.
 - PROD workspaces: builders are Viewers, and changes go through deployment pipelines only.
 - Personal data is tagged in `config/sources.yaml` at two levels:

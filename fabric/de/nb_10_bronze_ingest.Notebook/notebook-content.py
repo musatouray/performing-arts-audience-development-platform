@@ -28,24 +28,24 @@
 # Run by the `pl_daily_load` pipeline, or by hand.
 # 
 # This covers the sources that arrive as files under `Files/landing`:
-# * fundraising, saved there by `nb_05_fundraising_api`
+# * Tessitura's REST API data (contributions, campaigns, funds), saved there by `nb_05_tessitura_api`
 # * marketing, which `Files/landing/marketing` shows through a shortcut to ADLS Gen2
 # 
-# Ticketing (Copy job) and education (Dataflow Gen2) write their Bronze tables directly,
+# Tessitura's database tables (Copy job) and education (Dataflow Gen2) write their Bronze tables directly,
 # so they're not handled here.
 # 
 # For each file-based table listed in `sources.json`:
 # 1. Find the daily folders (`load_date=YYYY-MM-DD`) not loaded yet. Folders already loaded are skipped.
 # 2. Read every column as text. Data types are set later, in Silver.
 # 3. Add columns that record where each row came from and when it was loaded.
-# 4. Append to `lh_bronze.<source>.<table>`. Bronze keeps everything; nothing is overwritten.
+# 4. Append to `lh_bronze.<system>.<table>`. Bronze keeps everything; nothing is overwritten.
 # 5. Compare row counts with the source's manifest file and save the result in `audit.reconciliation`.
 
 
 # PARAMETERS CELL ********************
 
 load_date = ""          # empty = every folder not loaded yet; "2026-09-28" = just that day
-entities = ""           # empty = all tables; or a list like "ticketing.orders,fundraising.gifts"
+entities = ""           # empty = all tables; or a list like "tessitura.contribution,marketing.email_clicks"
 reprocess = False       # True = load days again even if already loaded (this creates duplicates in Bronze)
 
 # METADATA ********************
@@ -74,8 +74,8 @@ reprocess = False       # True = load days again even if already loaded (this cr
 
 # CELL ********************
 
-# Only fundraising and marketing land as files. Ticketing (Copy job) and education
-# (Dataflow) write their Bronze tables themselves, so they're left out here.
+# Only the Tessitura API and marketing land as files. Tessitura's database (Copy job) and
+# education (Dataflow) write their Bronze tables themselves, so they're left out here.
 sources = [s for s in load_json_config("sources")["sources"] if s["ingestion"]["lands_in"] == "files"]
 landing_root = f"{lakehouse_path(BRONZE)}/Files/landing"
 wanted = {e.strip() for e in entities.split(",") if e.strip()}
@@ -108,14 +108,14 @@ def partitions(source: str, entity: str) -> list[str]:
 
 # ## Load each new day into Bronze
 # For every table, each `load_date=` folder that isn't in the ingest log yet is read,
-# stamped with where and when it came from, and appended to `lh_bronze.<source>.<table>`.
+# stamped with where and when it came from, and appended to `lh_bronze.<system>.<table>`.
 
 # CELL ********************
 
 batch_id = RUN_ID                       # ties every row loaded in this run together
 for src in sources:
     for ent in src["entities"]:
-        key = f"{src['source']}.{ent['name']}"
+        key = f"{system(src)}.{ent['name']}"
         if wanted and key not in wanted:
             continue
         # Days waiting to be loaded: folders on disk that aren't in the ingest log yet.

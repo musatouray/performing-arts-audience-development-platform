@@ -11,12 +11,12 @@ The four sources load side by side, because none of them depends on another. Sil
 
 ```
 ┌──────────────────────┐
-│ cj_ticketing          │ Copy job          SQL Server (gateway) → lh_bronze.ticketing.*
+│ cj_tessitura          │ Copy job          SQL Server (gateway) → lh_bronze.tessitura.*
 ├──────────────────────┤
 │ df_education          │ Dataflow          SharePoint → lh_bronze.dbo.*      
 ├──────────────────────┤      ┌──────────────────────┐
 │ nb_api                │ ───▶ │ nb_bronze             │ files (API + marketing shortcut)
-│ nb_05_fundraising_api │  ✔   │ nb_10_bronze_ingest   │ → lh_bronze.fundraising.*, marketing.*
+│ nb_05_tessitura_api │  ✔   │ nb_10_bronze_ingest   │ → lh_bronze.tessitura.*, marketing.*
 └──────────┬───────────┘      └──────────┬───────────┘
            │ all ✔                        │ ✔
            ▼                              ▼
@@ -31,9 +31,9 @@ The four sources load side by side, because none of them depends on another. Sil
 
 | # | Activity | Type | Settings |
 |---|---|---|---|
-| 1 | `cj_ticketing` | Copy job | Copy job: `cj_ticketing`. Retry 2, interval 120s. |
+| 1 | `cj_tessitura` | Copy job | Copy job: `cj_tessitura`. Retry 2, interval 120s. |
 | 2 | `df_education` | Dataflow | Dataflow: `df_education_sharepoint`. Retry 1. |
-| 3 | `nb_api` | Notebook | Notebook: `nb_05_fundraising_api`. Base parameter `load_date` = `@pipeline().parameters.load_date`. Retry 2, interval 120s (the API can be busy). |
+| 3 | `nb_api` | Notebook | Notebook: `nb_05_tessitura_api`. Base parameter `load_date` = `@pipeline().parameters.load_date`. Retry 2, interval 120s (the API can be busy). |
 | 4 | `nb_bronze` | Notebook | Notebook: `nb_10_bronze_ingest`. Depends on 3 = **Succeeded**. Base parameter `load_date` as above. Retry 2. Timeout 1h. |
 | 5 | `nb_silver` | Notebook | Notebook: `nb_20_silver_transform`. Depends on 1, 2 and 4 = **Succeeded**. Retry 1. |
 | 6 | `sp_load_gold` | Stored procedure | Connection: `wh_gold` (same workspace). Proc: `etl.usp_load_gold`. Param `@run_id` (String) = `@pipeline().RunId`. Depends on 5 = **Succeeded**. |

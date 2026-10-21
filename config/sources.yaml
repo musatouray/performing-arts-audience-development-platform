@@ -15,7 +15,12 @@
 #                   bronze_table = the tool writes the Bronze table itself
 #   change_column   how Silver finds new rows. Default _load_date.
 #                   null = small table, Silver re-reads all of it every run.
-#   bronze_schema   Bronze schema name, if it isn't the same as the source name.
+#   bronze_schema   Bronze schema name, if it isn't the same as the system name.
+#
+# system: the source system a source belongs to. It names the Bronze and Silver
+# schemas and the table keys (tessitura.order_line). Several sources can share
+# one system when the system hands its data over in more than one way.
+# Defaults to the source name.
 #
 # Personal data is tagged per table, at two levels:
 #   pii         columns that identify a person (names, emails, addresses).
@@ -30,30 +35,40 @@
 
 sources:
   # ---------------------------------------------------------------------------
-  # Ticketing system (similar to Tessitura), kept in an on-premises SQL Server.
-  # A Fabric Copy job reads it through the on-premises data gateway, copies only
-  # the rows changed since its last run (by updated_at) and appends them to
-  # lh_bronze.ticketing.<table>.
-  # scripts/11_load_ticketing_db.py creates the tables and loads the data.
+  # Tessitura (the ticketing, CRM and fundraising system), mocked in two parts,
+  # the way Tessitura really exposes its data:
+  #   tessitura_db   its SQL Server database, kept on-premises. A Fabric Copy job
+  #                  reads it through the on-premises data gateway, copies only the
+  #                  rows changed since its last run (by updated_at) and appends
+  #                  them to lh_bronze.tessitura.<table>.
+  #                  scripts/11_load_tessitura_db.py creates the tables and loads the data.
+  #   tessitura_api  its REST API, used for contributions (a mock on GitHub Pages).
+  #                  nb_05_tessitura_api follows the pages and saves the records to
+  #                  Files/landing/tessitura_api; nb_10 then loads them into Bronze.
+  # Both share system: tessitura, so they land in the same Bronze and Silver schema.
+  # Donors are constituents like ticket buyers, so contributions carry a
+  # constituent_id. Some people have two constituent records (for example after
+  # giving online without signing in); Silver merges those into one patron.
   # ---------------------------------------------------------------------------
-  - source: ticketing
+  - source: tessitura_db
+    system: tessitura
     owner: "Ticketing & Patron Services"
     ingestion:
       method: copy_job
       lands_in: bronze_table
       change_column: updated_at
       source_db:
-        server: "${TICKETING_SQL_SERVER}"
-        database: "${TICKETING_SQL_DATABASE}"
+        server: "${TESSITURA_SQL_SERVER}"
+        database: "${TESSITURA_SQL_DATABASE}"
         schema: tix
     entities:
-      - name: customers
-        primary_key: [customer_id]
+      - name: constituent
+        primary_key: [constituent_id]
         order_by: updated_at
         pii: [first_name, last_name, email, phone, address_line1]
         restricted: [email, phone, address_line1]
         columns:
-          customer_id: string
+          constituent_id: string
           first_name: string
           last_name: string
           email: string
@@ -63,19 +78,19 @@ sources:
           state: string
           postal_code: string
           country: string
-          customer_type: string
+          constituent_type: string
           email_opt_in: boolean
           created_at: timestamp
           updated_at: timestamp
-      - name: seasons
+      - name: season
         primary_key: [season_id]
         order_by: season_id
         columns: { season_id: string, season_name: string, fiscal_year: int, start_date: date, end_date: date }
-      - name: venues
+      - name: venue
         primary_key: [venue_id]
         order_by: venue_id
         columns: { venue_id: string, venue_name: string, capacity: int }
-      - name: performances
+      - name: performance
         primary_key: [performance_id]
         order_by: updated_at
         columns:
@@ -89,17 +104,17 @@ sources:
           capacity: int
           status: string
           updated_at: timestamp
-      - name: orders
+      - name: order
         primary_key: [order_id]
         order_by: updated_at
         columns:
           order_id: string
-          customer_id: string
+          constituent_id: string
           order_datetime: timestamp
           channel: string
           status: string
           updated_at: timestamp
-      - name: order_lines
+      - name: order_line
         primary_key: [order_line_id]
         order_by: updated_at
         columns:
@@ -112,12 +127,12 @@ sources:
           discount_amount: "decimal(12,2)"
           is_comp: boolean
           updated_at: timestamp
-      - name: subscriptions
+      - name: subscription
         primary_key: [subscription_id]
         order_by: purchased_at
         columns:
           subscription_id: string
-          customer_id: string
+          constituent_id: string
           season_id: string
           package_name: string
           seats: int
@@ -125,52 +140,32 @@ sources:
           is_renewal: boolean
           purchased_at: timestamp
 
-  # ---------------------------------------------------------------------------
-  # Fundraising system, read through its REST API (a mock hosted on GitHub Pages).
-  # nb_05_fundraising_api follows the pages and saves the records to
-  # Files/landing/fundraising; nb_10 then loads them into Bronze.
-  # Donors have their own IDs here; Silver matches them to ticket buyers.
-  # ---------------------------------------------------------------------------
-  - source: fundraising
+  - source: tessitura_api
+    system: tessitura
     format: json
     owner: "Development (Fundraising)"
     ingestion:
       method: notebook_api
       lands_in: files
-      api_base_url: "${FUNDRAISING_API_BASE_URL}"
+      api_base_url: "${TESSITURA_API_BASE_URL}"
     entities:
-      - name: donors
-        primary_key: [donor_id]
-        order_by: updated_at
-        pii: [first_name, last_name, email]
-        restricted: [email]
-        columns:
-          donor_id: string
-          first_name: string
-          last_name: string
-          email: string
-          city: string
-          state: string
-          postal_code: string
-          donor_since: date
-          updated_at: timestamp
-      - name: campaigns
+      - name: campaign
         primary_key: [campaign_id]
         order_by: campaign_id
         columns: { campaign_id: string, campaign_name: string, campaign_type: string, fiscal_year: int, goal_amount: "decimal(14,2)" }
-      - name: funds
+      - name: fund
         primary_key: [fund_id]
         order_by: fund_id
         columns: { fund_id: string, fund_name: string, is_restricted: boolean }
-      - name: gifts
-        primary_key: [gift_id]
+      - name: contribution
+        primary_key: [contribution_id]
         order_by: updated_at
         columns:
-          gift_id: string
-          donor_id: string
-          gift_date: date
+          contribution_id: string
+          constituent_id: string
+          contribution_date: date
           amount: "decimal(14,2)"
-          gift_type: string
+          contribution_type: string
           campaign_id: string
           fund_id: string
           is_anonymous: boolean

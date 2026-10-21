@@ -76,9 +76,15 @@ def load_json_config(name: str) -> dict:
     return json.loads("".join(r.value for r in spark.read.text(path, wholetext=True).collect()))
 
 
+def system(src: dict) -> str:
+    """The source system a source belongs to (for example tessitura). It names the Silver schema
+    and the table keys. Two sources can share one, when a system hands data over in two ways."""
+    return src.get("system") or src["source"]
+
+
 def bronze_schema(src: dict) -> str:
-    """Bronze schema for a source. Usually the source name; education lands in dbo."""
-    return (src.get("ingestion") or {}).get("bronze_schema") or src["source"]
+    """Bronze schema for a source. Usually its system's name; education lands in dbo."""
+    return (src.get("ingestion") or {}).get("bronze_schema") or system(src)
 
 
 def now_utc():

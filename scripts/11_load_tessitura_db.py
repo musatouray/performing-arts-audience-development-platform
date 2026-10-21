@@ -1,24 +1,24 @@
-"""Step 11: load the generated ticketing data into the ticketing database (the mock Tessitura).
+"""Step 11: load the generated Tessitura data into the mock Tessitura database.
 
-This plays the part of the ticketing system itself. Each run applies one or more
+This plays the part of Tessitura itself. Each run applies one or more
 days of sales, returns and address changes to the tix tables, the way the real
 system would during the day. The Fabric Copy job then copies the changes to Bronze.
 
   * The first run creates schema tix and its tables, based on config/sources.yaml.
-  * Each data/ticketing_db/<table>/load_date=D folder is applied once, oldest first.
+  * Each data/tessitura_db/<table>/load_date=D folder is applied once, oldest first.
     tix._load_history remembers which days are done.
   * New rows are inserted. Changed rows are updated and get a new updated_at.
     Unchanged rows are left alone, so the Copy job doesn't copy them again.
 
 Works with SQL Server on your own computer (the lab setup) or Azure SQL Database.
-How it signs in is set by TICKETING_SQL_AUTH in .env:
+How it signs in is set by TESSITURA_SQL_AUTH in .env:
   windows  your Windows account (on-premises SQL Server)
   sql      a SQL login from SQL_USER and SQL_PASSWORD
   entra    your az login account (Azure SQL Database; the default)
 On SQL Server the database is created if it doesn't exist yet.
 Needs the Microsoft ODBC Driver 18 for SQL Server on this computer.
 
-Run: uv run python scripts/11_load_ticketing_db.py [--load-date 2026-09-28] [--dry-run]
+Run: uv run python scripts/11_load_tessitura_db.py [--load-date 2026-09-28] [--dry-run]
 """
 
 import csv
@@ -75,10 +75,10 @@ def connect(db: dict):
     if not drivers:
         sys.exit("No SQL Server ODBC driver found. Install ODBC Driver 18 for SQL Server:\n"
                  "https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server")
-    auth = os.getenv("TICKETING_SQL_AUTH", "entra").lower()
+    auth = os.getenv("TESSITURA_SQL_AUTH", "entra").lower()
     # A local SQL Server usually has a self-signed certificate. Trusting it is fine on your own
     # computer; never turn this on for a server you reach over a network.
-    trust = "yes" if os.getenv("TICKETING_SQL_TRUST_SERVER_CERT", "no").lower() in ("yes", "true", "1") else "no"
+    trust = "yes" if os.getenv("TESSITURA_SQL_TRUST_SERVER_CERT", "no").lower() in ("yes", "true", "1") else "no"
     conn_str = (f"Driver={{{sorted(drivers)[-1]}}};Server={db['server']};Database={db['database']};"
                 f"Encrypt=yes;TrustServerCertificate={trust};Connection Timeout=60")
     if auth in ("windows", "sql"):
@@ -158,22 +158,22 @@ def load_table_day(cur, schema: str, ent: dict, path: Path):
 
 def main():
     ap = std_args(__doc__)
-    ap.add_argument("--data", type=Path, default=ROOT / "data" / "ticketing_db")
+    ap.add_argument("--data", type=Path, default=ROOT / "data" / "tessitura_db")
     ap.add_argument("--load-date", help="only apply this day (default: every day not applied yet)")
     a = ap.parse_args()
 
-    src = next(s for s in sources_config()["sources"] if s["source"] == "ticketing")
+    src = next(s for s in sources_config()["sources"] if s["source"] == "tessitura_db")
     db = src["ingestion"]["source_db"]
     schema = db["schema"]
     if unfilled(db):
-        sys.exit("Add TICKETING_SQL_SERVER and TICKETING_SQL_DATABASE to .env first.")
+        sys.exit("Add TESSITURA_SQL_SERVER and TESSITURA_SQL_DATABASE to .env first.")
 
     days = sorted({p.name.split("=")[1] for p in a.data.glob("*/load_date=*")})
     if a.load_date:
         days = [d for d in days if d == a.load_date]
     if not days:
         sys.exit(f"No data in {a.data}. Run: uv run python -m data_generator.generate full")
-    banner(f"Ticketing database {db['server']}/{db['database']} (schema {schema})")
+    banner(f"Tessitura database {db['server']}/{db['database']} (schema {schema})")
 
     if a.dry_run:
         for ent in src["entities"]:

@@ -35,14 +35,14 @@ class GeneratorTests(unittest.TestCase):
         main(["incremental", "--days", "2", "--out", str(cls.out), "--state", str(cls.state)])
 
     def _rows(self, source, entity, load_date):
-        folder = {"ticketing": "ticketing_db", "marketing": "marketing_adls"}[source]
+        folder = {"tessitura": "tessitura_db", "marketing": "marketing_adls"}[source]
         return read_csv(self.out / folder / entity / f"load_date={load_date}" / f"{entity}.csv")
 
     def _api(self, entity, load_date):
         """Follow next_link from page 1, the way the notebook does."""
         rows, page, count = [], "page-1.json", None
         while page:
-            body = json.loads((self.out / "fundraising_api" / "v1" / entity / load_date / page).read_text())
+            body = json.loads((self.out / "tessitura_api" / "v1" / entity / load_date / page).read_text())
             count = body["count"]
             rows += body["value"]
             page = body["next_link"]
@@ -50,21 +50,21 @@ class GeneratorTests(unittest.TestCase):
 
     def test_partitions_and_manifests_exist(self):
         for d in ("2025-12-31", "2026-01-01", "2026-01-02"):
-            for folder, n in (("ticketing_db", 7), ("marketing_adls", 3)):
+            for folder, n in (("tessitura_db", 7), ("marketing_adls", 3)):
                 m = json.loads((self.out / folder / "_manifests" / f"load_date={d}.json").read_text())
                 self.assertEqual(len(m["files"]), n)
 
     def test_manifest_counts_match_files(self):
-        m = json.loads((self.out / "ticketing_db" / "_manifests" / "load_date=2025-12-31.json").read_text())
-        orders = next(f for f in m["files"] if f["entity"] == "orders")
-        self.assertEqual(orders["rows"], len(self._rows("ticketing", "orders", "2025-12-31")))
+        m = json.loads((self.out / "tessitura_db" / "_manifests" / "load_date=2025-12-31.json").read_text())
+        orders = next(f for f in m["files"] if f["entity"] == "order")
+        self.assertEqual(orders["rows"], len(self._rows("tessitura", "order", "2025-12-31")))
 
     def test_api_paging_and_index(self):
-        index = json.loads((self.out / "fundraising_api" / "v1" / "index.json").read_text())
+        index = json.loads((self.out / "tessitura_api" / "v1" / "index.json").read_text())
         self.assertEqual(index["load_dates"], ["2025-12-31", "2026-01-01", "2026-01-02"])
-        count, rows = self._api("donors", "2025-12-31")
+        count, rows = self._api("contribution", "2025-12-31")
         self.assertGreater(count, API_PAGE_SIZE, "expected more than one page")
-        self.assertEqual(len({r["donor_id"] for r in rows}), count)
+        self.assertEqual(len({r["contribution_id"] for r in rows}), count)
         self.assertGreater(len(rows), count, "expected overlapping pages on the first load")
 
     def test_education_workbooks(self):
@@ -77,8 +77,8 @@ class GeneratorTests(unittest.TestCase):
         self.assertEqual(header[0], "Enrollment ID")
 
     def test_incremental_ids_do_not_collide_with_history(self):
-        hist = {r["order_id"] for r in self._rows("ticketing", "orders", "2025-12-31")}
-        inc = [r for r in self._rows("ticketing", "orders", "2026-01-01") if r["status"] == "Complete"]
+        hist = {r["order_id"] for r in self._rows("tessitura", "order", "2025-12-31")}
+        inc = [r for r in self._rows("tessitura", "order", "2026-01-01") if r["status"] == "Complete"]
         self.assertTrue(inc, "incremental produced no new orders")
         self.assertFalse(hist & {r["order_id"] for r in inc})
 
@@ -86,17 +86,27 @@ class GeneratorTests(unittest.TestCase):
         clicks = self._rows("marketing", "email_clicks", "2025-12-31")
         ids = [r["click_id"] for r in clicks]
         self.assertGreater(len(ids), len(set(ids)), "expected clicks exported twice")
-        custs = self._rows("ticketing", "customers", "2025-12-31")
+        custs = self._rows("tessitura", "constituent", "2025-12-31")
         self.assertTrue(any(c["email"] == "" for c in custs), "expected missing emails")
 
     def test_never_oversold(self):
-        perfs = {p["performance_id"]: int(p["capacity"]) for p in self._rows("ticketing", "performances", "2025-12-31")}
+        perfs = {p["performance_id"]: int(p["capacity"]) for p in self._rows("tessitura", "performance", "2025-12-31")}
         sold = {}
-        for r in self._rows("ticketing", "order_lines", "2025-12-31"):
+        for r in self._rows("tessitura", "order_line", "2025-12-31"):
             if r["performance_id"] not in perfs:
                 continue
             sold[r["performance_id"]] = sold.get(r["performance_id"], 0) + int(r["quantity"])
         self.assertTrue(all(sold[p] <= perfs[p] for p in sold))
+
+    def test_contributions_use_constituent_ids(self):
+        """Donors are constituents: every contribution points at a constituent record
+        (apart from the planted unknown ID), and some donors have a second, duplicate record."""
+        constituents = {r["constituent_id"] for d in ("2025-12-31", "2026-01-01", "2026-01-02")
+                        for r in self._rows("tessitura", "constituent", d)}
+        _, rows = self._api("contribution", "2025-12-31")
+        unknown = {r["constituent_id"] for r in rows} - constituents
+        self.assertLessEqual(unknown, {"T9999999"})
+        self.assertTrue(any(c.startswith("T5") for c in constituents), "expected donor-created constituent records")
 
     def test_ad_spend_restates_last_two_days(self):
         days = {r["ad_date"] for r in self._rows("marketing", "ad_spend_daily", "2026-01-02")}
@@ -105,8 +115,8 @@ class GeneratorTests(unittest.TestCase):
     def test_deterministic_for_same_seed(self):
         a = Generator(State(seed=7, start="2025-09-01", end="2025-09-30")).full()[1]
         b = Generator(State(seed=7, start="2025-09-01", end="2025-09-30")).full()[1]
-        self.assertEqual(len(a[("ticketing", "orders")]), len(b[("ticketing", "orders")]))
-        self.assertEqual(a[("fundraising", "gifts")][:5], b[("fundraising", "gifts")][:5])
+        self.assertEqual(len(a[("tessitura_db", "order")]), len(b[("tessitura_db", "order")]))
+        self.assertEqual(a[("tessitura_api", "contribution")][:5], b[("tessitura_api", "contribution")][:5])
 
 
 if __name__ == "__main__":

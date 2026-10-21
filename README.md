@@ -16,6 +16,7 @@ The whole tenant design (Entra groups, domains, nine workspaces, deployment pipe
 | `pl_daily_load` orchestration with failure alerting | Built (dev) |
 | Direct Lake semantic model and reports | Designed in [`src/semantic_model`](src/semantic_model), build in progress |
 | Promotion to test and prod | Designed, not yet run |
+| Venue operations and finance (event bridge, hall utilisation, revenue-to-ledger reconciliation) | Designed ([ADR-009](docs/adr/ADR-009-domain-expansion-hub-and-spoke.md)), not built |
 
 ## What it demonstrates
 
@@ -56,7 +57,7 @@ Then follow the **[build runbook](docs/01-runbook.md)** (16 phases, each with a 
 
 ```
 config/            tenant.yaml (topology) · sources.yaml (ingestion contract) · dq_rules.yaml
-scripts/           00-11 provisioning via Fabric/Graph/OneLake APIs, ticketing DB loader · validate_config · teardown
+scripts/           00-11 provisioning via Fabric/Graph/OneLake APIs, Tessitura DB loader · validate_config · teardown
 data_generator/    synthetic data for four source systems (full + daily changes, with injected defects)
 src/ingestion/     Copy job and Dataflow Gen2 build specs, one page per landing pattern
 fabric/de/         Fabric Git: notebooks, pipeline, Copy job, Dataflow (synced from the DEV workspace)

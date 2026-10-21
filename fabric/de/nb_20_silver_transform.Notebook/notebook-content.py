@@ -33,14 +33,14 @@
 # For each table, in the order listed in `sources.json` (lookup tables first):
 # 1. Read only the Bronze rows that are new since the last run. How "new" is found depends on the source:
 #    * files loaded by nb_10: by `_load_date`
-#    * ticketing, appended by the Copy job: by `updated_at`
+#    * Tessitura's database tables, appended by the Copy job: by `updated_at`
 #    * education, replaced by the Dataflow on every run: the whole (small) table is read
 # 2. Set the data types, trim text, turn empty text into nulls and lower-case emails.
 # 3. Keep only the latest version of each row, which also removes rows sent twice.
 # 4. Run the data quality checks. Bad rows go to `dq.quarantine`.
-# 5. Merge into `lh_silver.<source>.<table>`. Only new or changed rows are written.
+# 5. Merge into `lh_silver.<system>.<table>`, for example `lh_silver.tessitura.order_line`. Only new or changed rows are written.
 # 
-# Then ticket buyers and donors are matched into one list of people, `core.patron`.
+# Then duplicate Tessitura constituent records are merged into one list of people, `core.patron`.
 # The matches are saved in `core.patron_xref` so each person keeps the same ID.
 
 
@@ -72,7 +72,7 @@ full_refresh = False     # True = rebuild from all of Bronze, not just the new r
 sources = load_json_config("sources")["sources"]
 dq_rules = load_json_config("dq_rules")
 wanted = {e.strip() for e in entities.split(",") if e.strip()}
-ensure_schemas(SILVER, ["audit", "dq", "core"] + [s["source"] for s in sources])
+ensure_schemas(SILVER, ["audit", "dq", "core"] + sorted({system(s) for s in sources}))
 wm_table = tbl(SILVER, "audit", "watermarks")
 
 
@@ -104,7 +104,7 @@ def add_missing_meta(df, change_col):
 
 # CELL ********************
 
-entity_config = {f"{src['source']}.{ent['name']}": (src, ent) for src in sources for ent in src["entities"]}
+entity_config = {f"{system(src)}.{ent['name']}": (src, ent) for src in sources for ent in src["entities"]}
 done = set()
 
 
@@ -142,7 +142,7 @@ def process_entity(key: str):
     df = with_row_hash(df, list(cols)).select(
         *cols, "_row_hash", F.col("_load_date"), F.current_timestamp().alias("_silver_updated_at")).cache()
     rows_out = df.count()                     # computed once, then reused by the merge
-    merge_into(tbl(SILVER, src["source"], ent["name"]), df, ent["primary_key"])  # step 5
+    merge_into(tbl(SILVER, system(src), ent["name"]), df, ent["primary_key"])  # step 5
     if new_wm is not None:
         set_watermark(key, new_wm)
     log_run("nb_20_silver_transform", key, "silver", rows_in, rows_out, n_bad, started=started)
@@ -160,26 +160,26 @@ def process_entity(key: str):
 
 # MARKDOWN ********************
 
-# ## Ticketing
-# Source: on-premises SQL Server, copied by `cj_ticketing`. Lookup tables run first, because
-# `order_lines` is checked against `performances` and `orders`.
+# ## Tessitura: database tables
+# Source: the on-premises Tessitura SQL Server, copied by `cj_tessitura`. Lookup tables run first,
+# because `order_line` is checked against `performance` and `order`.
 
 # CELL ********************
 
-process_entity("ticketing.seasons")
+process_entity("tessitura.season")
 
-process_entity("ticketing.venues")
+process_entity("tessitura.venue")
 
-process_entity("ticketing.performances")
+process_entity("tessitura.performance")
 
-process_entity("ticketing.customers")
+process_entity("tessitura.constituent")
 
-process_entity("ticketing.orders")
+process_entity("tessitura.order")
 
 # Lines pointing at a show that doesn't exist, or with a negative price, go to quarantine.
-process_entity("ticketing.order_lines")
+process_entity("tessitura.order_line")
 
-process_entity("ticketing.subscriptions")
+process_entity("tessitura.subscription")
 
 # METADATA ********************
 
@@ -190,20 +190,18 @@ process_entity("ticketing.subscriptions")
 
 # MARKDOWN ********************
 
-# ## Fundraising
-# Source: the fundraising API, landed by `nb_05`. Overlapping API pages send some records twice;
-# step 3 keeps one of each.
+# ## Tessitura: REST API
+# Source: the Tessitura REST API, landed by `nb_05_tessitura_api`. Overlapping API pages send some
+# records twice; step 3 keeps one of each.
 
 # CELL ********************
 
-process_entity("fundraising.donors")
+process_entity("tessitura.campaign")
 
-process_entity("fundraising.campaigns")
+process_entity("tessitura.fund")
 
-process_entity("fundraising.funds")
-
-# Gifts dated in the future, or for a donor that doesn't exist, go to quarantine.
-process_entity("fundraising.gifts")
+# Contributions dated in the future, or for a constituent that doesn't exist, go to quarantine.
+process_entity("tessitura.contribution")
 
 # METADATA ********************
 
@@ -277,32 +275,26 @@ for key in entity_config:
 
 # MARKDOWN ********************
 
-# ## Cross-source: ticketing.customers + fundraising.donors → core.patron
-# Match ticket buyers and donors into one list of people.
-# Two records are the same person if they have the same email or, failing that,
-# the same first name, last name and zip code.
+# ## Identity: merge duplicate Tessitura constituents → core.patron
+# Tessitura often holds the same person twice, for example once from a ticket purchase and
+# again from a gift entered by the development team. Two records are the same person if they
+# have the same email or, failing that, the same first name, last name and zip code.
 # People already matched keep their ID; only new records are matched.
-# When records disagree, the latest ticketing record wins, then fundraising.
+# When records disagree, the most complete record (one with an address) wins, then the latest.
+# More systems (MIP, Diese) can add their people here later with their own `source_system`.
 
 # CELL ********************
 
 started = now_utc()
-cust_t, donor_t = tbl(SILVER, "ticketing", "customers"), tbl(SILVER, "fundraising", "donors")
+const_t = tbl(SILVER, "tessitura", "constituent")
 xref_t = tbl(SILVER, "core", "patron_xref")
 
 name_zip = F.lower(F.concat_ws("|", F.col("first_name"), F.col("last_name"), F.col("postal_code")))
 candidates = (
-    spark.table(cust_t).select(F.lit("ticketing").alias("source_system"), F.col("customer_id").alias("source_id"),
-                               "first_name", "last_name", "email", "phone", "address_line1", "city", "state", "postal_code",
-                               "country", F.col("customer_type").alias("patron_type"), "email_opt_in",
-                               F.to_date("created_at").alias("first_seen_date"), "updated_at")
-    .unionByName(
-        spark.table(donor_t).select(F.lit("fundraising").alias("source_system"), F.col("donor_id").alias("source_id"),
-                                    "first_name", "last_name", "email", F.lit(None).cast("string").alias("phone"),
-                                    F.lit(None).cast("string").alias("address_line1"), "city", "state", "postal_code",
-                                    F.lit("USA").alias("country"), F.lit("Individual").alias("patron_type"),
-                                    F.lit(None).cast("boolean").alias("email_opt_in"),
-                                    F.col("donor_since").alias("first_seen_date"), "updated_at"))
+    spark.table(const_t).select(F.lit("tessitura").alias("source_system"), F.col("constituent_id").alias("source_id"),
+                                "first_name", "last_name", "email", "phone", "address_line1", "city", "state",
+                                "postal_code", "country", F.col("constituent_type").alias("patron_type"), "email_opt_in",
+                                F.to_date("created_at").alias("first_seen_date"), "updated_at")
     .withColumn("email_key", F.col("email"))                 # already trimmed and lower-cased in step 2
     .withColumn("name_zip_key", name_zip)
 )
@@ -335,7 +327,7 @@ new_xref.write.mode("append").saveAsTable(xref_t)
 
 # Build one record per person. The table is small, so it is rebuilt every run.
 xref = spark.table(xref_t)
-w = Window.partitionBy("patron_id").orderBy(F.when(F.col("source_system") == "ticketing", 0).otherwise(1),
+w = Window.partitionBy("patron_id").orderBy(F.when(F.col("address_line1").isNotNull(), 0).otherwise(1),
                                             F.col("updated_at").desc_nulls_last())
 golden = (candidates.join(xref.select("source_system", "source_id", "patron_id"), ["source_system", "source_id"])
           .withColumn("_rn", F.row_number().over(w)))

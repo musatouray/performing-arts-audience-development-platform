@@ -13,6 +13,13 @@ erDiagram
   DIM_DATE ||--o{ FACT_EDUCATION_SESSIONS : session_date
   DIM_PROGRAM ||--o{ FACT_EDUCATION_SESSIONS : delivers
   DIM_SCHOOL ||--o{ FACT_EDUCATION_SESSIONS : "hosted at"
+  DIM_VENUE ||--o{ FACT_TICKET_SALES : "held in"
+  DIM_VENUE ||--o{ DIM_EVENT : "booked in (planned)"
+  DIM_PERFORMANCE |o--o{ DIM_EVENT : "ticketed as (optional, planned)"
+  DIM_EVENT ||--o{ FACT_VENUE_BOOKING : "planned"
+  DIM_DATE ||--o{ FACT_VENUE_BOOKING : "booking date (planned)"
+  DIM_FUND ||--o{ FIN_FACT_GL_ENTRY : "planned"
+  DIM_DATE ||--o{ FIN_FACT_GL_ENTRY : "posting date (planned)"
 
   FACT_TICKET_SALES {
     string order_line_id "grain: order line"
@@ -58,6 +65,31 @@ erDiagram
     string season_name
     string venue_name
     int capacity
+  }
+  DIM_VENUE {
+    int venue_key PK
+    string venue_name
+    int capacity "sell-through"
+  }
+  DIM_EVENT {
+    int event_key PK "PLANNED bridge"
+    string booking_event_id "booking system"
+    int performance_key FK "or -1 if not ticketed"
+    int venue_key FK
+    string event_type "Concert, Rental, Rehearsal, Education"
+  }
+  FACT_VENUE_BOOKING {
+    int event_key FK "PLANNED grain: event x room x day"
+    int venue_key FK
+    int date_key FK
+    decimal hours_booked
+  }
+  FIN_FACT_GL_ENTRY {
+    string journal_line_id "PLANNED grain: journal line"
+    int account_key FK
+    int fund_key FK
+    int department_key FK
+    decimal amount
   }
   DIM_DATE {
     int date_key PK

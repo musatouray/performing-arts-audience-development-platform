@@ -1,11 +1,12 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
   "metadata": {
-    "type": "CopyJob",
-    "displayName": "cj_ticketing"
+    "type": "Notebook",
+    "displayName": "nb_05_tessitura_api",
+    "description": "New notebook"
   },
   "config": {
     "version": "2.0",
-    "logicalId": "bce36915-339b-9af9-410b-03383e3c2471"
+    "logicalId": "1a85276c-d298-9e6e-4b40-5a8d7591598a"
   }
 }
