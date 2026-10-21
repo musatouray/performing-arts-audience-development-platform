@@ -7,10 +7,10 @@
       "connectionSettings": {
         "type": "SqlServer",
         "typeProperties": {
-          "database": "HarmoniaTicketing"
+          "database": "HarmoniaTessitura"
         },
         "externalReferences": {
-          "connection": "849cd099-2902-42df-9edf-43d259b63dba"
+          "connection": "60f9f872-2e36-41e6-9d09-4fc0e4874029"
         }
       }
     },
