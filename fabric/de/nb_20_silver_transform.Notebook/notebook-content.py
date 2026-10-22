@@ -118,10 +118,12 @@ def process_entity(key: str):
         return
     src, ent = entity_config[key]
     bronze = tbl(BRONZE, bronze_schema(src), ent["name"])
+    started = now_utc()
     if not table_exists(bronze):
         print(f"skip {key}: no Bronze table yet ({bronze})")
+        log_run("nb_20_silver_transform", key, "silver", 0, 0, status="Skipped", message=f"no Bronze table yet ({bronze})",
+                started=started)
         return
-    started = now_utc()
     change_col = src["ingestion"].get("change_column", "_load_date")    # None = read the whole table
     df = add_missing_meta(spark.table(bronze), change_col)
     new_wm = None
@@ -132,6 +134,10 @@ def process_entity(key: str):
         new_wm = df.agg(F.max(F.col(change_col).cast("timestamp"))).collect()[0][0]
         if new_wm is None:
             print(f"skip {key}: nothing new since {wm}")
+            # Logged as a success: the table was checked and is current. Without this, a source with
+            # no changes looks stale in rpt.vw_source_freshness, which means "last confirmed current".
+            log_run("nb_20_silver_transform", key, "silver", 0, 0, message=f"checked: nothing new since {wm}",
+                    started=started)
             return
     rows_in = df.count()
 

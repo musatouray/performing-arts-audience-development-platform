@@ -174,6 +174,7 @@ BEGIN
         EXEC etl.usp_load_fact_ticket_sales @run_id;
         EXEC etl.usp_load_fact_gifts @run_id;
         EXEC etl.usp_load_fact_subscriptions_and_education @run_id;
+        EXEC etl.usp_load_marketing @run_id;           -- email and paid ads; clicks need dim.patron (75)
         EXEC etl.usp_load_fact_gl_entry @run_id;       -- the ledger (70)
         EXEC etl.usp_build_recon_revenue_to_gl @run_id; -- last: compares the facts above with the ledger (70)
         EXEC etl.usp_snapshot_source_freshness @run_id; -- how current each source is, for the models (80)

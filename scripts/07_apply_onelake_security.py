@@ -6,8 +6,10 @@ columns, and the same rules apply whether someone uses Spark, SQL or Power BI.
 The roles come from tenant.yaml (onelake_security). Turn OneLake security on for
 lh_silver first: Lakehouse > Manage OneLake security > Enable.
 
-This call replaces all existing roles on the lakehouse, so the script also
-re-creates the default role that lets workspace members read everything.
+This call replaces all existing roles on the lakehouse, so roles removed from
+tenant.yaml disappear too. There is deliberately no DefaultReader role: data
+engineers read Silver through their workspace role (Contributor and above bypass
+OneLake security), and nobody else should read everything. Analysts use Gold.
 
 Run: uv run python scripts/07_apply_onelake_security.py --env dev [--dry-run]
 """
@@ -19,13 +21,7 @@ from lib.fabric import Client, banner, find_item, load_principals, require_works
 
 def build_roles(cfg: dict, principals: dict) -> list[dict]:
     tenant_id = principals["_tenant_id"]
-    roles = [{   # default role: workspace members (the engineers) can read everything
-        "name": "DefaultReader",
-        "decisionRules": [{"effect": "Permit", "permission": [
-            {"attributeName": "Path", "attributeValueIncludedIn": ["*"]},
-            {"attributeName": "Action", "attributeValueIncludedIn": ["Read"]}]}],
-        "members": {"fabricItemMembers": [{"itemAccess": ["ReadAll"], "sourcePath": "{workspace}/{item}"}]},
-    }]
+    roles = []
     for r in cfg["roles"]:
         paths = [f"/Tables/{t}" for t in r["tables"]]
         rule = {"effect": "Permit", "permission": [
@@ -52,9 +48,6 @@ def main():
     ws = require_workspace(c, ws_name("dataplatform", a.env))
     lh = find_item(c, ws["id"], cfg["lakehouse"], "Lakehouse")
     roles = build_roles(cfg, load_principals())
-    for r in roles:   # point the default role at this lakehouse
-        for m in r["members"].get("fabricItemMembers", []):
-            m["sourcePath"] = f"{ws['id']}/{lh['id']}"
     banner(f"OneLake security -> {ws['displayName']}/{cfg['lakehouse']}")
     for r in roles:
         print(f"  role {r['name']}")

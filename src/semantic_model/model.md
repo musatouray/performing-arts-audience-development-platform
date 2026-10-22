@@ -34,6 +34,10 @@ They're built in the **DEV BI workspace** (web modeling or Power BI Desktop), th
 | `fact_ticket_sales` | `fact.ticket_sales` | Hide all keys. |
 | `fact_gifts` | `fact.gifts` | Hide all keys. |
 | `fact_subscriptions` | `fact.subscriptions` | |
+| `dim_email_campaign` | `dim.email_campaign` | Marketing. Campaign type, series promoted, audience segment. |
+| `fact_email_results` | `fact.email_campaign_results` | One row per campaign, latest numbers. |
+| `fact_email_click` | `fact.email_click` | One row per click, linked to the patron (no email address in Gold). |
+| `fact_ad_spend` | `fact.ad_spend_daily` | One row per day per ad campaign. |
 | `sec_user_venue` | `sec.user_venue` | **Hidden.** Used only by dynamic RLS. |
 | `source_freshness` | `rpt.source_freshness` | Snapshot written by each Gold load. Data Trust measures as in [`finance_measures.dax`](finance_measures.dax). |
 | `_Measures` | (calculated, empty) | Holds all measures from `measures.dax`, in display folders. |
@@ -55,6 +59,12 @@ They're built in the **DEV BI workspace** (web modeling or Power BI Desktop), th
 | `fact_gifts[fund_key]` | `dim_fund[fund_key]` | ✅ | |
 | `fact_subscriptions[purchase_date_key]` | `dim_date[date_key]` | ✅ | |
 | `fact_subscriptions[patron_key]` | `dim_patron[patron_key]` | ✅ | |
+| `fact_email_results[email_campaign_key]` | `dim_email_campaign[email_campaign_key]` | ✅ | |
+| `fact_email_results[send_date_key]` | `dim_date[date_key]` | ✅ | |
+| `fact_email_click[email_campaign_key]` | `dim_email_campaign[email_campaign_key]` | ✅ | |
+| `fact_email_click[patron_key]` | `dim_patron[patron_key]` | ✅ | Who clicked |
+| `fact_email_click[click_date_key]` | `dim_date[date_key]` | ✅ | |
+| `fact_ad_spend[ad_date_key]` | `dim_date[date_key]` | ✅ | Series is a column, not a relationship: measures use `TREATAS` to `dim_performance[series]` |
 
 There are no bi-directional relationships. Cross-fact questions ("buyers who also give") are answered in DAX with `SUMMARIZE` / `INTERSECT` on `patron_id`, not by opening up filter directions.
 

@@ -24,6 +24,10 @@ erDiagram
   DIM_FUND ||--o{ FIN_FACT_GL_ENTRY : "fund (mip_fund_code)"
   DIM_DATE ||--o{ FIN_FACT_GL_ENTRY : effective_date
   DIM_FUND ||--o{ FIN_RECON_REVENUE_TO_GL : "by fund"
+  DIM_EMAIL_CAMPAIGN ||--|| FACT_EMAIL_CAMPAIGN_RESULTS : "latest numbers"
+  DIM_EMAIL_CAMPAIGN ||--o{ FACT_EMAIL_CLICK : "clicked in"
+  DIM_PATRON ||--o{ FACT_EMAIL_CLICK : "clicked by (no email in Gold)"
+  DIM_DATE ||--o{ FACT_AD_SPEND_DAILY : ad_date
 
   FACT_TICKET_SALES {
     string order_line_id "grain: order line"
@@ -119,6 +123,27 @@ erDiagram
     decimal source_amount
     decimal gl_amount
     string status "Matched, Within tolerance, Investigate"
+  }
+  DIM_EMAIL_CAMPAIGN {
+    int email_campaign_key PK
+    string campaign_type
+    string series_promoted
+  }
+  FACT_EMAIL_CAMPAIGN_RESULTS {
+    int email_campaign_key FK "grain: campaign"
+    int delivered
+    int unique_opens
+    int unique_clicks
+  }
+  FACT_EMAIL_CLICK {
+    string click_id "grain: click"
+    int email_campaign_key FK
+    int patron_key FK
+  }
+  FACT_AD_SPEND_DAILY {
+    int ad_date_key FK "grain: day x ad campaign"
+    string series_promoted
+    decimal spend
   }
   DIM_DATE {
     int date_key PK

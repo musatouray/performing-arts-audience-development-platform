@@ -1,5 +1,6 @@
 /* =============================================================================
    wh_gold 70: finance (MIP general ledger) and venue operations (Diese bookings)
+   Safe to run again: existing schemas and tables are kept.
    Gold for two spokes (ADR-009): Finance (CFO office) and Operations (Hall Operations,
    Event Services, Rentals). Run after 00-60, then rerun 40 so the orchestrator
    (etl.usp_load_gold) calls the new procedures.
@@ -21,16 +22,19 @@
    ever see monthly totals by fund, so the totals are complete without exposing anyone.
    ============================================================================= */
 
-CREATE SCHEMA fin;
+IF SCHEMA_ID('fin') IS NULL EXEC('CREATE SCHEMA fin');   -- safe to re-run
 GO
 
 -- ---------------------------------------------------------------------------
 -- Tables
 -- ---------------------------------------------------------------------------
-IF COL_LENGTH('dim.fund', 'mip_fund_code') IS NULL
-    ALTER TABLE dim.fund ADD mip_fund_code varchar(10) NULL;   -- the ledger's code for the same fund
+-- dim.fund gets the ledger's code for each fund (set by etl.usp_load_finance_dims).
+-- Fabric Warehouse doesn't support COL_LENGTH, so the check reads sys.columns instead.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dim.fund') AND name = 'mip_fund_code')
+    ALTER TABLE dim.fund ADD mip_fund_code varchar(10) NULL;
 GO
 
+IF OBJECT_ID('fin.dim_account') IS NULL
 CREATE TABLE fin.dim_account (
     account_key     int           NOT NULL,
     account_code    varchar(10)   NOT NULL,
@@ -41,6 +45,7 @@ CREATE TABLE fin.dim_account (
 );
 GO
 
+IF OBJECT_ID('fin.dim_department') IS NULL
 CREATE TABLE fin.dim_department (
     department_key   int           NOT NULL,
     department_code  varchar(10)   NOT NULL,
@@ -50,6 +55,7 @@ GO
 
 -- One row per journal line. net_amount = credit - debit, so revenue is positive and
 -- expenses are negative; the income statement view flips expenses for reading.
+IF OBJECT_ID('fin.fact_gl_entry') IS NULL
 CREATE TABLE fin.fact_gl_entry (
     gl_transaction_id   varchar(20)    NOT NULL,
     journal_id          varchar(20)    NOT NULL,
@@ -70,6 +76,7 @@ CREATE TABLE fin.fact_gl_entry (
 );
 GO
 
+IF OBJECT_ID('dim.room') IS NULL
 CREATE TABLE dim.room (
     room_key     int            NOT NULL,
     room_id      varchar(10)    NOT NULL,
@@ -83,6 +90,7 @@ GO
 
 -- The bridge between the booking system and ticketing. Many events (rentals,
 -- rehearsals) have no performance, so performance_key = -1 is normal for them.
+IF OBJECT_ID('dim.event') IS NULL
 CREATE TABLE dim.event (
     event_key         int           NOT NULL,
     event_id          varchar(20)   NOT NULL,
@@ -98,6 +106,7 @@ CREATE TABLE dim.event (
 GO
 
 -- One row per room booking (a rehearsal, a performance, a rental).
+IF OBJECT_ID('fact.venue_booking') IS NULL
 CREATE TABLE fact.venue_booking (
     booking_id        varchar(30)    NOT NULL,
     event_key         int            NOT NULL,
@@ -113,6 +122,7 @@ CREATE TABLE fact.venue_booking (
 );
 GO
 
+IF OBJECT_ID('fin.recon_revenue_to_gl') IS NULL
 CREATE TABLE fin.recon_revenue_to_gl (
     month_start       date           NOT NULL,
     fiscal_year       int            NOT NULL,
@@ -136,6 +146,7 @@ GO
 
 -- Finance writes here when they've looked at a variance. Kept separate from the
 -- computed table, so a reload never wipes their notes.
+IF OBJECT_ID('fin.recon_note') IS NULL
 CREATE TABLE fin.recon_note (
     month_start     date           NOT NULL,
     revenue_stream  varchar(30)    NOT NULL,

@@ -183,10 +183,14 @@ def main() -> int:
     # core/patron is built from Tessitura constituents, so it carries their restricted columns.
     restricted_by_table["core/patron"] = (restricted_by_table.get("tessitura/constituent", set())
                                           & set(CORE_TABLES["core/patron"]))
+    # Analysts read curated Gold, never Silver (ADR-006). Only the data science group gets a Silver role.
+    analyst_groups = {g for g in groups if g.startswith("analysts_") or g in ("education_team", "report_viewers")}
     for role in tenant["onelake_security"]["roles"]:
         for m in role["members"]:
             if m not in groups:
                 errors.append(f"onelake role {role['name']}: unknown group {m}")
+            if m in analyst_groups:
+                errors.append(f"onelake role {role['name']}: {m} is an analyst group; analysts read Gold, not Silver")
         for t in role["tables"]:
             if t not in known_tables:
                 errors.append(f"onelake role {role['name']}: unknown table {t}")
