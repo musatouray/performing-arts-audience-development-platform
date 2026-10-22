@@ -85,13 +85,13 @@ BEGIN
 
     /* ---- fund ---- */
     SELECT @max = ISNULL(MAX(fund_key), 0) FROM dim.fund WHERE fund_key > 0;
-    INSERT INTO dim.fund
+    INSERT INTO dim.fund (fund_key, fund_id, fund_name, is_restricted)   -- mip_fund_code is set by 70's load
     SELECT @max + ROW_NUMBER() OVER (ORDER BY s.fund_id), s.fund_id, s.fund_name, s.is_restricted
     FROM [lh_silver].[tessitura].[fund] AS s
     WHERE NOT EXISTS (SELECT 1 FROM dim.fund AS t WHERE t.fund_id = s.fund_id);
     SET @ins += @@ROWCOUNT;
     IF NOT EXISTS (SELECT 1 FROM dim.fund WHERE fund_key = -1)
-        INSERT INTO dim.fund VALUES (-1, 'N/A', 'Unknown fund', NULL);
+        INSERT INTO dim.fund (fund_key, fund_id, fund_name, is_restricted) VALUES (-1, 'N/A', 'Unknown fund', NULL);
 
     /* ---- program ---- */
     SELECT @max = ISNULL(MAX(program_key), 0) FROM dim.program WHERE program_key > 0;
