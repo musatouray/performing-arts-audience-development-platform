@@ -10,7 +10,7 @@
 | Landing | `lh_bronze/Files/landing/<source>/<entity>/load_date=D/` (API files; marketing through the shortcut) | Files exactly as received, plus a manifest with row counts | Data engineering |
 | **Bronze** | `lh_bronze.<source>.<entity>` (Delta) | Keeps every version received; nothing is overwritten, except education, which is small and replaced each run. File sources are stored as text with lineage columns (`_load_date`, `_source_file`, `_ingested_at`, `_batch_id`) and reconciled to their manifest. Database sources keep their types. | Data engineering |
 | **Silver** | `lh_silver.<source>.<entity>`, `core.*`, `dq.*`, `audit.*` | Typed to the schema contract, trimmed, one row per business key (latest), DQ-gated (errors quarantined), identity-resolved patrons | Data engineering |
-| **Gold** | `wh_gold.dim.*`, `fact.*`, `fin.*`, `rpt.*`, `sec.*` | Star schema with a declared grain per fact, surrogate keys, unknown member -1, SCD2 patron, business definitions (sell-through, LYBUNT, renewal) | BI team |
+| **Gold** | `wh_gold.dim.*`, `fact.*` (incl. marketing), `fin.*`, `rpt.*`, `sec.*` | Star schema with a declared grain per fact, surrogate keys, unknown member -1, SCD2 patron, business definitions (sell-through, LYBUNT, renewal) | BI team |
 | **Semantic** | `sm_audience_development`, `sm_education_impact`, `sm_finance`, `sm_operations` | Certified measures, RLS/OLS, Direct Lake | BI team |
 
 | **Consumption** | Org Apps, `rpt.*` views, paginated reports, Data Agent | The only thing business users touch | BI team with business owners |
@@ -82,7 +82,7 @@ Bronze and Silver keep the **source system's own names**, so a Tessitura admin o
 | **Tessitura**, database (ticketing, CRM, constituents) | SQL Server `HarmoniaTessitura`, schema `tix` | Copy job `cj_tessitura` via gateway | `tessitura` (`constituent`, `season`, `venue`, `performance`, `order`, `order_line`, `subscription`) | `dim.patron`, `dim.performance`, `dim.venue`, `dim.channel`, `fact.ticket_sales`, `fact.subscriptions` | Live |
 | **Tessitura**, REST API (fundraising) | GitHub Pages JSON | Notebook `nb_05_api_ingest` | `tessitura` (`campaign`, `fund`, `contribution`) | `dim.campaign`, `dim.fund`, `fact.gifts` | Live |
 | **Education team** files | SharePoint Excel | Dataflow Gen2 `df_education_sharepoint` | `dbo` in Bronze, `education` in Silver | `dim.program`, `dim.school`, `fact.education_sessions` | Live |
-| **Email and ad platforms** | CSV exports in ADLS | OneLake shortcut + `nb_10` | `marketing` | Silver only for now (read by analysts through OneLake security) | Live |
+| **Email and ad platforms** | CSV exports in ADLS | OneLake shortcut + `nb_10` | `marketing` | `dim.email_campaign`, `fact.email_campaign_results`, `fact.email_click` (by patron, no addresses), `fact.ad_spend_daily` | Live |
 | **MIP** (fund accounting, general ledger) | SQL Server `HarmoniaMIP`, schema `dbo` | Copy job `cj_mip` via gateway, own read-only login | `mip` (`gl_account`, `department`, `fund`, `gl_transaction`) | `fin.dim_account`, `fin.dim_department`, `dim.fund.mip_fund_code`, `fin.fact_gl_entry`, `fin.recon_revenue_to_gl` | Live |
 | **Diese** (venue and event booking) | GitHub Pages JSON | Same notebook `nb_05_api_ingest` (config only) | `diese` (`room`, `event`, `booking`) | `dim.room`, `dim.event`, `fact.venue_booking` | Live |
 

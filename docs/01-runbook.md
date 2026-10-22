@@ -338,8 +338,9 @@ Open `wh_gold` › **New SQL query** (or connect SSMS or VS Code to the SQL conn
 | `61_security_users.local.sql` | Who sees anonymous gifts and which venues each manager sees. Copy `61_security_users.example.sql` to this name (ignored by Git) and put in real sign-in names first. |
 | `70_finance_and_venue_ops.sql` | Finance and Operations: ledger, hall calendar, revenue-to-ledger reconciliation and their grants. Needs the `sg-hh-analysts-finance` and `sg-hh-analysts-operations` groups (step 00). |
 | `80_source_freshness.sql` | How current each source is (`rpt.vw_source_freshness`, and a snapshot table for the models) |
+| `75_marketing.sql` | Marketing in Gold: email campaigns, clicks linked to patrons (no email addresses), paid ad spend, and two `rpt` views |
 
-Run `40_load_facts.sql` again after 70 and 80: the orchestrator calls their procedures.
+Run `40_load_facts.sql` again after 70, 75 and 80: the orchestrator calls their procedures.
 
 Then run:
 
@@ -375,7 +376,7 @@ Build `pl_daily_load` and `pl_weekly_maintenance` in `hh-dataplatform-dev` exact
    uv run python scripts/07_apply_onelake_security.py --env dev
    ```
 
-✅ The roles AudienceReaders, DevelopmentReaders, EducationReaders, FinanceReaders and OperationsReaders are visible. DevelopmentReaders can't see `email`, `phone` or `address_line1` on `core.patron`. Screenshot the role editor.
+✅ One role, **DataScienceReaders**, with `sg-hh-data-science` as its member, and no DefaultReader. Analysts read Gold, not Silver (ADR-006); engineers reach Silver through their workspace role. The script replaces all roles each time, so roles removed from `tenant.yaml` disappear too. DevelopmentReaders can't see `email`, `phone` or `address_line1` on `core.patron`. Screenshot the role editor.
 
 ---
 
@@ -493,7 +494,7 @@ Use this if the platform already runs the original sources (Phases 0–9 at leas
 
 ### Part C — Gold, first run, security and models
 
-1. **Gold (Phase 10):** in `wh_gold`, run `70_finance_and_venue_ops.sql`, then `80_source_freshness.sql`, then `40_load_facts.sql` again (its orchestrator calls the new procedures). 70 needs the two groups from Part A.
+1. **Gold (Phase 10):** in `wh_gold`, run `70_finance_and_venue_ops.sql`, then `75_marketing.sql`, then `80_source_freshness.sql`, then `40_load_facts.sql` again (its orchestrator calls the new procedures). 70 needs the two groups from Part A.
 2. **Run `pl_daily_load`** with `load_date` blank, then check:
    ```sql
    SELECT procedure_name, rows_inserted, status, message FROM etl.load_log
@@ -503,7 +504,10 @@ Use this if the platform already runs the original sources (Phases 0–9 at leas
    SELECT * FROM rpt.vw_source_freshness;
    ```
    ✅ Every step Succeeded. The reconciliation is mostly Matched or Within tolerance, with about 22 lines to Investigate, each a planted exception (see `data_generator/finance_ops.py`). No unbalanced journals.
-3. **OneLake security (Phase 12):** `uv run python scripts/07_apply_onelake_security.py --env dev`. It creates all five roles, including FinanceReaders and OperationsReaders, so it needs the Silver `mip` and `diese` tables from step 2.
+3. **Access (Phase 12):**
+   - `uv run python scripts/00_create_security_groups.py` (adds `sg-hh-data-science`; put only approved people in it).
+   - `uv run python scripts/07_apply_onelake_security.py --env dev`: leaves exactly one role on `lh_silver`, DataScienceReaders.
+   - Share `lh_silver` with `sg-hh-data-science` (Read only, no extra boxes), and `wh_gold` with the five analyst groups (Read only, no ReadData), then check with `uv run python scripts/09_verify_item_shares.py --env dev`.
 4. **Models (Phase 13):** `sm_audience_development`, `sm_education_impact`, `sm_finance` in `hh-finance-dev` and `sm_operations` in `hh-operations-dev`, from `model.md`.
 
 ---

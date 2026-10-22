@@ -50,6 +50,7 @@ security_groups:
   education_team:       { name: "sg-hh-education-team",       purpose: "Education program staff. Education data only." }
   analysts_finance:     { name: "sg-hh-analysts-finance",     purpose: "Finance office (CFO). Ledger, income statement and revenue-to-ledger reconciliation." }
   analysts_operations:  { name: "sg-hh-analysts-operations",  purpose: "Hall Operations, Event Services and Rentals. Hall calendar, room use and rental revenue; no ledger." }
+  data_science:         { name: "sg-hh-data-science",         purpose: "A few approved analysts who explore cleaned data not yet modelled in Gold. Read-only on Silver; membership reviewed each quarter." }
   report_viewers:       { name: "sg-hh-report-viewers",       purpose: "Staff who use the published report apps." }
   # Dataflow Gen2 can't run as a workspace identity or service principal yet
   # (ADR-003), so a service account owns the Dataflow: one for dev and test,
@@ -193,6 +194,23 @@ item_shares:
     grant_to: [bi_developers]
     permissions: [Read, ReadData, ReadAll]
     environments: [dev, test, prod]     # BI models read Gold from their own environment
+  # SQL analysts connect to Gold with Read only. No ReadData: that would open every table
+  # and bypass the per-group GRANTs in 60_security.sql and 70_finance_and_venue_ops.sql,
+  # which decide what each group actually sees. Most staff need neither: they use the apps.
+  - workspace_family: dataplatform
+    item: wh_gold
+    item_type: Warehouse
+    grant_to: [analysts_audience, analysts_development, education_team, analysts_finance, analysts_operations]
+    permissions: [Read]
+    environments: [dev, test, prod]
+  # The one exception to "analysts use Gold": an approved data science group can open Silver
+  # (Read only); the DataScienceReaders role below decides which tables and columns.
+  - workspace_family: dataplatform
+    item: lh_silver
+    item_type: Lakehouse
+    grant_to: [data_science]
+    permissions: [Read]
+    environments: [dev, test, prod]
 
 # -----------------------------------------------------------------------------
 # OneLake security on the Silver lakehouse: which group can read which tables.
@@ -201,23 +219,22 @@ item_shares:
 # -----------------------------------------------------------------------------
 onelake_security:
   lakehouse: lh_silver
+  # Bronze and Silver are engineering layers. Analysts read curated Gold (the models and the
+  # warehouse), never Silver; data engineers reach Silver through their workspace role, which
+  # bypasses OneLake security. So there is no DefaultReader role and no per-domain analyst role.
+  # The single exception is the data science group: cleaned data that isn't modelled yet.
+  # Left out on purpose: mip/* (the ledger belongs to finance; ask the controller), tessitura/contribution
+  # (anonymous donors are protected by row security in Gold; add it only with a row filter), and every
+  # restricted contact column (email, phone, street address).
   roles:
-    - name: AudienceReaders
-      members: [analysts_audience]
-      tables: [tessitura/performance, tessitura/order, tessitura/order_line, tessitura/subscription,
-               marketing/email_campaigns, marketing/ad_spend_daily]   # not email_clicks: it holds email addresses
-    - name: DevelopmentReaders
-      members: [analysts_development]
-      tables: [tessitura/contribution, tessitura/campaign, tessitura/fund, core/patron]
-      # Only these columns are visible. Email, phone and street address are left out.
+    - name: DataScienceReaders
+      members: [data_science]
+      tables: [tessitura/constituent, tessitura/season, tessitura/venue, tessitura/performance, tessitura/order,
+               tessitura/order_line, tessitura/subscription, tessitura/campaign, tessitura/fund,
+               diese/room, diese/event, diese/booking,
+               education/programs, education/schools, education/enrollments,
+               marketing/email_campaigns, marketing/email_clicks, marketing/ad_spend_daily, core/patron]
       allow_columns:
-        core/patron: [patron_id, first_name, last_name, city, state, postal_code, country, patron_type, first_seen_date, source_systems]
-    - name: EducationReaders
-      members: [education_team]
-      tables: [education/programs, education/schools, education/enrollments]
-    - name: FinanceReaders
-      members: [analysts_finance]
-      tables: [mip/gl_transaction, mip/gl_account, mip/fund, mip/department]
-    - name: OperationsReaders
-      members: [analysts_operations]
-      tables: [diese/room, diese/event, diese/booking]
+        tessitura/constituent: [constituent_id, first_name, last_name, city, state, postal_code, country, constituent_type, email_opt_in, created_at, updated_at]
+        marketing/email_clicks: [click_id, email_campaign_id, clicked_at, link_url]
+        core/patron: [patron_id, first_name, last_name, city, state, postal_code, country, patron_type, email_opt_in, first_seen_date, source_systems]

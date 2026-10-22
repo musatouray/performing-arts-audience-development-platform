@@ -21,6 +21,9 @@ TRUNCATE TABLE fact.gifts;            -- TRUNCATE is not filtered by the anonymo
 TRUNCATE TABLE fact.subscriptions;
 TRUNCATE TABLE fact.education_sessions;
 TRUNCATE TABLE fact.venue_booking;
+TRUNCATE TABLE fact.email_campaign_results;
+TRUNCATE TABLE fact.email_click;
+TRUNCATE TABLE fact.ad_spend_daily;
 TRUNCATE TABLE fin.fact_gl_entry;
 TRUNCATE TABLE rpt.source_freshness;
 TRUNCATE TABLE fin.recon_revenue_to_gl;   -- rebuilt each run; fin.recon_note (finance's notes) is kept
@@ -34,6 +37,7 @@ TRUNCATE TABLE dim.fund;
 TRUNCATE TABLE dim.program;
 TRUNCATE TABLE dim.school;
 TRUNCATE TABLE dim.event;
+TRUNCATE TABLE dim.email_campaign;
 TRUNCATE TABLE dim.room;
 TRUNCATE TABLE fin.dim_account;
 TRUNCATE TABLE fin.dim_department;

@@ -2,7 +2,8 @@
    wh_gold 80: how current is each source?
    One row per source system, answering the first question anyone asks of a report
    that replaced a cube: "how old is this number?"
-     last_loaded_utc   when the platform last processed that system's data into Silver
+     last_loaded_utc   when the platform last confirmed that system's data in Silver is current
+                       (a run that found nothing new counts: the source was checked)
      data_through      the latest business date Gold holds for it (last order, posting, booking...)
      freshness_status  Fresh if loaded within 26 hours (daily load plus slack), else Stale
    Every semantic model's Data Trust page shows it.
@@ -14,7 +15,7 @@ WITH loads AS (
     SELECT LEFT(entity, CHARINDEX('.', entity + '.') - 1) AS source_system,
            MAX(ended_at) AS last_loaded_utc
     FROM [lh_silver].[audit].[run_log]
-    WHERE stage = 'silver'
+    WHERE stage = 'silver' AND [status] = 'Succeeded'      -- includes "checked, nothing new"; not failures or skips
     GROUP BY LEFT(entity, CHARINDEX('.', entity + '.') - 1)
 ),
 data_through AS (
@@ -27,6 +28,9 @@ data_through AS (
     UNION ALL
     SELECT 'diese', 'Diese (hall bookings)', MAX(d.[date]), 'last completed event'
     FROM dim.event AS e JOIN dim.[date] AS d ON d.date_key = e.event_date_key WHERE e.[status] = 'Completed'
+    UNION ALL
+    SELECT 'marketing', 'Email and ad platforms', MAX(d.[date]), 'last day of ad spend'
+    FROM fact.ad_spend_daily AS a JOIN dim.[date] AS d ON d.date_key = a.ad_date_key WHERE a.ad_date_key > 0
     UNION ALL
     SELECT 'education', 'Education team workbooks', MAX(d.[date]), 'last session'
     FROM fact.education_sessions AS s JOIN dim.[date] AS d ON d.date_key = s.session_date_key WHERE s.session_date_key > 0
@@ -42,6 +46,7 @@ GO
 
 -- The same, saved as a table at the end of each Gold load, for the semantic models:
 -- Direct Lake reads tables, not views. The models work out "hours since load" themselves.
+IF OBJECT_ID('rpt.source_freshness') IS NULL
 CREATE TABLE rpt.source_freshness (
     source_system    varchar(20)   NOT NULL,
     source_name      varchar(100)  NULL,

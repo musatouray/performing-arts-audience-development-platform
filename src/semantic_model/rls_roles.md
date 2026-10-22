@@ -33,7 +33,7 @@ Screenshot these for your portfolio:
 |---|---|---|
 | Report/app viewer | Power BI → Direct Lake on OneLake (fixed identity) | **Semantic model RLS/OLS** |
 | SQL analyst (SSMS, Excel, paginated reports) | SQL endpoint of `wh_gold` | **T-SQL GRANT, RLS, DDM** (`60_security.sql`) |
-| Spark / lake reader | OneLake (`lh_silver`) | **OneLake security roles** (`scripts/07_apply_onelake_security.py`) |
+| Approved data scientist | OneLake (`lh_silver`), read-only | **OneLake security**: the single DataScienceReaders role (`scripts/07`). Other analysts have no Silver access: they read Gold. |
 | Engineer / BI developer | Workspace | **Workspace roles** (Contributor in Dev/Test, Viewer in Prod) |
 | BI developer authoring on Gold | Direct Lake on OneLake → `wh_gold` in another workspace | **Item share** on `wh_gold` (Read, ReadData, ReadAll), not a workspace role (`scripts/09`) |
 | Everyone | Tenant | **Tenant settings**, **Purview sensitivity labels** (Confidential › Donor PII on Gold and the models) |

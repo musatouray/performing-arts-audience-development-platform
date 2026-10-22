@@ -173,3 +173,39 @@ SUM ( fact_subscriptions[package_amount] )
 // YoY          = VAR Cur = SELECTEDMEASURE () VAR Prev = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ) ) RETURN IF ( NOT ISBLANK ( Cur ) && NOT ISBLANK ( Prev ), Cur - Prev )
 // YoY %        = VAR Cur = SELECTEDMEASURE () VAR Prev = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ) ) RETURN DIVIDE ( Cur - Prev, Prev )
 //   Format string expression for YoY %:  "0.0%;-0.0%;0.0%"
+
+// ---------------------------------------------------------------- Marketing
+// Display folder: Marketing
+Emails Delivered =
+SUM ( fact_email_results[delivered] )
+
+Open Rate % =
+DIVIDE ( SUM ( fact_email_results[unique_opens] ), [Emails Delivered] )
+
+Click Rate % =
+DIVIDE ( SUM ( fact_email_results[unique_clicks] ), [Emails Delivered] )
+
+Unsubscribe Rate % =
+DIVIDE ( SUM ( fact_email_results[unsubscribes] ), [Emails Delivered] )
+
+// People, not clicks: clicks are linked to patrons in Gold, so this counts patrons.
+Clicking Patrons =
+CALCULATE ( DISTINCTCOUNT ( dim_patron[patron_id] ), fact_email_click, dim_patron[patron_key] > 0 )
+
+Ad Spend =
+SUM ( fact_ad_spend[spend] )
+
+Ad Clicks =
+SUM ( fact_ad_spend[clicks] )
+
+Cost per Click =
+DIVIDE ( [Ad Spend], [Ad Clicks] )
+
+// Ticket revenue for the series the ads promoted, per ad dollar. Directional, not attribution.
+// Ad spend has no series relationship, so the series filter is applied with TREATAS.
+Revenue per Ad Dollar =
+VAR Spend = [Ad Spend]
+VAR Series = VALUES ( fact_ad_spend[series_promoted] )
+VAR Revenue = CALCULATE ( [Net Ticket Revenue], TREATAS ( Series, dim_performance[series] ) )
+RETURN DIVIDE ( Revenue, Spend )
+
