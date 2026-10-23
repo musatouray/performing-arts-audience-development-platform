@@ -1,0 +1,155 @@
+/// Calendar with the fiscal year (July to June).
+table dim_date
+	lineageTag: 1de2d6dc-fc43-4a0f-837e-0bdda57f7c87
+	sourceLineageTag: [dim].[date]
+	dataCategory: Time
+
+	column date_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 58850ead-ba1c-4c06-a2a7-b3aa78a4c382
+		sourceLineageTag: date_key
+		summarizeBy: sum
+		sourceColumn: date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column date
+		dataType: dateTime
+		isKey
+		formatString: yyyy-mm-dd
+		lineageTag: 193bc691-c8ab-4168-bc10-c5865f57d2e7
+		sourceLineageTag: date
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+	column day_of_week
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 08c4dcc9-5efb-49f7-aea1-321239e74a2c
+		sourceLineageTag: day_of_week
+		summarizeBy: sum
+		sourceColumn: day_of_week
+
+		annotation SummarizationSetBy = Automatic
+
+	column day_name
+		dataType: string
+		lineageTag: b5ac7197-812c-4afa-b8c7-da969336e758
+		sourceLineageTag: day_name
+		summarizeBy: none
+		sourceColumn: day_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_weekend
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 0123cd44-3c95-469b-a803-d443be96094c
+		sourceLineageTag: is_weekend
+		summarizeBy: none
+		sourceColumn: is_weekend
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_num
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 133156d4-6669-4d1d-bf58-47d5cf851406
+		sourceLineageTag: month_num
+		summarizeBy: sum
+		sourceColumn: month_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_name
+		dataType: string
+		lineageTag: 7e441f80-a67c-4f2d-9691-206a385ce1a7
+		sourceLineageTag: month_name
+		summarizeBy: none
+		sourceColumn: month_name
+		sortByColumn: fiscal_month_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column calendar_quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: 2f912326-84dc-4465-953f-0e1738a2a0f1
+		sourceLineageTag: calendar_quarter
+		summarizeBy: none
+		sourceColumn: calendar_quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column calendar_year
+		dataType: int64
+		formatString: 0
+		lineageTag: 8953de43-697a-4706-8c57-f22568267d3f
+		sourceLineageTag: calendar_year
+		summarizeBy: none
+		sourceColumn: calendar_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column fiscal_year
+		dataType: int64
+		formatString: 0
+		lineageTag: 27c1e11f-d955-4074-badc-edfbc84ac79a
+		sourceLineageTag: fiscal_year
+		summarizeBy: none
+		sourceColumn: fiscal_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column fiscal_year_label
+		dataType: string
+		lineageTag: 20c169fd-e1bd-4d49-9e9a-ccf0788427e1
+		sourceLineageTag: fiscal_year_label
+		summarizeBy: none
+		sourceColumn: fiscal_year_label
+
+		annotation SummarizationSetBy = Automatic
+
+	column fiscal_month_num
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 1dbda96c-0e03-46f6-a12d-cf0ba88a6020
+		sourceLineageTag: fiscal_month_num
+		summarizeBy: sum
+		sourceColumn: fiscal_month_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column fiscal_quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: e08779c4-73d2-45bc-8501-7c3803f5c6b8
+		sourceLineageTag: fiscal_quarter
+		summarizeBy: none
+		sourceColumn: fiscal_quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column season_label
+		dataType: string
+		lineageTag: e38d90a9-3031-44f0-afe3-10ee54ea4680
+		sourceLineageTag: season_label
+		summarizeBy: none
+		sourceColumn: season_label
+
+		annotation SummarizationSetBy = Automatic
+
+	partition date = entity
+		mode: directLake
+		source
+			entityName: date
+			schemaName: dim
+			expressionSource: 'DirectLake - wh_gold'
+

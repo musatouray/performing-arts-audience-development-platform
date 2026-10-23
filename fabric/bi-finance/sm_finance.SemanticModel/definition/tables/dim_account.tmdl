@@ -1,0 +1,83 @@
+/// MIP chart of accounts: type, group and account.
+table dim_account
+	lineageTag: 0258edf9-0cc6-4692-a1de-61fc9057cb07
+	sourceLineageTag: [fin].[dim_account]
+
+	column account_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: ee49a611-36e1-4c37-b1ff-70b614584b79
+		sourceLineageTag: account_key
+		summarizeBy: sum
+		sourceColumn: account_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_code
+		dataType: string
+		lineageTag: 86038653-7302-4e68-ba3b-13c81aedbed5
+		sourceLineageTag: account_code
+		summarizeBy: none
+		sourceColumn: account_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_name
+		dataType: string
+		lineageTag: 86285096-4c26-473b-a628-e8c08c33571f
+		sourceLineageTag: account_name
+		summarizeBy: none
+		sourceColumn: account_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_type
+		dataType: string
+		lineageTag: a73d75f2-7ac3-4d08-b10a-eda2874ce527
+		sourceLineageTag: account_type
+		summarizeBy: none
+		sourceColumn: account_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_group
+		dataType: string
+		lineageTag: 6210e3f0-9e32-4a29-b990-13c171a71e93
+		sourceLineageTag: account_group
+		summarizeBy: none
+		sourceColumn: account_group
+
+		annotation SummarizationSetBy = Automatic
+
+	column normal_balance
+		dataType: string
+		lineageTag: ae99ee6f-599e-4a23-bfc3-8b046fdb0f1b
+		sourceLineageTag: normal_balance
+		summarizeBy: none
+		sourceColumn: normal_balance
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'Account Hierarchy'
+		lineageTag: e1d467d5-b050-4830-9779-ddd4784ce68f
+
+		level Type
+			lineageTag: b00a273a-bc88-4730-993f-02b29ef393b1
+			column: account_type
+
+		level Group
+			lineageTag: a1056204-bb5c-478c-909f-69b1a18517a7
+			column: account_group
+
+		level Account
+			lineageTag: 85c5367e-e7cb-4dd4-8246-0eb32ccba3ea
+			column: account_name
+
+	partition dim_account = entity
+		mode: directLake
+		source
+			entityName: dim_account
+			schemaName: fin
+			expressionSource: 'DirectLake - wh_gold'
+

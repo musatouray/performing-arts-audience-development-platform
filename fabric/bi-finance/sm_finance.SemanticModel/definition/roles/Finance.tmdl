@@ -1,0 +1,6 @@
+/// Finance office (CFO): everything in this model. Members: sg-hh-analysts-finance. The model itself is the boundary; no row filters.
+role Finance
+	modelPermission: read
+
+	annotation PBI_Id = 3b541494b9eb482aa49a861650a5619e
+

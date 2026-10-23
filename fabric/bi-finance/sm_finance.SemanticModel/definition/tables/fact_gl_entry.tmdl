@@ -1,0 +1,181 @@
+/// One row per posted journal line in the MIP ledger.
+table fact_gl_entry
+	lineageTag: e7c97e62-cde0-4204-91b0-50a086bcadf9
+	sourceLineageTag: [fin].[fact_gl_entry]
+
+	column gl_transaction_id
+		dataType: string
+		lineageTag: d5fbf905-3e98-49fe-bc5b-83e65f89b03b
+		sourceLineageTag: gl_transaction_id
+		summarizeBy: none
+		sourceColumn: gl_transaction_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column journal_id
+		dataType: string
+		lineageTag: b44b549a-9393-4c12-a9fd-33945b578c37
+		sourceLineageTag: journal_id
+		summarizeBy: none
+		sourceColumn: journal_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column line_number
+		dataType: int64
+		formatString: 0
+		lineageTag: 88276dc7-d45d-407f-9fb6-490b46e569f5
+		sourceLineageTag: line_number
+		summarizeBy: none
+		sourceColumn: line_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column session_id
+		dataType: string
+		lineageTag: 0e70db0b-9198-4496-bfcf-f4c02b47820b
+		sourceLineageTag: session_id
+		summarizeBy: none
+		sourceColumn: session_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column source_module
+		dataType: string
+		lineageTag: aa4c0a17-95aa-4bb6-bc80-e988e0ecefac
+		sourceLineageTag: source_module
+		summarizeBy: none
+		sourceColumn: source_module
+
+		annotation SummarizationSetBy = Automatic
+
+	column effective_date_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: dcf84fd9-7cb7-4d4d-b378-477fe4240d3f
+		sourceLineageTag: effective_date_key
+		summarizeBy: sum
+		sourceColumn: effective_date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column posted_date_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: c071be0c-964c-4508-98d1-142c80ca6eb0
+		sourceLineageTag: posted_date_key
+		summarizeBy: sum
+		sourceColumn: posted_date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 4d28ab6e-e1ab-45d8-8f68-2d2a8661b227
+		sourceLineageTag: account_key
+		summarizeBy: sum
+		sourceColumn: account_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column fund_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: ed38c4e6-8f9d-4b61-8874-8dd590b13663
+		sourceLineageTag: fund_key
+		summarizeBy: sum
+		sourceColumn: fund_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column department_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: ae81e1ca-1fc9-418c-a033-cb5eed862cea
+		sourceLineageTag: department_key
+		summarizeBy: sum
+		sourceColumn: department_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column debit_amount
+		dataType: decimal
+		isHidden
+		formatString: #,0.00
+		lineageTag: 7f12cda6-8481-4941-aa5a-d6718dc7369a
+		sourceLineageTag: debit_amount
+		summarizeBy: sum
+		sourceColumn: debit_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column credit_amount
+		dataType: decimal
+		isHidden
+		formatString: #,0.00
+		lineageTag: c32fc540-a53e-4370-894e-499785c0d99e
+		sourceLineageTag: credit_amount
+		summarizeBy: sum
+		sourceColumn: credit_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column net_amount
+		dataType: decimal
+		isHidden
+		formatString: #,0.00
+		lineageTag: d8fd602d-ce53-437c-9dd8-f8c2f28e99c4
+		sourceLineageTag: net_amount
+		summarizeBy: sum
+		sourceColumn: net_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column description
+		dataType: string
+		lineageTag: 03419d43-c4ce-41c8-8cba-2ca41911443b
+		sourceLineageTag: description
+		summarizeBy: none
+		sourceColumn: description
+
+		annotation SummarizationSetBy = Automatic
+
+	column reference
+		dataType: string
+		lineageTag: 708f6760-2f5d-4266-8c4a-08d4cdcd8884
+		sourceLineageTag: reference
+		summarizeBy: none
+		sourceColumn: reference
+
+		annotation SummarizationSetBy = Automatic
+
+	column loaded_at
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		lineageTag: ff841d05-6e8c-4b73-b04f-acc962c447cf
+		sourceLineageTag: loaded_at
+		summarizeBy: none
+		sourceColumn: loaded_at
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_gl_entry = entity
+		mode: directLake
+		source
+			entityName: fact_gl_entry
+			schemaName: fin
+			expressionSource: 'DirectLake - wh_gold'
+
