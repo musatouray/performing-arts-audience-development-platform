@@ -75,6 +75,14 @@ wanted = {e.strip() for e in entities.split(",") if e.strip()}
 ensure_schemas(SILVER, ["audit", "dq", "core"] + sorted({system(s) for s in sources}))
 wm_table = tbl(SILVER, "audit", "watermarks")
 
+# How often each system is expected to refresh (sources.yaml, refresh: daily | weekly), saved for
+# Gold's freshness view: a weekly source isn't Stale after one quiet day.
+SLA_HOURS = {"daily": 26, "weekly": 192}      # a day plus slack; a week plus a day
+spark.createDataFrame(
+    [(system(src), src["source"], src.get("refresh", "daily"), SLA_HOURS[src.get("refresh", "daily")]) for src in sources],
+    "source_system string, source string, expected_refresh string, sla_hours int",
+).write.mode("overwrite").saveAsTable(tbl(SILVER, "audit", "source_config"))
+
 
 def get_watermark(entity: str):
     if full_refresh or not table_exists(wm_table):

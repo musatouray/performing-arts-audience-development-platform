@@ -52,6 +52,7 @@ security_groups:
   analysts_operations:  { name: "sg-hh-analysts-operations",  purpose: "Hall Operations, Event Services and Rentals. Hall calendar, room use and rental revenue; no ledger." }
   data_science:         { name: "sg-hh-data-science",         purpose: "A few approved analysts who explore cleaned data not yet modelled in Gold. Read-only on Silver; membership reviewed each quarter." }
   report_viewers:       { name: "sg-hh-report-viewers",       purpose: "Staff who use the published report apps." }
+  executives:           { name: "sg-hh-executives",           purpose: "Leadership. View every domain's app; no Build, no SQL, no Silver. Kept apart from analyst groups so each group has one purpose." }
   # Dataflow Gen2 can't run as a workspace identity or service principal yet
   # (ADR-003), so a service account owns the Dataflow: one for dev and test,
   # one for prod.
@@ -175,6 +176,38 @@ deployment_pipelines:
     - { env: test, name: "Test",        public: false }
     - { env: prod, name: "Production",  public: true  }
   admins: [fabric_admins]
+
+# -----------------------------------------------------------------------------
+# Apps: how business users get reports. One app per BI workspace family, published
+# from PROD after the deployment pipeline (a DEV app is only for demos). Apps can only
+# be published in the Fabric portal, so this section declares the intent and
+# validate_config.py checks the groups exist.
+#   build: true  = the audience may build on the model (Excel, their own reports).
+#                  Model security (RLS/OLS) still applies to them; only workspace
+#                  Contributors and above bypass it.
+# -----------------------------------------------------------------------------
+apps:
+  - workspace_family: audience
+    name: "Audience & Development"
+    audiences:
+      - { name: "Analysts", groups: [analysts_audience, analysts_development], build: true }
+      - { name: "Staff",      groups: [report_viewers], build: false }
+      - { name: "Leadership", groups: [executives],     build: false }
+  - workspace_family: education
+    name: "Education Impact"
+    audiences:
+      - { name: "Education team", groups: [education_team], build: false }
+      - { name: "Leadership",     groups: [executives],     build: false }
+  - workspace_family: finance
+    name: "Finance"
+    audiences:
+      - { name: "Finance team", groups: [analysts_finance], build: true }
+      - { name: "Leadership",   groups: [executives],       build: false }
+  - workspace_family: operations
+    name: "Operations"
+    audiences:
+      - { name: "Operations team", groups: [analysts_operations], build: true }
+      - { name: "Leadership",      groups: [executives],          build: false }
 
 # -----------------------------------------------------------------------------
 # Item shares give access to a single item without a workspace role.

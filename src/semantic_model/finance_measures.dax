@@ -65,6 +65,10 @@ DIVIDE (
 
 // ---------------------------------------------------------------- Data trust
 // Display folder: Data Trust
+// From rpt.source_freshness, written at the end of every Gold load. Each source has its own
+// expected refresh (sources.yaml: daily = 26 hours, weekly = 8 days), and staleness is worked
+// out now, when someone opens the report, not when the load ran.
+// The finance banner shows the systems the reconciliation compares: Tessitura, MIP and Diese.
 Last Loaded (UTC) =
 MAX ( source_freshness[last_loaded_utc] )
 
@@ -75,9 +79,33 @@ Hours Since Load =
 DATEDIFF ( [Last Loaded (UTC)], UTCNOW (), HOUR )
 
 Freshness Status =
-SWITCH (
-    TRUE (),
-    ISBLANK ( [Last Loaded (UTC)] ), "Never loaded",
-    [Hours Since Load] <= 26, "Fresh",
-    "Stale"
-)
+VAR Loaded = [Last Loaded (UTC)]
+VAR Sla = MAX ( source_freshness[sla_hours] )
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( Loaded ), "Never loaded",
+        DATEDIFF ( Loaded, UTCNOW (), HOUR ) <= Sla, "Fresh",
+        "Stale"
+    )
+
+// One line to put at the top of a report page or an Excel sheet, for example:
+// "Data as of: Diese Oct 22 6:05 AM · MIP Oct 22 6:04 AM · Tessitura Oct 22 6:02 AM (ET)"
+// A source past its expected refresh is marked STALE.
+Data Freshness Banner =
+VAR Sources =
+    FILTER ( source_freshness, source_freshness[source_system] IN { "tessitura", "mip", "diese" } )
+RETURN
+    "Data as of: "
+        & CONCATENATEX (
+            Sources,
+            source_freshness[source_label] & " "
+                & FORMAT ( source_freshness[last_loaded_et], "mmm d h:nn AM/PM" )
+                & IF (
+                    DATEDIFF ( source_freshness[last_loaded_utc], UTCNOW (), HOUR ) > source_freshness[sla_hours],
+                    " STALE (expected " & source_freshness[expected_refresh] & ")"
+                ),
+            " · ",
+            source_freshness[source_label], ASC
+        )
+        & " (ET)"

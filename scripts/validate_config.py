@@ -126,6 +126,8 @@ def main() -> int:
     restricted_by_table: dict[str, set] = {}
     for s in sources["sources"]:
         system = s.get("system") or s["source"]   # several sources can feed one system (e.g. tessitura)
+        if s.get("refresh", "daily") not in ("daily", "weekly"):
+            errors.append(f"{s['source']}: refresh must be daily or weekly, not {s.get('refresh')}")
         names = [s["source"], system, (s.get("ingestion") or {}).get("bronze_schema") or system]
         for e in s["entities"]:
             names += [e["name"], *e["columns"]]
@@ -162,6 +164,13 @@ def main() -> int:
                 errors.append(f"dq {ent}: bad severity {r['severity']}")
 
     families = {f["key"]: f for f in tenant["workspace_families"]}
+    for app in tenant.get("apps", []):
+        if app["workspace_family"] not in families:
+            errors.append(f"app {app['name']}: unknown workspace family {app['workspace_family']}")
+        for aud in app["audiences"]:
+            for g in aud["groups"]:
+                if g not in groups:
+                    errors.append(f"app {app['name']} / {aud['name']}: unknown group {g}")
     item_perms = {"Read", "ReadData", "ReadAll", "Monitor", "Audit"}
     for sh in tenant.get("item_shares", []):
         fam = families.get(sh["workspace_family"])
@@ -184,7 +193,7 @@ def main() -> int:
     restricted_by_table["core/patron"] = (restricted_by_table.get("tessitura/constituent", set())
                                           & set(CORE_TABLES["core/patron"]))
     # Analysts read curated Gold, never Silver (ADR-006). Only the data science group gets a Silver role.
-    analyst_groups = {g for g in groups if g.startswith("analysts_") or g in ("education_team", "report_viewers")}
+    analyst_groups = {g for g in groups if g.startswith("analysts_") or g in ("education_team", "report_viewers", "executives")}
     for role in tenant["onelake_security"]["roles"]:
         for m in role["members"]:
             if m not in groups:

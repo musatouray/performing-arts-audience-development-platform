@@ -125,8 +125,9 @@ The Finance spoke (`hh-finance-*`, ADR-009), for the CFO's office. Direct Lake o
 | `fact_gl_entry[department_key]` | `dim_department[department_key]` | ✅ |
 | `recon_revenue_to_gl[month_start]` | `dim_date[date]` | ✅ |
 | `recon_revenue_to_gl[fund_code]` | `dim_fund[mip_fund_code]` | ✅ |
+| `recon_revenue_to_gl[gl_account_code]` | `dim_account[account_code]` | ✅ |
 
-The same "Time Intelligence" calculation group as the audience model (fiscal year ending 30 June).
+The same "Time Intelligence" calculation group as the audience model (fiscal year ending 30 June): one column, `Calculation`, with Current, FYTD, PY, PY FYTD, YoY and YoY %. Its items clear `dim_date` filters themselves (`REMOVEFILTERS`), so they work whether or not the date table is marked. Implicit measures are off, as calculation groups require.
 Role: **Finance** (`sg-hh-analysts-finance`), no row filter. The model itself is the boundary: only finance gets it.
 
 ### Report pages

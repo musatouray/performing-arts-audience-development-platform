@@ -209,3 +209,49 @@ VAR Series = VALUES ( fact_ad_spend[series_promoted] )
 VAR Revenue = CALCULATE ( [Net Ticket Revenue], TREATAS ( Series, dim_performance[series] ) )
 RETURN DIVIDE ( Revenue, Spend )
 
+// ---------------------------------------------------------------- Data trust
+// Display folder: Data Trust
+// From rpt.source_freshness, written at the end of every Gold load. Each source has its own
+// expected refresh (sources.yaml: daily = 26 hours, weekly = 8 days), and staleness is worked
+// out now, when someone opens the report, not when the load ran.
+// The audience banner shows Tessitura (sales, gifts) and Marketing (email, ads).
+Last Loaded (UTC) =
+MAX ( source_freshness[last_loaded_utc] )
+
+Data Through =
+MAX ( source_freshness[data_through] )
+
+Hours Since Load =
+DATEDIFF ( [Last Loaded (UTC)], UTCNOW (), HOUR )
+
+Freshness Status =
+VAR Loaded = [Last Loaded (UTC)]
+VAR Sla = MAX ( source_freshness[sla_hours] )
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( Loaded ), "Never loaded",
+        DATEDIFF ( Loaded, UTCNOW (), HOUR ) <= Sla, "Fresh",
+        "Stale"
+    )
+
+// One line to put at the top of a report page or an Excel sheet, for example:
+// "Data as of: Diese Oct 22 6:05 AM · MIP Oct 22 6:04 AM · Tessitura Oct 22 6:02 AM (ET)"
+// A source past its expected refresh is marked STALE.
+Data Freshness Banner =
+VAR Sources =
+    FILTER ( source_freshness, source_freshness[source_system] IN { "tessitura", "marketing" } )
+RETURN
+    "Data as of: "
+        & CONCATENATEX (
+            Sources,
+            source_freshness[source_label] & " "
+                & FORMAT ( source_freshness[last_loaded_et], "mmm d h:nn AM/PM" )
+                & IF (
+                    DATEDIFF ( source_freshness[last_loaded_utc], UTCNOW (), HOUR ) > source_freshness[sla_hours],
+                    " STALE (expected " & source_freshness[expected_refresh] & ")"
+                ),
+            " · ",
+            source_freshness[source_label], ASC
+        )
+        & " (ET)"
