@@ -1,0 +1,41 @@
+/// MIP departments.
+table dim_department
+	lineageTag: 83d4f8c6-8f8b-420e-a479-c3de698c3e44
+	sourceLineageTag: [fin].[dim_department]
+
+	column department_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 1cac519f-fff5-4908-baaa-9474f82b7c5a
+		sourceLineageTag: department_key
+		summarizeBy: sum
+		sourceColumn: department_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column department_code
+		dataType: string
+		lineageTag: 68d666ab-8468-4baa-9389-19514527b4a7
+		sourceLineageTag: department_code
+		summarizeBy: none
+		sourceColumn: department_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column department_name
+		dataType: string
+		lineageTag: 527299b0-7df9-4a7b-bbaf-1dfdde9d11d4
+		sourceLineageTag: department_name
+		summarizeBy: none
+		sourceColumn: department_name
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_department = entity
+		mode: directLake
+		source
+			entityName: dim_department
+			schemaName: fin
+			expressionSource: 'DirectLake - wh_gold'
+

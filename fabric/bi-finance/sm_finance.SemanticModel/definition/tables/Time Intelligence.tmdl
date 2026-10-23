@@ -1,0 +1,28 @@
+/// Pick a calculation: Current, FYTD, PY, PY FYTD, YoY or YoY %.
+table 'Time Intelligence'
+	lineageTag: c11de670-705e-4d3a-8733-f40ba4338a74
+
+	/// Fiscal year July-June. Pick a calculation to see any measure as fiscal-year-to-date, prior year, or year-over-year change.
+	calculationGroup
+		precedence: 10
+
+		calculationItem Current = SELECTEDMEASURE ()
+
+		calculationItem FYTD = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( dim_date[date], "6/30" ), REMOVEFILTERS ( dim_date ) )
+
+		calculationItem PY = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ), REMOVEFILTERS ( dim_date ) )
+
+		calculationItem 'PY FYTD' = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( SAMEPERIODLASTYEAR ( dim_date[date] ), "6/30" ), REMOVEFILTERS ( dim_date ) )
+
+		calculationItem YoY = VAR Cur = SELECTEDMEASURE () VAR Py = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ), REMOVEFILTERS ( dim_date ) ) RETURN IF ( NOT ISBLANK ( Cur ) && NOT ISBLANK ( Py ), Cur - Py )
+
+		calculationItem 'YoY %' = VAR Cur = SELECTEDMEASURE () VAR Py = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ), REMOVEFILTERS ( dim_date ) ) RETURN DIVIDE ( Cur - Py, Py )
+
+			formatStringDefinition = "0.0%"
+
+	column Calculation
+		dataType: string
+		lineageTag: 443468bd-55e4-43bb-844c-a5f228263cce
+
+	partition 'Partition_Time Intelligence' = calculationGroup
+

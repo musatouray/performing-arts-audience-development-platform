@@ -1,0 +1,33 @@
+relationship fact_gl_entry_effective_date_key_dim_date_date_key
+	fromColumn: fact_gl_entry.effective_date_key
+	toColumn: dim_date.date_key
+
+relationship fact_gl_entry_posted_date_key_dim_date_date_key
+	isActive: false
+	fromColumn: fact_gl_entry.posted_date_key
+	toColumn: dim_date.date_key
+
+relationship fact_gl_entry_account_key_dim_account_account_key
+	fromColumn: fact_gl_entry.account_key
+	toColumn: dim_account.account_key
+
+relationship fact_gl_entry_fund_key_dim_fund_fund_key
+	fromColumn: fact_gl_entry.fund_key
+	toColumn: dim_fund.fund_key
+
+relationship fact_gl_entry_department_key_dim_department_department_key
+	fromColumn: fact_gl_entry.department_key
+	toColumn: dim_department.department_key
+
+relationship recon_revenue_to_gl_month_start_dim_date_date
+	fromColumn: recon_revenue_to_gl.month_start
+	toColumn: dim_date.date
+
+relationship recon_revenue_to_gl_fund_code_dim_fund_mip_fund_code
+	fromColumn: recon_revenue_to_gl.fund_code
+	toColumn: dim_fund.mip_fund_code
+
+relationship recon_revenue_to_gl_gl_account_code_dim_account_account_code
+	fromColumn: recon_revenue_to_gl.gl_account_code
+	toColumn: dim_account.account_code
+

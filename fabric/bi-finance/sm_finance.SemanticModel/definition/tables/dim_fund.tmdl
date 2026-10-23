@@ -1,0 +1,60 @@
+/// Funds, shared with Tessitura. mip_fund_code is the ledger's code for the same fund.
+table dim_fund
+	lineageTag: 00e99ef5-755d-454a-8643-d131bba36a89
+	sourceLineageTag: [dim].[fund]
+
+	column fund_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 17849cac-7aea-4391-a8e4-adc5bdccbc25
+		sourceLineageTag: fund_key
+		summarizeBy: sum
+		sourceColumn: fund_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column fund_id
+		dataType: string
+		lineageTag: ad946e09-6855-49cd-b119-ba7ef6a3b042
+		sourceLineageTag: fund_id
+		summarizeBy: none
+		sourceColumn: fund_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column fund_name
+		dataType: string
+		lineageTag: 531013e6-7653-417d-8a97-07ae9ffcab7d
+		sourceLineageTag: fund_name
+		summarizeBy: none
+		sourceColumn: fund_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_restricted
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b76abe25-368d-4004-91a6-ff5469ffa4e0
+		sourceLineageTag: is_restricted
+		summarizeBy: none
+		sourceColumn: is_restricted
+
+		annotation SummarizationSetBy = Automatic
+
+	column mip_fund_code
+		dataType: string
+		lineageTag: c99d6eaa-14c9-4c39-9d52-e7a97ea04c9d
+		sourceLineageTag: mip_fund_code
+		summarizeBy: none
+		sourceColumn: mip_fund_code
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fund = entity
+		mode: directLake
+		source
+			entityName: fund
+			schemaName: dim
+			expressionSource: 'DirectLake - wh_gold'
+

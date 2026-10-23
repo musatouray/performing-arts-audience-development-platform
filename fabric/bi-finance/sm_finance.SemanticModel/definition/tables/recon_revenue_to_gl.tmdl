@@ -1,0 +1,167 @@
+/// Revenue reconciliation: Tessitura and Diese vs the ledger, by month, revenue stream and fund, with status and finance's notes.
+table recon_revenue_to_gl
+	lineageTag: 3f9989bc-8a8a-4945-a53b-d7fa719c3d81
+	sourceLineageTag: [fin].[recon_revenue_to_gl]
+
+	column month_start
+		dataType: dateTime
+		formatString: mmm yyyy
+		lineageTag: c5334e13-9b35-45e1-a33a-832f90372120
+		sourceLineageTag: month_start
+		summarizeBy: none
+		sourceColumn: month_start
+
+		annotation SummarizationSetBy = Automatic
+
+	column fiscal_year
+		dataType: int64
+		formatString: 0
+		lineageTag: 746f1c2c-6cf9-4902-b814-40042fb3a4d5
+		sourceLineageTag: fiscal_year
+		summarizeBy: none
+		sourceColumn: fiscal_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column revenue_stream
+		dataType: string
+		lineageTag: a1a67293-662b-40e9-a14e-4c3c556826f4
+		sourceLineageTag: revenue_stream
+		summarizeBy: none
+		sourceColumn: revenue_stream
+
+		annotation SummarizationSetBy = Automatic
+
+	column fund_code
+		dataType: string
+		lineageTag: 7699d0bc-fdaa-4249-a147-ea9f36b01fe6
+		sourceLineageTag: fund_code
+		summarizeBy: none
+		sourceColumn: fund_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column source_system
+		dataType: string
+		lineageTag: 655f6ce8-9096-46f1-ac3e-0746e81b4bb6
+		sourceLineageTag: source_system
+		summarizeBy: none
+		sourceColumn: source_system
+
+		annotation SummarizationSetBy = Automatic
+
+	column gl_account_code
+		dataType: string
+		lineageTag: 7a5cb450-d09c-48d3-913b-0520734dcd95
+		sourceLineageTag: gl_account_code
+		summarizeBy: none
+		sourceColumn: gl_account_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column source_amount
+		dataType: decimal
+		isHidden
+		formatString: #,0.00
+		lineageTag: b3095291-ff19-47ca-99e0-604b2cb7065f
+		sourceLineageTag: source_amount
+		summarizeBy: sum
+		sourceColumn: source_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column gl_amount
+		dataType: decimal
+		isHidden
+		formatString: #,0.00
+		lineageTag: 0491ffc1-124b-41c6-a80e-1aea7dca7b3e
+		sourceLineageTag: gl_amount
+		summarizeBy: sum
+		sourceColumn: gl_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column variance
+		dataType: decimal
+		isHidden
+		formatString: #,0.00
+		lineageTag: 64d0cc54-e190-41f6-83f4-526f0d904aa7
+		sourceLineageTag: variance
+		summarizeBy: sum
+		sourceColumn: variance
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column tolerance_amount
+		dataType: decimal
+		isHidden
+		formatString: #,0.00
+		lineageTag: 2ff87e19-bdb0-49d1-9edb-f09822ebb2c9
+		sourceLineageTag: tolerance_amount
+		summarizeBy: sum
+		sourceColumn: tolerance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column status
+		dataType: string
+		lineageTag: 5b114e60-d79a-4b72-9d31-158cb70e2251
+		sourceLineageTag: status
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column loaded_at
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		lineageTag: b8109e88-9cf7-4bd9-98fc-d4f2e62ebc95
+		sourceLineageTag: loaded_at
+		summarizeBy: none
+		sourceColumn: loaded_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column cause
+		dataType: string
+		lineageTag: 7f40172e-b4fb-40f1-b8b4-3784317060e6
+		sourceLineageTag: cause
+		summarizeBy: none
+		sourceColumn: cause
+
+		annotation SummarizationSetBy = Automatic
+
+	column note
+		dataType: string
+		lineageTag: d71158a9-54c9-4c55-97bf-40abd8fedee3
+		sourceLineageTag: note
+		summarizeBy: none
+		sourceColumn: note
+
+		annotation SummarizationSetBy = Automatic
+
+	column resolution
+		dataType: string
+		lineageTag: 9ed2dfaa-832a-4b85-85a4-53eae2013618
+		sourceLineageTag: resolution
+		summarizeBy: none
+		sourceColumn: resolution
+
+		annotation SummarizationSetBy = Automatic
+
+	partition recon_revenue_to_gl = entity
+		mode: directLake
+		source
+			entityName: recon_revenue_to_gl
+			schemaName: fin
+			expressionSource: 'DirectLake - wh_gold'
+

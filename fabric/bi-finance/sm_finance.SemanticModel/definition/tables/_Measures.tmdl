@@ -1,0 +1,123 @@
+/// Home for every measure, grouped in display folders.
+table _Measures
+	lineageTag: 67f6ff6d-0c08-4930-a6ce-af478338e7b8
+
+	/// Revenue posted to the ledger (credits less debits on revenue accounts).
+	measure Revenue = CALCULATE ( SUM ( fact_gl_entry[net_amount] ), dim_account[account_type] = "Revenue" )
+		formatString: $#,0;($#,0)
+		displayFolder: Ledger
+		lineageTag: ceae9d0e-edfa-40c8-bd0f-62781d09c7cf
+
+	/// Expenses posted to the ledger, shown as positive amounts.
+	measure Expenses = CALCULATE ( - SUM ( fact_gl_entry[net_amount] ), dim_account[account_type] = "Expense" )
+		formatString: $#,0;($#,0)
+		displayFolder: Ledger
+		lineageTag: b3b2978d-fa0d-458b-981c-2868f98954c4
+
+	/// Revenue minus expenses.
+	measure 'Net Surplus' = [Revenue] - [Expenses]
+		formatString: $#,0;($#,0)
+		displayFolder: Ledger
+		lineageTag: 4dc642a8-ade3-4581-8890-564a2c964dea
+
+	/// Tickets, subscriptions and rentals.
+	measure 'Earned Revenue' = CALCULATE ( [Revenue], dim_account[account_group] = "Earned Revenue" )
+		formatString: $#,0;($#,0)
+		displayFolder: Ledger
+		lineageTag: ec1d8f7f-0e23-42a7-9432-1e58d43a3e35
+
+	/// Gifts and contributions.
+	measure 'Contributed Revenue' = CALCULATE ( [Revenue], dim_account[account_group] = "Contributed Revenue" )
+		formatString: $#,0;($#,0)
+		displayFolder: Ledger
+		lineageTag: d7cffc27-409e-4cc7-a56d-4ce7f089dbf4
+
+	/// Share of revenue the organisation earns rather than raises.
+	measure 'Earned Revenue %' = DIVIDE ( [Earned Revenue], [Revenue] )
+		formatString: 0.0%
+		displayFolder: Ledger
+		lineageTag: 3d9e3d7d-bde1-4ffe-b559-8e6c9367f8fe
+
+	measure Debits = SUM ( fact_gl_entry[debit_amount] )
+		formatString: $#,0.00
+		displayFolder: Ledger
+		lineageTag: 1bb5fea1-87cb-404c-9a6b-7272169d7bb3
+
+	measure Credits = SUM ( fact_gl_entry[credit_amount] )
+		formatString: $#,0.00
+		displayFolder: Ledger
+		lineageTag: 79119a45-74fd-4531-8ada-aa30f7111ce0
+
+	/// Always 0: every journal balances. Shown on the Data Trust page.
+	measure 'Out of Balance' = [Debits] - [Credits]
+		formatString: $#,0.00
+		displayFolder: Ledger
+		lineageTag: 19fa10ec-ba87-45f3-ba9a-5c1fa27f109f
+
+	/// What Tessitura or Diese recorded.
+	measure 'Source Amount' = SUM ( recon_revenue_to_gl[source_amount] )
+		formatString: $#,0;($#,0)
+		displayFolder: Reconciliation
+		lineageTag: e65f2f98-ce08-4c3b-9db0-53a8de7e0c67
+
+	/// What the ledger recorded for the same month, stream and fund.
+	measure 'Ledger Amount' = SUM ( recon_revenue_to_gl[gl_amount] )
+		formatString: $#,0;($#,0)
+		displayFolder: Reconciliation
+		lineageTag: 78a3cce9-bdb9-4bf2-97b2-65ed6df9f9dc
+
+	/// Ledger minus source. Negative = the ledger is short.
+	measure Variance = [Ledger Amount] - [Source Amount]
+		formatString: $#,0;($#,0)
+		displayFolder: Reconciliation
+		lineageTag: b5fdfa85-e7f9-4c05-8ac1-030e8b364c6c
+
+	measure 'Variance %' = DIVIDE ( [Variance], [Source Amount] )
+		formatString: 0.00%
+		displayFolder: Reconciliation
+		lineageTag: 26214bf6-4a0f-45c2-a927-a78405adc793
+
+	/// Month x stream x fund lines outside tolerance (the larger of $1,000 or 1%).
+	measure 'Lines to Investigate' = CALCULATE ( COUNTROWS ( recon_revenue_to_gl ), recon_revenue_to_gl[status] = "Investigate" )
+		formatString: #,0
+		displayFolder: Reconciliation
+		lineageTag: 4c56a86d-f00e-4fba-b626-61e3fd916aa1
+
+	/// Lines to investigate that finance hasn't explained yet.
+	measure 'Open Items' = CALCULATE ( COUNTROWS ( recon_revenue_to_gl ), recon_revenue_to_gl[resolution] = "Open" )
+		formatString: #,0
+		displayFolder: Reconciliation
+		lineageTag: c045fc19-ffd2-48a3-8071-a5974e4c1b6b
+
+	/// Share of lines that tie out (matched or within tolerance).
+	measure 'Reconciled %' = DIVIDE ( CALCULATE ( COUNTROWS ( recon_revenue_to_gl ), recon_revenue_to_gl[status] <> "Investigate" ), COUNTROWS ( recon_revenue_to_gl ) )
+		formatString: 0.0%
+		displayFolder: Reconciliation
+		lineageTag: 2bebc6c5-be77-41af-85f6-847a295634d5
+
+	measure 'Last Loaded (UTC)' = MAX ( source_freshness[last_loaded_utc] )
+		formatString: mmm d, yyyy h:nn AM/PM
+		displayFolder: Data Trust
+		lineageTag: 1a59f07c-40db-4de3-b584-b08ce579dcb5
+
+	/// The latest business date the platform holds for the source.
+	measure 'Data Through' = MAX ( source_freshness[data_through] )
+		formatString: mmm d, yyyy
+		displayFolder: Data Trust
+		lineageTag: 4659a5d2-ffcb-4351-ae8a-1f376840821c
+
+	measure 'Hours Since Load' = DATEDIFF ( [Last Loaded (UTC)], UTCNOW (), HOUR )
+		formatString: #,0
+		displayFolder: Data Trust
+		lineageTag: 5debaf70-fbce-4f58-8226-d6a1e60957e7
+
+	column placeholder
+		isHidden
+		lineageTag: 8334bced-3def-4ea3-8740-4cb06f12a963
+		isNameInferred
+		sourceColumn: [placeholder]
+
+	partition _Measures = calculated
+		mode: import
+		source = ROW("placeholder", BLANK())
+

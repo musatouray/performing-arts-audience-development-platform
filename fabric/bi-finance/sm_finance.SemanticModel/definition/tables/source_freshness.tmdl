@@ -1,0 +1,70 @@
+/// When each source system was last loaded and how current its data is.
+table source_freshness
+	lineageTag: 8b3dce07-1d08-48cb-9547-84a71207e8c7
+	sourceLineageTag: [rpt].[source_freshness]
+
+	column source_system
+		dataType: string
+		lineageTag: 4e7238f4-0e1d-4fad-a449-328d3c176fb8
+		sourceLineageTag: source_system
+		summarizeBy: none
+		sourceColumn: source_system
+
+		annotation SummarizationSetBy = Automatic
+
+	column source_name
+		dataType: string
+		lineageTag: befd8c35-6c72-4069-b759-c4b0893c31ea
+		sourceLineageTag: source_name
+		summarizeBy: none
+		sourceColumn: source_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column last_loaded_utc
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 1e216a6b-ca98-4161-802e-639416b29bff
+		sourceLineageTag: last_loaded_utc
+		summarizeBy: none
+		sourceColumn: last_loaded_utc
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_through
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 769be162-033c-4bf9-97e1-2553fbeed655
+		sourceLineageTag: data_through
+		summarizeBy: none
+		sourceColumn: data_through
+
+		annotation SummarizationSetBy = Automatic
+
+	column measured_by
+		dataType: string
+		lineageTag: 9a4e6bac-2a6e-4acb-ae8a-cd354fc71051
+		sourceLineageTag: measured_by
+		summarizeBy: none
+		sourceColumn: measured_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column snapshot_at
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		lineageTag: a5c96643-1753-4822-bdd9-fc82beb35aa6
+		sourceLineageTag: snapshot_at
+		summarizeBy: none
+		sourceColumn: snapshot_at
+
+		annotation SummarizationSetBy = Automatic
+
+	partition source_freshness = entity
+		mode: directLake
+		source
+			entityName: source_freshness
+			schemaName: rpt
+			expressionSource: 'DirectLake - wh_gold'
+
