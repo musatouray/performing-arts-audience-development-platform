@@ -31,6 +31,21 @@ Two kinds of Bronze come out of this, and Silver handles both:
 - **File sources** (Tessitura API, Diese API, marketing) land as files, and `nb_10` loads them as text with lineage columns and checks the row counts against a manifest. Silver picks up new rows by `_load_date`.
 - **Table sources** (Tessitura database, MIP, education) are written straight into Bronze by the tool. Silver picks up new Tessitura and MIP rows by `updated_at`, and re-reads the small education tables in full.
 
+## The gateway in production
+
+In this lab the on-premises data gateway runs on one laptop, so the Copy jobs only work while it's awake. In production:
+
+| Choice | Why |
+|---|---|
+| A **gateway cluster of two or more members**, on Azure VMs in the same virtual network as the SQL Servers (or on-premises servers next to them) | High availability: if one member is down or being patched, the others take the work. The cluster can also spread queries across members (**load balancing**). |
+| Members in **different availability zones**, and patched one at a time | A zone outage or a monthly update never takes the gateway down. |
+| Sized for the overnight load, monitored with the gateway's performance logs | The Copy jobs for Tessitura and MIP run side by side after the nightly close. |
+| A **service account** for the gateway service, recovery key in Key Vault, at least two gateway admins (a group, not one person) | Nobody's leaving or password change stops the nightly load; the key is needed to restore or add members. |
+| Outbound HTTPS only to the Azure Service Bus and Fabric endpoints, no inbound ports | Same security model as the lab: the gateway calls out, nothing calls in. |
+| If Tessitura is **vendor-hosted** (for example on Tessitura Network's cloud) rather than on your servers: a **virtual network data gateway** or the vendor's private connectivity instead | There's no on-premises server to install the gateway next to. The virtual network gateway is managed by Microsoft, with no VMs to patch, and reaches sources through a private network link. |
+
+Where the existing BI servers already run on Azure VMs, the gateway cluster joins the same network, monitoring and patching routine.
+
 ## Consequences
 
 - **Four tools to monitor instead of one.** All four run from `pl_daily_load`, so failures still surface in one place, with one alert.

@@ -83,14 +83,19 @@ def main():
                 else:
                     print(f"  OK       {principals[g]['name']}: {sorted(have)}")
 
-            # Flag access that isn't in tenant.yaml, such as a share with one person
-            declared = {principals[g]["id"] for g in share["grant_to"]}
+            # Flag access that isn't in tenant.yaml, such as a share with one person. Expected access is
+            # every share of this item in this environment (an item can have several entries) plus the
+            # groups whose workspace role already covers it (admins, engineers, service accounts).
+            fam = next(f for f in cfg["workspace_families"] if f["key"] == share["workspace_family"])
+            expected = {g for s2 in cfg.get("item_shares", []) if s2["item"] == share["item"]
+                        and s2["workspace_family"] == share["workspace_family"]
+                        and env in s2.get("environments", cfg["environments"]) for g in s2["grant_to"]}
+            expected |= set(fam["roles"].get(env) or {})
+            expected_ids = {principals[g]["id"] for g in expected if g in principals}
             for d in details:
                 p = d["principal"]
-                if p["id"] not in declared and p.get("type") in ("User", "Group") and d.get("itemAccessDetails", {}).get("permissions"):
-                    via_ws = d.get("itemAccessDetails", {}).get("type") == "Workspace"
-                    if not via_ws:
-                        print(f"  REVIEW   {p.get('displayName')} ({p.get('type')}) has access not declared in tenant.yaml")
+                if p["id"] not in expected_ids and p.get("type") in ("User", "Group") and d.get("itemAccessDetails", {}).get("permissions"):
+                    print(f"  REVIEW   {p.get('displayName')} ({p.get('type')}) has access not declared in tenant.yaml")
 
     print(f"\n{'All declared item shares are in place.' if not missing_total else f'{missing_total} share(s) to fix.'}")
     return 1 if missing_total else 0
