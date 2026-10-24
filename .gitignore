@@ -23,3 +23,7 @@ config/.generated/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Power BI Desktop local files (per user, never committed)
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
