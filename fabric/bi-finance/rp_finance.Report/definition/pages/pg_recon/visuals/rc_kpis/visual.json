@@ -865,7 +865,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'MIP general ledger'"
+                  "Value": "'MIP General Ledger'"
                 }
               }
             }
@@ -887,7 +887,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Ledger minus source'"
+                  "Value": "'Ledger Minus Source'"
                 }
               }
             }
@@ -909,7 +909,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Lines within tolerance'"
+                  "Value": "'Lines Within Tolerance'"
                 }
               }
             }
@@ -931,7 +931,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Lines outside tolerance'"
+                  "Value": "'Lines Outside Tolerance'"
                 }
               }
             }
@@ -953,7 +953,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'No cause recorded yet'"
+                  "Value": "'No Cause Recorded Yet'"
                 }
               }
             }
