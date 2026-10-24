@@ -21,15 +21,15 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "dim_date"
+                      "Entity": "recon_revenue_to_gl"
                     }
                   },
-                  "Property": "month_name"
+                  "Property": "revenue_stream"
                 }
               },
-              "queryRef": "dim_date.month_name",
-              "nativeQueryRef": "month_name",
-              "displayName": "Month"
+              "queryRef": "recon_revenue_to_gl.revenue_stream",
+              "nativeQueryRef": "revenue_stream",
+              "displayName": "Stream"
             }
           ]
         },
@@ -40,15 +40,15 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "recon_revenue_to_gl"
+                      "Entity": "dim_date"
                     }
                   },
-                  "Property": "revenue_stream"
+                  "Property": "month_name"
                 }
               },
-              "queryRef": "recon_revenue_to_gl.revenue_stream",
-              "nativeQueryRef": "revenue_stream",
-              "displayName": "Stream"
+              "queryRef": "dim_date.month_name",
+              "nativeQueryRef": "month_name",
+              "displayName": "Month"
             }
           ]
         },
@@ -116,6 +116,51 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "columnAdjustment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'growToFit'"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Right'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "rowHeaders": [
+        {
+          "properties": {
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#1E3A5F'"
+                    }
+                  }
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI Semibold'"
                 }
               }
             }
@@ -217,6 +262,13 @@
       "total": [
         {
           "properties": {
+            "totals": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
             "fontColor": {
               "solid": {
                 "color": {

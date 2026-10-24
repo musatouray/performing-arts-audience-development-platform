@@ -258,7 +258,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Sources loaded on time'"
+                  "Value": "'Sources on time'"
                 }
               }
             }
@@ -286,7 +286,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Out of balance (debits - credits)'"
+                  "Value": "'Out of balance'"
                 }
               }
             }
@@ -300,7 +300,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Revenue lines within tolerance'"
+                  "Value": "'Reconciled'"
                 }
               }
             }
@@ -458,6 +458,118 @@
           "selector": {
             "id": "default"
           }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Sources Fresh",
+            "id": "field-bee98d33-cff4-5a31-86bf-24e845c1d6b8",
+            "order": 0
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.As Of Date",
+            "id": "field-40f1445d-9e38-516a-817c-0f8cc8815966",
+            "order": 0
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Out of Balance",
+            "id": "field-e009095e-4400-596e-abed-8ae16ed1cf6b",
+            "order": 0
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Reconciled %",
+            "id": "field-483c9e56-3f18-5795-ae5e-399b146755da",
+            "order": 0
+          }
         }
       ],
       "referenceLabelTitle": [
@@ -466,7 +578,7 @@
             "titleFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },
@@ -492,6 +604,94 @@
           "selector": {
             "id": "default"
           }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Loaded within their expected refresh'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Sources Fresh",
+            "id": "field-bee98d33-cff4-5a31-86bf-24e845c1d6b8"
+          }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Last date with activity in MIP'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.As Of Date",
+            "id": "field-40f1445d-9e38-516a-817c-0f8cc8815966"
+          }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Debits minus credits, must be $0.00'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Out of Balance",
+            "id": "field-e009095e-4400-596e-abed-8ae16ed1cf6b"
+          }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Revenue lines within tolerance'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Reconciled %",
+            "id": "field-483c9e56-3f18-5795-ae5e-399b146755da"
+          }
         }
       ],
       "referenceLabelValue": [
@@ -500,7 +700,7 @@
             "valueFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },
@@ -548,7 +748,7 @@
             "detailFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },
@@ -562,6 +762,66 @@
           },
           "selector": {
             "id": "default"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Sources Fresh",
+            "id": "field-bee98d33-cff4-5a31-86bf-24e845c1d6b8"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.As Of Date",
+            "id": "field-40f1445d-9e38-516a-817c-0f8cc8815966"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Out of Balance",
+            "id": "field-e009095e-4400-596e-abed-8ae16ed1cf6b"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Reconciled %",
+            "id": "field-483c9e56-3f18-5795-ae5e-399b146755da"
           }
         }
       ],
