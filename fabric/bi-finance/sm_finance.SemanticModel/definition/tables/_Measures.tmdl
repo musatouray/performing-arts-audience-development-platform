@@ -340,15 +340,18 @@ table _Measures
 		formatString: +$#,0;-$#,0;$0
 		displayFolder: Report\Income statement
 
-	/// Change against the same stretch of the prior year, as a percentage.
-	measure 'Statement vs PY %' = VAR c = [Statement FYTD] VAR p = [Statement PY FYTD] RETURN DIVIDE ( c - p, ABS ( p ) )
+	/// Change against the same stretch of the prior year, as a percentage. Blank on the net surplus total, where a percentage of a small surplus misleads.
+	measure 'Statement vs PY %' = VAR c = [Statement FYTD] VAR p = [Statement PY FYTD] RETURN IF ( ISINSCOPE ( dim_account[account_type] ), DIVIDE ( c - p, ABS ( p ) ) )
 		formatString: +0.0%;-0.0%;0.0%
 		displayFolder: Report\Income statement
 
 	/// Empty value for KPI card reference labels that only show a caption.
 	measure Caption = UNICHAR ( 160 )
+		formatString: @
 		isHidden
 		displayFolder: Formatting
+
+		annotation PBI_FormatHint = {"isText":true}
 
 	column placeholder
 		isHidden
