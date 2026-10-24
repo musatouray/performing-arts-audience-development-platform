@@ -353,6 +353,408 @@ table _Measures
 
 		annotation PBI_FormatHint = {"isText":true}
 
+	/// Adopted budget for revenue (MIP budget module), spread evenly over each month's days.
+	measure 'Revenue Budget' = CALCULATE ( SUM ( fact_budget[budget_amount] ), KEEPFILTERS ( dim_account[account_type] = "Revenue" ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget
+
+	/// Adopted budget for expenses, as a positive amount.
+	measure 'Expense Budget' = CALCULATE ( SUM ( fact_budget[budget_amount] ), KEEPFILTERS ( dim_account[account_type] = "Expense" ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget
+
+	/// Budgeted change in net assets.
+	measure 'Net Surplus Budget' = [Revenue Budget] - [Expense Budget]
+		formatString: $#,0;($#,0)
+		displayFolder: Budget
+
+	measure 'Contributed Revenue Budget' = CALCULATE ( [Revenue Budget], dim_account[account_group] = "Contributed Revenue" )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget
+
+	measure 'Earned Revenue Budget' = CALCULATE ( [Revenue Budget], dim_account[account_group] = "Earned Revenue" )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget
+
+	measure 'Surplus Margin Budget' = DIVIDE ( [Net Surplus Budget], [Revenue Budget] )
+		formatString: 0.0%
+		displayFolder: Budget
+
+	/// Revenue budget, fiscal year to date (same days as the actuals).
+	measure 'Revenue Budget FYTD' = CALCULATE ( [Revenue Budget], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget\FYTD
+
+	/// Expense budget, fiscal year to date (same days as the actuals).
+	measure 'Expense Budget FYTD' = CALCULATE ( [Expense Budget], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget\FYTD
+
+	measure 'Net Surplus Budget FYTD' = CALCULATE ( [Net Surplus Budget], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget\FYTD
+
+	measure 'Contributed Revenue Budget FYTD' = CALCULATE ( [Contributed Revenue Budget], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget\FYTD
+
+	measure 'Earned Revenue Budget FYTD' = CALCULATE ( [Earned Revenue Budget], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget\FYTD
+
+	measure 'Surplus Margin Budget FYTD' = CALCULATE ( [Surplus Margin Budget], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: 0.0%
+		displayFolder: Budget\FYTD
+
+	/// The whole year's adopted expense budget for the selected fiscal year.
+	measure 'Expense Budget Full Year' = CALCULATE ( [Expense Budget], REMOVEFILTERS ( dim_date ), VALUES ( dim_date[fiscal_year] ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget
+
+	/// The whole year's adopted revenue budget for the selected fiscal year.
+	measure 'Revenue Budget Full Year' = CALCULATE ( [Revenue Budget], REMOVEFILTERS ( dim_date ), VALUES ( dim_date[fiscal_year] ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Budget
+
+	/// Share of the year's expense budget already spent.
+	measure 'Expense Budget Used %' = DIVIDE ( [Expenses FYTD], [Expense Budget Full Year] )
+		formatString: 0.0%
+		displayFolder: Budget
+
+	measure 'Earned Revenue FYTD' = CALCULATE ( [Earned Revenue], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\KPI cards
+
+	/// Revenue above (+) or below (-) budget, year to date.
+	measure 'Revenue vs Budget FYTD' = VAR a = [Revenue FYTD] VAR b = [Revenue Budget FYTD] RETURN IF ( NOT ISBLANK ( a ) || NOT ISBLANK ( b ), a - b )
+		formatString: $#,0;($#,0);-
+		displayFolder: Budget
+
+	measure 'Revenue vs Budget FYTD %' = DIVIDE ( [Revenue vs Budget FYTD], [Revenue Budget FYTD] )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Budget
+
+	/// Under budget (+) or over budget (-), year to date. Positive is favourable.
+	measure 'Expenses vs Budget FYTD' = VAR a = [Expenses FYTD] VAR b = [Expense Budget FYTD] RETURN IF ( NOT ISBLANK ( a ) || NOT ISBLANK ( b ), b - a )
+		formatString: $#,0;($#,0);-
+		displayFolder: Budget
+
+	measure 'Expenses vs Budget FYTD %' = DIVIDE ( [Expenses vs Budget FYTD], [Expense Budget FYTD] )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Budget
+
+	/// Change in Operating Cash (account 1010): money in minus money out.
+	measure 'Cash Movement' = CALCULATE ( SUM ( fact_gl_entry[debit_amount] ) - SUM ( fact_gl_entry[credit_amount] ), KEEPFILTERS ( dim_account[account_code] = "1010" ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// Operating Cash at the end of the period (or on the ledger's last day, if sooner).
+	measure 'Cash Balance' = VAR e = MIN ( MAX ( dim_date[date] ), [As Of Date] ) RETURN IF ( MIN ( dim_date[date] ) <= [As Of Date], CALCULATE ( [Cash Movement], REMOVEFILTERS ( dim_date ), dim_date[date] <= e ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// Cash at the same point last year.
+	measure 'Cash Balance PY' = CALCULATE ( [Cash Balance], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// Money in: ticketing, subscriptions, gifts and hall rentals.
+	measure 'Cash Received' = CALCULATE ( [Cash Movement], dim_source_module[cash_direction] = "In" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// Money out: payroll runs and payments to artists and suppliers.
+	measure 'Cash Paid' = - CALCULATE ( [Cash Movement], dim_source_module[cash_direction] = "Out" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// Cash received minus cash paid (the opening balance is not a flow).
+	measure 'Net Cash Flow' = [Cash Received] - [Cash Paid]
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// For cash flow statements: receipts positive, payments in brackets.
+	measure 'Cash Flow Amount' = CALCULATE ( [Cash Movement], dim_source_module[cash_direction] IN { "In", "Out" } )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	measure 'Cash Received FYTD' = CALCULATE ( [Cash Received], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash\FYTD
+
+	measure 'Cash Received PY FYTD' = CALCULATE ( [Cash Received], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash\FYTD
+
+	measure 'Cash Paid FYTD' = CALCULATE ( [Cash Paid], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash\FYTD
+
+	measure 'Cash Paid PY FYTD' = CALCULATE ( [Cash Paid], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash\FYTD
+
+	measure 'Net Cash Flow FYTD' = CALCULATE ( [Net Cash Flow], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash\FYTD
+
+	measure 'Net Cash Flow PY FYTD' = CALCULATE ( [Net Cash Flow], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash\FYTD
+
+	measure 'Cash Flow Amount FYTD' = CALCULATE ( [Cash Flow Amount], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash\FYTD
+
+	measure 'Cash Flow Amount PY FYTD' = CALCULATE ( [Cash Flow Amount], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash\FYTD
+
+	/// How many days of operating expenses the cash would cover (expenses over the last 365 days).
+	measure 'Days Cash on Hand' = VAR e = MIN ( MAX ( dim_date[date] ), [As Of Date] ) VAR spend = CALCULATE ( [Expenses], REMOVEFILTERS ( dim_date ), DATESINPERIOD ( dim_date[date], e, -365, DAY ) ) RETURN IF ( MIN ( dim_date[date] ) <= [As Of Date], DIVIDE ( [Cash Balance], spend / 365 ) )
+		formatString: #,0
+		displayFolder: Cash
+
+	measure 'Days Cash on Hand PY' = CALCULATE ( [Days Cash on Hand], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		formatString: #,0
+		displayFolder: Cash
+
+	/// Bills from artists and suppliers not yet paid (paid 30 days after month end).
+	measure 'Accounts Payable' = VAR e = MIN ( MAX ( dim_date[date] ), [As Of Date] ) RETURN IF ( MIN ( dim_date[date] ) <= [As Of Date], CALCULATE ( SUM ( fact_gl_entry[credit_amount] ) - SUM ( fact_gl_entry[debit_amount] ), REMOVEFILTERS ( dim_date ), dim_date[date] <= e, dim_account[account_code] = "2100" ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// Pay staff have earned but not yet received (biweekly payroll, paid in arrears).
+	measure 'Accrued Payroll' = VAR e = MIN ( MAX ( dim_date[date] ), [As Of Date] ) RETURN IF ( MIN ( dim_date[date] ) <= [As Of Date], CALCULATE ( SUM ( fact_gl_entry[credit_amount] ) - SUM ( fact_gl_entry[debit_amount] ), REMOVEFILTERS ( dim_date ), dim_date[date] <= e, dim_account[account_code] = "2200" ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// Accounts payable plus accrued payroll.
+	measure 'Owed to Suppliers and Staff' = [Accounts Payable] + [Accrued Payroll]
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	measure 'Owed to Suppliers and Staff PY' = CALCULATE ( [Owed to Suppliers and Staff], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	/// Actual for the metric picked in the trend toggle.
+	measure 'Trend Actual' = VAR sel = SUMMARIZE ( 'Trend Metric', 'Trend Metric'[Trend Metric], 'Trend Metric'[Trend Metric Fields] ) VAR m = IF ( COUNTROWS ( sel ) = 1, MAXX ( sel, 'Trend Metric'[Trend Metric] ), "Revenue" ) VAR v = SWITCH ( m, "Expenses", [Expenses], "Net Surplus", [Net Surplus], [Revenue] ) RETURN IF ( MIN ( dim_date[date] ) <= [As Of Date], v )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Trend
+
+	measure 'Trend Budget' = VAR sel = SUMMARIZE ( 'Trend Metric', 'Trend Metric'[Trend Metric], 'Trend Metric'[Trend Metric Fields] ) VAR m = IF ( COUNTROWS ( sel ) = 1, MAXX ( sel, 'Trend Metric'[Trend Metric] ), "Revenue" ) RETURN SWITCH ( m, "Expenses", [Expense Budget], "Net Surplus", [Net Surplus Budget], [Revenue Budget] )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Trend
+
+	measure 'Trend Last Year' = CALCULATE ( [Trend Actual], 'Time Intelligence'[Calculation] = "PY" )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Trend
+
+	measure 'SoA Actual' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) VAR c = SELECTEDVALUE ( 'Statement Line'[Account Code] ) RETURN SWITCH ( t, "Account", CALCULATE ( [Revenue] + [Expenses], dim_account[account_code] = c ), "Total Revenue", [Revenue], "Total Expenses", [Expenses], "Net", [Net Surplus], "Ratio", [Surplus Margin] )
+		isHidden
+		displayFolder: Statement of Activities
+
+	measure 'SoA Budget' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) VAR c = SELECTEDVALUE ( 'Statement Line'[Account Code] ) RETURN SWITCH ( t, "Account", CALCULATE ( [Revenue Budget] + [Expense Budget], dim_account[account_code] = c ), "Total Revenue", [Revenue Budget], "Total Expenses", [Expense Budget], "Net", [Net Surplus Budget], "Ratio", [Surplus Margin Budget] )
+		isHidden
+		displayFolder: Statement of Activities
+
+	/// Statement of Activities: actual, fiscal year to date.
+	measure Actual = CALCULATE ( [SoA Actual], 'Time Intelligence'[Calculation] = "FYTD" )
+		displayFolder: Statement of Activities
+
+		formatStringDefinition = IF ( SELECTEDVALUE ( 'Statement Line'[Line Type] ) = "Ratio", "0.0%", "$#,0;($#,0);-" )
+
+	/// Statement of Activities: adopted budget for the same days.
+	measure Budget = CALCULATE ( [SoA Budget], 'Time Intelligence'[Calculation] = "FYTD" )
+		displayFolder: Statement of Activities
+
+		formatStringDefinition = IF ( SELECTEDVALUE ( 'Statement Line'[Line Type] ) = "Ratio", "0.0%", "$#,0;($#,0);-" )
+
+	/// Statement of Activities: the same stretch of last year.
+	measure 'Last Year' = CALCULATE ( [SoA Actual], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		displayFolder: Statement of Activities
+
+		formatStringDefinition = IF ( SELECTEDVALUE ( 'Statement Line'[Line Type] ) = "Ratio", "0.0%", "$#,0;($#,0);-" )
+
+	/// Favourable (+) or unfavourable (-) against budget: revenue above budget or expenses below it.
+	measure 'vs Budget' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) VAR c = SELECTEDVALUE ( 'Statement Line'[Account Code] ) VAR exp = t = "Total Expenses" || ( t = "Account" && LEFT ( c, 1 ) = "5" ) VAR a = [Actual] VAR b = [Budget] RETURN IF ( NOT ISBLANK ( a ) || NOT ISBLANK ( b ), IF ( exp, b - a, a - b ) )
+		displayFolder: Statement of Activities
+
+		formatStringDefinition = IF ( SELECTEDVALUE ( 'Statement Line'[Line Type] ) = "Ratio", "+0.0%;-0.0%;-", "$#,0;($#,0);-" )
+
+	/// Variance against budget as a percentage. Blank for change in net assets, where a percentage of a small surplus misleads.
+	measure 'vs Budget %' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) VAR c = SELECTEDVALUE ( 'Statement Line'[Account Code] ) VAR exp = t = "Total Expenses" || ( t = "Account" && LEFT ( c, 1 ) = "5" ) VAR a = [Actual] VAR b = [Budget] RETURN IF ( t <> "Ratio" && t <> "Net", DIVIDE ( IF ( exp, b - a, a - b ), ABS ( b ) ) )
+		formatString: +0.0%;-0.0%;-
+		displayFolder: Statement of Activities
+
+	/// Favourable (+) or unfavourable (-) against last year.
+	measure 'vs Last Year' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) VAR c = SELECTEDVALUE ( 'Statement Line'[Account Code] ) VAR exp = t = "Total Expenses" || ( t = "Account" && LEFT ( c, 1 ) = "5" ) VAR a = [Actual] VAR p = [Last Year] RETURN IF ( NOT ISBLANK ( a ) && NOT ISBLANK ( p ), IF ( exp, p - a, a - p ) )
+		displayFolder: Statement of Activities
+
+		formatStringDefinition = IF ( SELECTEDVALUE ( 'Statement Line'[Line Type] ) = "Ratio", "+0.0%;-0.0%;-", "$#,0;($#,0);-" )
+
+	measure 'vs Last Year %' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) VAR c = SELECTEDVALUE ( 'Statement Line'[Account Code] ) VAR exp = t = "Total Expenses" || ( t = "Account" && LEFT ( c, 1 ) = "5" ) VAR a = [Actual] VAR p = [Last Year] RETURN IF ( t <> "Ratio" && t <> "Net", DIVIDE ( IF ( exp, p - a, a - p ), ABS ( p ) ) )
+		formatString: +0.0%;-0.0%;-
+		displayFolder: Statement of Activities
+
+	measure 'SoA Row Background' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN SWITCH ( t, "Header", "#F3F5F8", "Total Revenue", "#E8EEF5", "Total Expenses", "#E8EEF5", "Net", "#1E3A5F", "Ratio", "#E8EEF5", "#FFFFFF" )
+		displayFolder: Formatting
+
+	measure 'SoA Row Font' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN IF ( t = "Net", "#FFFFFF", "#1E3A5F" )
+		displayFolder: Formatting
+
+	measure 'SoA vs Budget Font' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN IF ( t = "Net", "#FFFFFF", IF ( [vs Budget] < 0, "#D84315", "#2E7D32" ) )
+		displayFolder: Formatting
+
+	measure 'SoA vs PY Font' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN IF ( t = "Net", "#FFFFFF", IF ( [vs Last Year] < 0, "#D84315", "#2E7D32" ) )
+		displayFolder: Formatting
+
+	measure 'Statement Title' = "Statement of Activities  |  " & SELECTEDVALUE ( dim_date[fiscal_year_label], "All years" ) & " year to date"
+		displayFolder: Report
+
+	/// KPI pill: Revenue against budget.
+	measure 'Revenue vs Budget' = Fmt.Change ( [Revenue FYTD], [Revenue Budget FYTD], "money", "No budget" )
+		displayFolder: Report\KPI cards
+
+	measure 'Revenue vs Budget Color' = Color.Change ( [Revenue FYTD], [Revenue Budget FYTD], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Revenue vs Budget Background' = Color.Change ( [Revenue FYTD], [Revenue Budget FYTD], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Expenses against budget.
+	measure 'Expenses vs Budget' = Fmt.Change ( [Expenses FYTD], [Expense Budget FYTD], "money", "No budget" )
+		displayFolder: Report\KPI cards
+
+	measure 'Expenses vs Budget Color' = Color.Change ( [Expenses FYTD], [Expense Budget FYTD], FALSE, "" )
+		displayFolder: Formatting
+
+	measure 'Expenses vs Budget Background' = Color.Change ( [Expenses FYTD], [Expense Budget FYTD], FALSE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Net Surplus against budget.
+	measure 'Net Surplus vs Budget' = Fmt.Change ( [Net Surplus FYTD], [Net Surplus Budget FYTD], "money_only", "No budget" )
+		displayFolder: Report\KPI cards
+
+	measure 'Net Surplus vs Budget Color' = Color.Change ( [Net Surplus FYTD], [Net Surplus Budget FYTD], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Net Surplus vs Budget Background' = Color.Change ( [Net Surplus FYTD], [Net Surplus Budget FYTD], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Contributed Revenue against budget.
+	measure 'Contributed Revenue vs Budget' = Fmt.Change ( [Contributed Revenue FYTD], [Contributed Revenue Budget FYTD], "money", "No budget" )
+		displayFolder: Report\KPI cards
+
+	measure 'Contributed Revenue vs Budget Color' = Color.Change ( [Contributed Revenue FYTD], [Contributed Revenue Budget FYTD], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Contributed Revenue vs Budget Background' = Color.Change ( [Contributed Revenue FYTD], [Contributed Revenue Budget FYTD], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Earned Revenue against budget.
+	measure 'Earned Revenue vs Budget' = Fmt.Change ( [Earned Revenue FYTD], [Earned Revenue Budget FYTD], "money", "No budget" )
+		displayFolder: Report\KPI cards
+
+	measure 'Earned Revenue vs Budget Color' = Color.Change ( [Earned Revenue FYTD], [Earned Revenue Budget FYTD], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Earned Revenue vs Budget Background' = Color.Change ( [Earned Revenue FYTD], [Earned Revenue Budget FYTD], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Surplus Margin against budget.
+	measure 'Surplus Margin vs Budget' = Fmt.Change ( [Surplus Margin FYTD], [Surplus Margin Budget FYTD], "pct", "No budget" )
+		displayFolder: Report\KPI cards
+
+	measure 'Surplus Margin vs Budget Color' = Color.Change ( [Surplus Margin FYTD], [Surplus Margin Budget FYTD], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Surplus Margin vs Budget Background' = Color.Change ( [Surplus Margin FYTD], [Surplus Margin Budget FYTD], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Cash Balance against the same point last year.
+	measure 'Cash Balance vs PY' = Fmt.Change ( [Cash Balance], [Cash Balance PY], "money_only", "No prior year" )
+		displayFolder: Report\KPI cards
+
+	measure 'Cash Balance vs PY Color' = Color.Change ( [Cash Balance], [Cash Balance PY], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Cash Balance vs PY Background' = Color.Change ( [Cash Balance], [Cash Balance PY], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Days Cash on Hand against the same point last year.
+	measure 'Days Cash on Hand vs PY' = Fmt.Change ( [Days Cash on Hand], [Days Cash on Hand PY], "days", "No prior year" )
+		displayFolder: Report\KPI cards
+
+	measure 'Days Cash on Hand vs PY Color' = Color.Change ( [Days Cash on Hand], [Days Cash on Hand PY], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Days Cash on Hand vs PY Background' = Color.Change ( [Days Cash on Hand], [Days Cash on Hand PY], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Net Cash Flow against the same point last year.
+	measure 'Net Cash Flow vs PY' = Fmt.Change ( [Net Cash Flow FYTD], [Net Cash Flow PY FYTD], "money_only", "No prior year" )
+		displayFolder: Report\KPI cards
+
+	measure 'Net Cash Flow vs PY Color' = Color.Change ( [Net Cash Flow FYTD], [Net Cash Flow PY FYTD], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Net Cash Flow vs PY Background' = Color.Change ( [Net Cash Flow FYTD], [Net Cash Flow PY FYTD], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Cash Received against the same point last year.
+	measure 'Cash Received vs PY' = Fmt.Change ( [Cash Received FYTD], [Cash Received PY FYTD], "money", "No prior year" )
+		displayFolder: Report\KPI cards
+
+	measure 'Cash Received vs PY Color' = Color.Change ( [Cash Received FYTD], [Cash Received PY FYTD], TRUE, "" )
+		displayFolder: Formatting
+
+	measure 'Cash Received vs PY Background' = Color.Change ( [Cash Received FYTD], [Cash Received PY FYTD], TRUE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: Cash Paid against the same point last year.
+	measure 'Cash Paid vs PY' = Fmt.Change ( [Cash Paid FYTD], [Cash Paid PY FYTD], "money", "No prior year" )
+		displayFolder: Report\KPI cards
+
+	measure 'Cash Paid vs PY Color' = Color.Change ( [Cash Paid FYTD], [Cash Paid PY FYTD], FALSE, "" )
+		displayFolder: Formatting
+
+	measure 'Cash Paid vs PY Background' = Color.Change ( [Cash Paid FYTD], [Cash Paid PY FYTD], FALSE, "1A" )
+		displayFolder: Formatting
+
+	/// KPI pill: money owed to suppliers and staff against the same point last year.
+	measure 'Owed vs PY' = Fmt.Change ( [Owed to Suppliers and Staff], [Owed to Suppliers and Staff PY], "money_only", "No prior year" )
+		displayFolder: Report\KPI cards
+
+	measure 'Owed vs PY Color' = Color.Change ( [Owed to Suppliers and Staff], [Owed to Suppliers and Staff PY], FALSE, "" )
+		displayFolder: Formatting
+
+	measure 'Owed vs PY Background' = Color.Change ( [Owed to Suppliers and Staff], [Owed to Suppliers and Staff PY], FALSE, "1A" )
+		displayFolder: Formatting
+
+	/// Cash at the end of the same month last year (for monthly trend charts).
+	measure 'Cash Balance Last Year' = CALCULATE ( [Cash Balance], 'Time Intelligence'[Calculation] = "PY" )
+		formatString: $#,0;($#,0)
+		displayFolder: Cash
+
+	measure 'Revenue Last Year' = CALCULATE ( [Revenue], 'Time Intelligence'[Calculation] = "PY" )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Trend
+
+	measure 'Expenses Last Year' = CALCULATE ( [Expenses], 'Time Intelligence'[Calculation] = "PY" )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Trend
+
+	/// Revenue, blank for months after the ledger's last day (so charts stop at today).
+	measure 'Revenue Actual to Date' = IF ( MIN ( dim_date[date] ) <= [As Of Date], [Revenue] )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Trend
+
+	measure 'Expenses Actual to Date' = IF ( MIN ( dim_date[date] ) <= [As Of Date], [Expenses] )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Trend
+
 	column placeholder
 		isHidden
 		lineageTag: 8334bced-3def-4ea3-8740-4cb06f12a963

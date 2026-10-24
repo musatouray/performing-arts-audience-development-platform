@@ -1,0 +1,55 @@
+/// Adopted budget from MIP, one row per budget line per day (monthly budget spread evenly), so FYTD and prior-year logic works the same as for actuals.
+table fact_budget
+
+	column budget_line_id
+		dataType: string
+		isHidden
+		sourceColumn: budget_line_id
+
+	column date_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: date_key
+
+	column fiscal_year
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: fiscal_year
+
+	column budget_version
+		dataType: string
+		sourceColumn: budget_version
+
+	column account_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: account_key
+
+	column fund_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: fund_key
+
+	column department_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: department_key
+
+	column budget_amount
+		dataType: decimal
+		isHidden
+		formatString: $#,0
+		sourceColumn: budget_amount
+
+	partition fact_budget = entity
+		mode: directLake
+		source
+			entityName: fact_budget
+			schemaName: fin
+			expressionSource: 'DirectLake - wh_gold'
+
