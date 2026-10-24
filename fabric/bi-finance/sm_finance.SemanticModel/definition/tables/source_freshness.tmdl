@@ -61,6 +61,29 @@ table source_freshness
 
 		annotation SummarizationSetBy = Automatic
 
+	/// Short name, e.g. MIP.
+	column source_label
+		dataType: string
+		sourceColumn: source_label
+
+	/// Last load in Eastern time.
+	column last_loaded_et
+		dataType: dateTime
+		formatString: mmm d, yyyy h:nn AM/PM
+		sourceColumn: last_loaded_et
+
+	/// daily or weekly, from sources.yaml.
+	column expected_refresh
+		dataType: string
+		sourceColumn: expected_refresh
+
+	/// Hours before the source counts as Stale.
+	column sla_hours
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: sla_hours
+
 	partition source_freshness = entity
 		mode: directLake
 		source

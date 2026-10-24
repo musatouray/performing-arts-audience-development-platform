@@ -23,6 +23,7 @@ ref table recon_revenue_to_gl
 ref table source_freshness
 ref table _Measures
 ref table 'Time Intelligence'
+ref table 'Trend Metric'
 
 ref role Finance
 

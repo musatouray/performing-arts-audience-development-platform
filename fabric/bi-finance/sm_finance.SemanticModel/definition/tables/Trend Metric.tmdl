@@ -1,0 +1,32 @@
+/// Field parameter: pick the measure the monthly trend chart shows.
+table 'Trend Metric'
+
+	column 'Trend Metric'
+		isNameInferred
+		sourceColumn: [Trend Metric]
+		sortByColumn: 'Trend Metric Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Trend Metric Fields'
+
+	column 'Trend Metric Fields'
+		isHidden
+		isNameInferred
+		sourceColumn: [Trend Metric Fields]
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+	column 'Trend Metric Order'
+		isHidden
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Trend Metric Order]
+
+	partition 'Trend Metric' = calculated
+		mode: import
+		source = SELECTCOLUMNS ( { ("Revenue", NAMEOF('_Measures'[Revenue]), 0), ("Expenses", NAMEOF('_Measures'[Expenses]), 1), ("Net Surplus", NAMEOF('_Measures'[Net Surplus]), 2) }, "Trend Metric", [Value1], "Trend Metric Fields", [Value2], "Trend Metric Order", [Value3] )
+

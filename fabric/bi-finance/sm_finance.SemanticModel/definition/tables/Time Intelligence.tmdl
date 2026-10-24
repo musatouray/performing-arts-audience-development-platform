@@ -8,15 +8,25 @@ table 'Time Intelligence'
 
 		calculationItem Current = SELECTEDMEASURE ()
 
-		calculationItem FYTD = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( dim_date[date], "6/30" ), REMOVEFILTERS ( dim_date ) )
+		/// Fiscal year to date, capped at the last date in the ledger so a year in progress is never padded with empty months.
+		calculationItem FYTD = VAR k = CALCULATE ( MAX ( fact_gl_entry[effective_date_key] ), REMOVEFILTERS () ) VAR AsOf = DATE ( INT ( k / 10000 ), MOD ( INT ( k / 100 ), 100 ), MOD ( k, 100 ) ) RETURN CALCULATE ( SELECTEDMEASURE (), FILTER ( DATESYTD ( dim_date[date], "6/30" ), dim_date[date] <= AsOf ), REMOVEFILTERS ( dim_date ) )
 
 		calculationItem PY = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ), REMOVEFILTERS ( dim_date ) )
 
-		calculationItem 'PY FYTD' = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( SAMEPERIODLASTYEAR ( dim_date[date] ), "6/30" ), REMOVEFILTERS ( dim_date ) )
+		/// The same stretch of the prior fiscal year, like for like with FYTD.
+		calculationItem 'PY FYTD' = VAR k = CALCULATE ( MAX ( fact_gl_entry[effective_date_key] ), REMOVEFILTERS () ) VAR AsOf = DATE ( INT ( k / 10000 ), MOD ( INT ( k / 100 ), 100 ), MOD ( k, 100 ) ) RETURN CALCULATE ( SELECTEDMEASURE (), FILTER ( DATESYTD ( SAMEPERIODLASTYEAR ( dim_date[date] ), "6/30" ), dim_date[date] <= EDATE ( AsOf, -12 ) ), REMOVEFILTERS ( dim_date ) )
 
 		calculationItem YoY = VAR Cur = SELECTEDMEASURE () VAR Py = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ), REMOVEFILTERS ( dim_date ) ) RETURN IF ( NOT ISBLANK ( Cur ) && NOT ISBLANK ( Py ), Cur - Py )
 
 		calculationItem 'YoY %' = VAR Cur = SELECTEDMEASURE () VAR Py = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dim_date[date] ), REMOVEFILTERS ( dim_date ) ) RETURN DIVIDE ( Cur - Py, Py )
+
+			formatStringDefinition = "0.0%"
+
+		/// FYTD minus the same stretch of the prior year.
+		calculationItem 'FYTD vs PY' = VAR k = CALCULATE ( MAX ( fact_gl_entry[effective_date_key] ), REMOVEFILTERS () ) VAR AsOf = DATE ( INT ( k / 10000 ), MOD ( INT ( k / 100 ), 100 ), MOD ( k, 100 ) ) VAR Cur = CALCULATE ( SELECTEDMEASURE (), FILTER ( DATESYTD ( dim_date[date], "6/30" ), dim_date[date] <= AsOf ), REMOVEFILTERS ( dim_date ) ) VAR Py = CALCULATE ( SELECTEDMEASURE (), FILTER ( DATESYTD ( SAMEPERIODLASTYEAR ( dim_date[date] ), "6/30" ), dim_date[date] <= EDATE ( AsOf, -12 ) ), REMOVEFILTERS ( dim_date ) ) RETURN IF ( NOT ISBLANK ( Cur ) && NOT ISBLANK ( Py ), Cur - Py )
+
+		/// FYTD change against the same stretch of the prior year, as a percentage.
+		calculationItem 'FYTD vs PY %' = VAR k = CALCULATE ( MAX ( fact_gl_entry[effective_date_key] ), REMOVEFILTERS () ) VAR AsOf = DATE ( INT ( k / 10000 ), MOD ( INT ( k / 100 ), 100 ), MOD ( k, 100 ) ) VAR Cur = CALCULATE ( SELECTEDMEASURE (), FILTER ( DATESYTD ( dim_date[date], "6/30" ), dim_date[date] <= AsOf ), REMOVEFILTERS ( dim_date ) ) VAR Py = CALCULATE ( SELECTEDMEASURE (), FILTER ( DATESYTD ( SAMEPERIODLASTYEAR ( dim_date[date] ), "6/30" ), dim_date[date] <= EDATE ( AsOf, -12 ) ), REMOVEFILTERS ( dim_date ) ) RETURN DIVIDE ( Cur - Py, ABS ( Py ) )
 
 			formatStringDefinition = "0.0%"
 
