@@ -43,11 +43,12 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Revenue"
+                  "Property": "Revenue FYTD"
                 }
               },
-              "queryRef": "_Measures.Revenue",
-              "nativeQueryRef": "Revenue"
+              "queryRef": "_Measures.Revenue FYTD",
+              "nativeQueryRef": "Revenue FYTD",
+              "displayName": "Revenue"
             }
           ]
         }
@@ -62,7 +63,7 @@
                     "Entity": "_Measures"
                   }
                 },
-                "Property": "Revenue"
+                "Property": "Revenue FYTD"
               }
             },
             "direction": "Descending"
