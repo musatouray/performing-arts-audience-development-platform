@@ -80,11 +80,11 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Contributed Revenue FYTD"
+                  "Property": "Cash Balance"
                 }
               },
-              "queryRef": "_Measures.Contributed Revenue FYTD",
-              "nativeQueryRef": "Contributed Revenue FYTD"
+              "queryRef": "_Measures.Cash Balance",
+              "nativeQueryRef": "Cash Balance"
             },
             {
               "field": {
@@ -94,11 +94,11 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Earned Revenue % FYTD"
+                  "Property": "Days Cash on Hand"
                 }
               },
-              "queryRef": "_Measures.Earned Revenue % FYTD",
-              "nativeQueryRef": "Earned Revenue % FYTD"
+              "queryRef": "_Measures.Days Cash on Hand",
+              "nativeQueryRef": "Days Cash on Hand"
             }
           ]
         }
@@ -240,7 +240,7 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Contributed Revenue FYTD"
+            "metadata": "_Measures.Cash Balance"
           }
         },
         {
@@ -255,13 +255,13 @@
             "labelPrecision": {
               "expr": {
                 "Literal": {
-                  "Value": "1L"
+                  "Value": "0L"
                 }
               }
             }
           },
           "selector": {
-            "metadata": "_Measures.Earned Revenue % FYTD"
+            "metadata": "_Measures.Days Cash on Hand"
           }
         }
       ],
@@ -345,7 +345,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Net Surplus'"
+                  "Value": "'Change in net assets'"
                 }
               }
             }
@@ -359,7 +359,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Surplus Margin'"
+                  "Value": "'Surplus margin'"
                 }
               }
             }
@@ -373,13 +373,13 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Contributed Revenue'"
+                  "Value": "'Cash balance'"
                 }
               }
             }
           },
           "selector": {
-            "metadata": "_Measures.Contributed Revenue FYTD"
+            "metadata": "_Measures.Cash Balance"
           }
         },
         {
@@ -387,13 +387,13 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Earned Revenue Share'"
+                  "Value": "'Days cash on hand'"
                 }
               }
             }
           },
           "selector": {
-            "metadata": "_Measures.Earned Revenue % FYTD"
+            "metadata": "_Measures.Days Cash on Hand"
           }
         }
       ],
@@ -552,7 +552,7 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Contributed Revenue FYTD"
+            "metadata": "_Measures.Cash Balance"
           }
         },
         {
@@ -577,7 +577,7 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Earned Revenue % FYTD"
+            "metadata": "_Measures.Days Cash on Hand"
           }
         }
       ],
@@ -606,7 +606,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Revenue PY FYTD"
+                  "Property": "Revenue Budget FYTD"
                 }
               }
             }
@@ -634,7 +634,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Expenses PY FYTD"
+                  "Property": "Expense Budget FYTD"
                 }
               }
             }
@@ -662,7 +662,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Net Surplus PY FYTD"
+                  "Property": "Net Surplus Budget FYTD"
                 }
               }
             }
@@ -690,7 +690,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Surplus Margin PY FYTD"
+                  "Property": "Surplus Margin Budget FYTD"
                 }
               }
             }
@@ -718,7 +718,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Contributed Revenue PY FYTD"
+                  "Property": "Cash Balance PY"
                 }
               }
             }
@@ -731,8 +731,8 @@
                 }
               }
             ],
-            "metadata": "_Measures.Contributed Revenue FYTD",
-            "id": "field-434aaa84-362f-5ec7-b398-6522da600825",
+            "metadata": "_Measures.Cash Balance",
+            "id": "field-c691adce-3ada-56cc-9388-2307b2d7fa6a",
             "order": 0
           }
         },
@@ -746,7 +746,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Earned Revenue % PY FYTD"
+                  "Property": "Days Cash on Hand PY"
                 }
               }
             }
@@ -759,8 +759,8 @@
                 }
               }
             ],
-            "metadata": "_Measures.Earned Revenue % FYTD",
-            "id": "field-e4c1c439-b5c1-5f9e-91ec-230f8b800ada",
+            "metadata": "_Measures.Days Cash on Hand",
+            "id": "field-af7b50fa-8512-5356-bf2f-4a6206f14739",
             "order": 0
           }
         }
@@ -810,7 +810,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'PY'"
+                  "Value": "'Budget'"
                 }
               }
             }
@@ -832,7 +832,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'PY'"
+                  "Value": "'Budget'"
                 }
               }
             }
@@ -854,7 +854,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'PY'"
+                  "Value": "'Budget'"
                 }
               }
             }
@@ -876,7 +876,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'PY'"
+                  "Value": "'Budget'"
                 }
               }
             }
@@ -904,8 +904,8 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Contributed Revenue FYTD",
-            "id": "field-434aaa84-362f-5ec7-b398-6522da600825"
+            "metadata": "_Measures.Cash Balance",
+            "id": "field-c691adce-3ada-56cc-9388-2307b2d7fa6a"
           }
         },
         {
@@ -926,8 +926,8 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Earned Revenue % FYTD",
-            "id": "field-e4c1c439-b5c1-5f9e-91ec-230f8b800ada"
+            "metadata": "_Measures.Days Cash on Hand",
+            "id": "field-af7b50fa-8512-5356-bf2f-4a6206f14739"
           }
         }
       ],
@@ -1112,8 +1112,8 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Contributed Revenue FYTD",
-            "id": "field-434aaa84-362f-5ec7-b398-6522da600825"
+            "metadata": "_Measures.Cash Balance",
+            "id": "field-c691adce-3ada-56cc-9388-2307b2d7fa6a"
           }
         },
         {
@@ -1128,7 +1128,7 @@
             "valuePrecision": {
               "expr": {
                 "Literal": {
-                  "Value": "1L"
+                  "Value": "0L"
                 }
               }
             },
@@ -1141,8 +1141,8 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Earned Revenue % FYTD",
-            "id": "field-e4c1c439-b5c1-5f9e-91ec-230f8b800ada"
+            "metadata": "_Measures.Days Cash on Hand",
+            "id": "field-af7b50fa-8512-5356-bf2f-4a6206f14739"
           }
         }
       ],
@@ -1207,7 +1207,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Revenue vs PY"
+                  "Property": "Revenue vs Budget"
                 }
               }
             },
@@ -1221,7 +1221,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Revenue vs PY Color"
+                      "Property": "Revenue vs Budget Color"
                     }
                   }
                 }
@@ -1237,7 +1237,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Revenue vs PY Background"
+                      "Property": "Revenue vs Budget Background"
                     }
                   }
                 }
@@ -1288,7 +1288,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Expenses vs PY"
+                  "Property": "Expenses vs Budget"
                 }
               }
             },
@@ -1302,7 +1302,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Expenses vs PY Color"
+                      "Property": "Expenses vs Budget Color"
                     }
                   }
                 }
@@ -1318,7 +1318,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Expenses vs PY Background"
+                      "Property": "Expenses vs Budget Background"
                     }
                   }
                 }
@@ -1369,7 +1369,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Net Surplus vs PY"
+                  "Property": "Net Surplus vs Budget"
                 }
               }
             },
@@ -1383,7 +1383,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Net Surplus vs PY Color"
+                      "Property": "Net Surplus vs Budget Color"
                     }
                   }
                 }
@@ -1399,7 +1399,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Net Surplus vs PY Background"
+                      "Property": "Net Surplus vs Budget Background"
                     }
                   }
                 }
@@ -1450,7 +1450,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Surplus Margin vs PY"
+                  "Property": "Surplus Margin vs Budget"
                 }
               }
             },
@@ -1464,7 +1464,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Surplus Margin vs PY Color"
+                      "Property": "Surplus Margin vs Budget Color"
                     }
                   }
                 }
@@ -1480,7 +1480,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Surplus Margin vs PY Background"
+                      "Property": "Surplus Margin vs Budget Background"
                     }
                   }
                 }
@@ -1517,8 +1517,8 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Contributed Revenue FYTD",
-            "id": "field-434aaa84-362f-5ec7-b398-6522da600825"
+            "metadata": "_Measures.Cash Balance",
+            "id": "field-c691adce-3ada-56cc-9388-2307b2d7fa6a"
           }
         },
         {
@@ -1531,7 +1531,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Contributed Revenue vs PY"
+                  "Property": "Cash Balance vs PY"
                 }
               }
             },
@@ -1545,7 +1545,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Contributed Revenue vs PY Color"
+                      "Property": "Cash Balance vs PY Color"
                     }
                   }
                 }
@@ -1561,7 +1561,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Contributed Revenue vs PY Background"
+                      "Property": "Cash Balance vs PY Background"
                     }
                   }
                 }
@@ -1576,8 +1576,8 @@
                 }
               }
             ],
-            "metadata": "_Measures.Contributed Revenue FYTD",
-            "id": "field-434aaa84-362f-5ec7-b398-6522da600825"
+            "metadata": "_Measures.Cash Balance",
+            "id": "field-c691adce-3ada-56cc-9388-2307b2d7fa6a"
           }
         },
         {
@@ -1598,8 +1598,8 @@
             }
           },
           "selector": {
-            "metadata": "_Measures.Earned Revenue % FYTD",
-            "id": "field-e4c1c439-b5c1-5f9e-91ec-230f8b800ada"
+            "metadata": "_Measures.Days Cash on Hand",
+            "id": "field-af7b50fa-8512-5356-bf2f-4a6206f14739"
           }
         },
         {
@@ -1612,7 +1612,7 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Earned Revenue % vs PY"
+                  "Property": "Days Cash on Hand vs PY"
                 }
               }
             },
@@ -1626,7 +1626,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Earned Revenue % vs PY Color"
+                      "Property": "Days Cash on Hand vs PY Color"
                     }
                   }
                 }
@@ -1642,7 +1642,7 @@
                           "Entity": "_Measures"
                         }
                       },
-                      "Property": "Earned Revenue % vs PY Background"
+                      "Property": "Days Cash on Hand vs PY Background"
                     }
                   }
                 }
@@ -1657,8 +1657,8 @@
                 }
               }
             ],
-            "metadata": "_Measures.Earned Revenue % FYTD",
-            "id": "field-e4c1c439-b5c1-5f9e-91ec-230f8b800ada"
+            "metadata": "_Measures.Days Cash on Hand",
+            "id": "field-af7b50fa-8512-5356-bf2f-4a6206f14739"
           }
         }
       ],

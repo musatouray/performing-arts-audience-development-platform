@@ -1,11 +1,11 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
-  "name": "ov_statement",
+  "name": "rv_matrix",
   "position": {
     "x": 30,
     "y": 790,
     "z": 2000,
-    "width": 1230,
+    "width": 1860,
     "height": 260,
     "tabOrder": 2000
   },
@@ -24,12 +24,12 @@
                       "Entity": "dim_account"
                     }
                   },
-                  "Property": "account_type"
+                  "Property": "account_group"
                 }
               },
-              "queryRef": "dim_account.account_type",
-              "nativeQueryRef": "account_type",
-              "displayName": "Line"
+              "queryRef": "dim_account.account_group",
+              "nativeQueryRef": "account_group",
+              "displayName": "Group"
             },
             {
               "field": {
@@ -39,12 +39,12 @@
                       "Entity": "dim_account"
                     }
                   },
-                  "Property": "account_group"
+                  "Property": "account_name"
                 }
               },
-              "queryRef": "dim_account.account_group",
-              "nativeQueryRef": "account_group",
-              "displayName": "Group"
+              "queryRef": "dim_account.account_name",
+              "nativeQueryRef": "account_name",
+              "displayName": "Revenue line"
             }
           ]
         },
@@ -58,12 +58,12 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Statement FYTD"
+                  "Property": "Revenue FYTD"
                 }
               },
-              "queryRef": "_Measures.Statement FYTD",
-              "nativeQueryRef": "Statement FYTD",
-              "displayName": "This year to date"
+              "queryRef": "_Measures.Revenue FYTD",
+              "nativeQueryRef": "Revenue FYTD",
+              "displayName": "Actual"
             },
             {
               "field": {
@@ -73,12 +73,12 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Statement PY FYTD"
+                  "Property": "Revenue Budget FYTD"
                 }
               },
-              "queryRef": "_Measures.Statement PY FYTD",
-              "nativeQueryRef": "Statement PY FYTD",
-              "displayName": "Same period last year"
+              "queryRef": "_Measures.Revenue Budget FYTD",
+              "nativeQueryRef": "Revenue Budget FYTD",
+              "displayName": "Budget"
             },
             {
               "field": {
@@ -88,12 +88,12 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Statement vs PY"
+                  "Property": "Revenue vs Budget FYTD"
                 }
               },
-              "queryRef": "_Measures.Statement vs PY",
-              "nativeQueryRef": "Statement vs PY",
-              "displayName": "Change"
+              "queryRef": "_Measures.Revenue vs Budget FYTD",
+              "nativeQueryRef": "Revenue vs Budget FYTD",
+              "displayName": "vs Budget"
             },
             {
               "field": {
@@ -103,33 +103,30 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Statement vs PY %"
+                  "Property": "Revenue vs Budget FYTD %"
                 }
               },
-              "queryRef": "_Measures.Statement vs PY %",
-              "nativeQueryRef": "Statement vs PY %",
-              "displayName": "Change %"
+              "queryRef": "_Measures.Revenue vs Budget FYTD %",
+              "nativeQueryRef": "Revenue vs Budget FYTD %",
+              "displayName": "vs Budget %"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Revenue PY FYTD"
+                }
+              },
+              "queryRef": "_Measures.Revenue PY FYTD",
+              "nativeQueryRef": "Revenue PY FYTD",
+              "displayName": "Last year"
             }
           ]
         }
-      },
-      "sortDefinition": {
-        "sort": [
-          {
-            "field": {
-              "Column": {
-                "Expression": {
-                  "SourceRef": {
-                    "Entity": "dim_account"
-                  }
-                },
-                "Property": "account_type"
-              }
-            },
-            "direction": "Descending"
-          }
-        ],
-        "isDefaultSort": false
       }
     },
     "objects": {
@@ -247,18 +244,37 @@
                   "Value": "11D"
                 }
               }
-            },
-            "backColorSecondary": {
+            }
+          }
+        },
+        {
+          "properties": {
+            "fontColor": {
               "solid": {
                 "color": {
                   "expr": {
-                    "Literal": {
-                      "Value": "'#F7F9FB'"
+                    "Measure": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "_Measures"
+                        }
+                      },
+                      "Property": "Revenue vs Budget Color"
                     }
                   }
                 }
               }
             }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 1
+                }
+              }
+            ],
+            "metadata": "_Measures.Revenue vs Budget FYTD"
           }
         }
       ],
@@ -357,7 +373,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Income statement'"
+                  "Value": "'Revenue lines'"
                 }
               }
             }
@@ -377,7 +393,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Revenue and expenses, year to date vs the same period last year  |  total row = net surplus'"
+                  "Value": "'Year to date  |  expand a group to see its lines'"
                 }
               }
             }
@@ -398,5 +414,62 @@
         }
       ]
     }
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "rv_matrix_type",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "dim_account"
+              }
+            },
+            "Property": "account_type"
+          }
+        },
+        "type": "Categorical",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "t",
+              "Entity": "dim_account",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "t"
+                          }
+                        },
+                        "Property": "account_type"
+                      }
+                    }
+                  ],
+                  "Values": [
+                    [
+                      {
+                        "Literal": {
+                          "Value": "'Revenue'"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
   }
 }

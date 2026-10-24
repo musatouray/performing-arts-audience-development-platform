@@ -43,30 +43,27 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Expenses"
+                  "Property": "Expenses FYTD"
                 }
               },
-              "queryRef": "_Measures.Expenses",
-              "nativeQueryRef": "Expenses"
-            }
-          ]
-        },
-        "Series": {
-          "projections": [
+              "queryRef": "_Measures.Expenses FYTD",
+              "nativeQueryRef": "Expenses FYTD",
+              "displayName": "Actual"
+            },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Time Intelligence"
+                      "Entity": "_Measures"
                     }
                   },
-                  "Property": "Calculation"
+                  "Property": "Expense Budget FYTD"
                 }
               },
-              "queryRef": "Time Intelligence.Calculation",
-              "nativeQueryRef": "Calculation",
-              "displayName": "Period"
+              "queryRef": "_Measures.Expense Budget FYTD",
+              "nativeQueryRef": "Expense Budget FYTD",
+              "displayName": "Budget"
             }
           ]
         }
@@ -81,7 +78,7 @@
                     "Entity": "_Measures"
                   }
                 },
-                "Property": "Expenses"
+                "Property": "Expenses FYTD"
               }
             },
             "direction": "Descending"
@@ -174,30 +171,7 @@
             }
           },
           "selector": {
-            "data": [
-              {
-                "scopeId": {
-                  "Comparison": {
-                    "ComparisonKind": 0,
-                    "Left": {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Entity": "Time Intelligence"
-                          }
-                        },
-                        "Property": "Calculation"
-                      }
-                    },
-                    "Right": {
-                      "Literal": {
-                        "Value": "'FYTD'"
-                      }
-                    }
-                  }
-                }
-              }
-            ]
+            "metadata": "_Measures.Expenses FYTD"
           }
         },
         {
@@ -207,7 +181,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#B0BEC5'"
+                      "Value": "'#C9D3E0'"
                     }
                   }
                 }
@@ -215,30 +189,20 @@
             }
           },
           "selector": {
-            "data": [
-              {
-                "scopeId": {
-                  "Comparison": {
-                    "ComparisonKind": 0,
-                    "Left": {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Entity": "Time Intelligence"
-                          }
-                        },
-                        "Property": "Calculation"
-                      }
-                    },
-                    "Right": {
-                      "Literal": {
-                        "Value": "'PY FYTD'"
-                      }
-                    }
-                  }
+            "metadata": "_Measures.Expense Budget FYTD"
+          }
+        }
+      ],
+      "labels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
                 }
               }
-            ]
+            }
           }
         }
       ]
@@ -257,7 +221,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Where the money goes'"
+                  "Value": "'Spending against budget'"
                 }
               }
             }
@@ -277,7 +241,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Expenses by department, year to date vs the same period last year'"
+                  "Value": "'Expenses by department, year to date'"
                 }
               }
             }
@@ -298,69 +262,5 @@
         }
       ]
     }
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "ov_dept_ti",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "Time Intelligence"
-              }
-            },
-            "Property": "Calculation"
-          }
-        },
-        "type": "Categorical",
-        "filter": {
-          "Version": 2,
-          "From": [
-            {
-              "Name": "t",
-              "Entity": "Time Intelligence",
-              "Type": 0
-            }
-          ],
-          "Where": [
-            {
-              "Condition": {
-                "In": {
-                  "Expressions": [
-                    {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Source": "t"
-                          }
-                        },
-                        "Property": "Calculation"
-                      }
-                    }
-                  ],
-                  "Values": [
-                    [
-                      {
-                        "Literal": {
-                          "Value": "'FYTD'"
-                        }
-                      }
-                    ],
-                    [
-                      {
-                        "Literal": {
-                          "Value": "'PY FYTD'"
-                        }
-                      }
-                    ]
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      }
-    ]
   }
 }

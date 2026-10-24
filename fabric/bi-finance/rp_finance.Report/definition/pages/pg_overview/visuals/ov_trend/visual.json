@@ -43,46 +43,42 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Revenue"
+                  "Property": "Trend Actual"
                 }
               },
-              "queryRef": "_Measures.Revenue",
-              "nativeQueryRef": "Revenue"
-            }
-          ],
-          "fieldParameters": [
-            {
-              "parameterExpr": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Trend Metric"
-                    }
-                  },
-                  "Property": "Trend Metric"
-                }
-              },
-              "index": 0,
-              "length": 1
-            }
-          ]
-        },
-        "Series": {
-          "projections": [
+              "queryRef": "_Measures.Trend Actual",
+              "nativeQueryRef": "Trend Actual",
+              "displayName": "Actual"
+            },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Time Intelligence"
+                      "Entity": "_Measures"
                     }
                   },
-                  "Property": "Calculation"
+                  "Property": "Trend Budget"
                 }
               },
-              "queryRef": "Time Intelligence.Calculation",
-              "nativeQueryRef": "Calculation",
-              "displayName": "Year"
+              "queryRef": "_Measures.Trend Budget",
+              "nativeQueryRef": "Trend Budget",
+              "displayName": "Budget"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Trend Last Year"
+                }
+              },
+              "queryRef": "_Measures.Trend Last Year",
+              "nativeQueryRef": "Trend Last Year",
+              "displayName": "Last year"
             }
           ]
         }
@@ -190,30 +186,25 @@
             }
           },
           "selector": {
-            "data": [
-              {
-                "scopeId": {
-                  "Comparison": {
-                    "ComparisonKind": 0,
-                    "Left": {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Entity": "Time Intelligence"
-                          }
-                        },
-                        "Property": "Calculation"
-                      }
-                    },
-                    "Right": {
-                      "Literal": {
-                        "Value": "'Current'"
-                      }
+            "metadata": "_Measures.Trend Actual"
+          }
+        },
+        {
+          "properties": {
+            "fill": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#C9A227'"
                     }
                   }
                 }
               }
-            ]
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Trend Budget"
           }
         },
         {
@@ -231,50 +222,13 @@
             }
           },
           "selector": {
-            "data": [
-              {
-                "scopeId": {
-                  "Comparison": {
-                    "ComparisonKind": 0,
-                    "Left": {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Entity": "Time Intelligence"
-                          }
-                        },
-                        "Property": "Calculation"
-                      }
-                    },
-                    "Right": {
-                      "Literal": {
-                        "Value": "'PY'"
-                      }
-                    }
-                  }
-                }
-              }
-            ]
+            "metadata": "_Measures.Trend Last Year"
           }
         }
       ],
       "lineStyles": [
         {
           "properties": {
-            "strokeWidth": {
-              "expr": {
-                "Literal": {
-                  "Value": "3D"
-                }
-              }
-            },
-            "showMarker": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            },
             "lineChartType": {
               "expr": {
                 "Literal": {
@@ -286,6 +240,27 @@
         },
         {
           "properties": {
+            "strokeWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "3D"
+                }
+              }
+            },
+            "lineStyle": {
+              "expr": {
+                "Literal": {
+                  "Value": "'solid'"
+                }
+              }
+            },
+            "showMarker": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
             "areaShow": {
               "expr": {
                 "Literal": {
@@ -302,34 +277,18 @@
             }
           },
           "selector": {
-            "data": [
-              {
-                "scopeId": {
-                  "Comparison": {
-                    "ComparisonKind": 0,
-                    "Left": {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Entity": "Time Intelligence"
-                          }
-                        },
-                        "Property": "Calculation"
-                      }
-                    },
-                    "Right": {
-                      "Literal": {
-                        "Value": "'Current'"
-                      }
-                    }
-                  }
-                }
-              }
-            ]
+            "metadata": "_Measures.Trend Actual"
           }
         },
         {
           "properties": {
+            "strokeWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
+                }
+              }
+            },
             "lineStyle": {
               "expr": {
                 "Literal": {
@@ -337,39 +296,44 @@
                 }
               }
             },
+            "showMarker": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Trend Budget"
+          }
+        },
+        {
+          "properties": {
             "strokeWidth": {
               "expr": {
                 "Literal": {
                   "Value": "2D"
                 }
               }
+            },
+            "lineStyle": {
+              "expr": {
+                "Literal": {
+                  "Value": "'dashed'"
+                }
+              }
+            },
+            "showMarker": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
             }
           },
           "selector": {
-            "data": [
-              {
-                "scopeId": {
-                  "Comparison": {
-                    "ComparisonKind": 0,
-                    "Left": {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Entity": "Time Intelligence"
-                          }
-                        },
-                        "Property": "Calculation"
-                      }
-                    },
-                    "Right": {
-                      "Literal": {
-                        "Value": "'PY'"
-                      }
-                    }
-                  }
-                }
-              }
-            ]
+            "metadata": "_Measures.Trend Last Year"
           }
         }
       ]
@@ -412,13 +376,8 @@
             },
             "text": {
               "expr": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "_Measures"
-                    }
-                  },
-                  "Property": "Period Label"
+                "Literal": {
+                  "Value": "'Actual against the adopted budget and last year, by month of the fiscal year'"
                 }
               }
             }
@@ -439,69 +398,5 @@
         }
       ]
     }
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "ov_trend_ti",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "Time Intelligence"
-              }
-            },
-            "Property": "Calculation"
-          }
-        },
-        "type": "Categorical",
-        "filter": {
-          "Version": 2,
-          "From": [
-            {
-              "Name": "t",
-              "Entity": "Time Intelligence",
-              "Type": 0
-            }
-          ],
-          "Where": [
-            {
-              "Condition": {
-                "In": {
-                  "Expressions": [
-                    {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Source": "t"
-                          }
-                        },
-                        "Property": "Calculation"
-                      }
-                    }
-                  ],
-                  "Values": [
-                    [
-                      {
-                        "Literal": {
-                          "Value": "'Current'"
-                        }
-                      }
-                    ],
-                    [
-                      {
-                        "Literal": {
-                          "Value": "'PY'"
-                        }
-                      }
-                    ]
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      }
-    ]
   }
 }

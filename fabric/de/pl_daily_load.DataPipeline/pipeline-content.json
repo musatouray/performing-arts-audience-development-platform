@@ -191,8 +191,8 @@
         },
         "policy": {
           "timeout": "0.00:30:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
+          "retry": 2,
+          "retryIntervalInSeconds": 180,
           "secureInput": false,
           "secureOutput": false
         },
@@ -204,7 +204,8 @@
               "Succeeded"
             ]
           }
-        ]
+        ],
+        "description": "Loads Gold. Retries twice, 3 minutes apart: right after Silver creates a new table, the lh_silver SQL endpoint can briefly report 'in transition' (error 952) while it syncs."
       },
       {
         "type": "MicrosoftTeams",
