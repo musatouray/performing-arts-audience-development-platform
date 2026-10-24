@@ -184,12 +184,12 @@ table _Measures
 		formatString: $#,0;($#,0)
 		displayFolder: Report\KPI cards
 
-	/// Card caption: prior year, change and % change for Revenue.
-	measure 'Revenue vs PY' = VAR c = [Revenue FYTD] VAR p = [Revenue PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior-year comparison", "PY " & IF ( ABS ( p ) >= 1000000, FORMAT ( p / 1000000, "$#,0.0" ) & "M", FORMAT ( p / 1000, "$#,0" ) & "K" ) & "    " & IF ( d >= 0, "+", "-" ) & IF ( ABS ( ABS ( d ) ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" ) & "    " & FORMAT ( DIVIDE ( d, ABS ( p ) ), "+0.0%;-0.0%;0.0%" ) & IF ( d >= 0, "  ▲", "  ▼" ) )
+	/// KPI card detail: change vs the same period last year for Revenue. Formatting only; use Revenue FYTD / Revenue PY FYTD for numbers.
+	measure 'Revenue vs PY' = VAR c = [Revenue FYTD] VAR p = [Revenue PY FYTD] VAR d = c - p VAR icon = IF ( d > 0, UNICHAR ( 9650 ), IF ( d < 0, UNICHAR ( 9660 ), UNICHAR ( 9472 ) ) ) RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior year", UNICHAR ( 160 ) & IF ( d >= 0, "+", "-" ) & IF ( ABS ( d ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" ) & " | " & FORMAT ( DIVIDE ( d, ABS ( p ) ), "+0.0%;-0.0%;0.0%" ) & UNICHAR ( 160 ) & icon & UNICHAR ( 160 ) )
 		displayFolder: Report\KPI cards
 
 	/// Green when it rises.
-	measure 'Revenue vs PY Color' = VAR c = [Revenue FYTD] VAR p = [Revenue PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "#6B7280", IF ( d >= 0, "#15803D", "#B42318" ) )
+	measure 'Revenue vs PY Color' = VAR c = [Revenue FYTD] VAR p = [Revenue PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B", d > 0, "#2E7D32", d < 0, "#D84315", "#607D8B" )
 		displayFolder: Formatting
 
 	/// Expenses, fiscal year to date.
@@ -202,12 +202,12 @@ table _Measures
 		formatString: $#,0;($#,0)
 		displayFolder: Report\KPI cards
 
-	/// Card caption: prior year, change and % change for Expenses.
-	measure 'Expenses vs PY' = VAR c = [Expenses FYTD] VAR p = [Expenses PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior-year comparison", "PY " & IF ( ABS ( p ) >= 1000000, FORMAT ( p / 1000000, "$#,0.0" ) & "M", FORMAT ( p / 1000, "$#,0" ) & "K" ) & "    " & IF ( d >= 0, "+", "-" ) & IF ( ABS ( ABS ( d ) ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" ) & "    " & FORMAT ( DIVIDE ( d, ABS ( p ) ), "+0.0%;-0.0%;0.0%" ) & IF ( d >= 0, "  ▲", "  ▼" ) )
+	/// KPI card detail: change vs the same period last year for Expenses. Formatting only; use Expenses FYTD / Expenses PY FYTD for numbers.
+	measure 'Expenses vs PY' = VAR c = [Expenses FYTD] VAR p = [Expenses PY FYTD] VAR d = c - p VAR icon = IF ( d > 0, UNICHAR ( 9650 ), IF ( d < 0, UNICHAR ( 9660 ), UNICHAR ( 9472 ) ) ) RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior year", UNICHAR ( 160 ) & IF ( d >= 0, "+", "-" ) & IF ( ABS ( d ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" ) & " | " & FORMAT ( DIVIDE ( d, ABS ( p ) ), "+0.0%;-0.0%;0.0%" ) & UNICHAR ( 160 ) & icon & UNICHAR ( 160 ) )
 		displayFolder: Report\KPI cards
 
 	/// Green when it falls (lower cost).
-	measure 'Expenses vs PY Color' = VAR c = [Expenses FYTD] VAR p = [Expenses PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "#6B7280", IF ( d <= 0, "#15803D", "#B42318" ) )
+	measure 'Expenses vs PY Color' = VAR c = [Expenses FYTD] VAR p = [Expenses PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B", d < 0, "#2E7D32", d > 0, "#D84315", "#607D8B" )
 		displayFolder: Formatting
 
 	/// Net Surplus, fiscal year to date.
@@ -220,12 +220,12 @@ table _Measures
 		formatString: $#,0;($#,0)
 		displayFolder: Report\KPI cards
 
-	/// Card caption: prior year and change for Net Surplus. No % change: a percentage of a small or negative surplus misleads.
-	measure 'Net Surplus vs PY' = VAR c = [Net Surplus FYTD] VAR p = [Net Surplus PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior-year comparison", "PY " & IF ( p < 0, "-", "" ) & IF ( ABS ( p ) >= 1000000, FORMAT ( ABS ( p ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( p ) / 1000, "$#,0" ) & "K" ) & "    " & IF ( d >= 0, "+", "-" ) & IF ( ABS ( d ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" ) & " vs PY" & IF ( d >= 0, "  ▲", "  ▼" ) )
+	/// KPI card detail: change vs the same period last year for Net Surplus. No % change: a percentage of a small or negative surplus misleads.
+	measure 'Net Surplus vs PY' = VAR c = [Net Surplus FYTD] VAR p = [Net Surplus PY FYTD] VAR d = c - p VAR icon = IF ( d > 0, UNICHAR ( 9650 ), IF ( d < 0, UNICHAR ( 9660 ), UNICHAR ( 9472 ) ) ) RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior year", UNICHAR ( 160 ) & IF ( d >= 0, "+", "-" ) & IF ( ABS ( d ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" ) & UNICHAR ( 160 ) & icon & UNICHAR ( 160 ) )
 		displayFolder: Report\KPI cards
 
 	/// Green when it rises.
-	measure 'Net Surplus vs PY Color' = VAR c = [Net Surplus FYTD] VAR p = [Net Surplus PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "#6B7280", IF ( d >= 0, "#15803D", "#B42318" ) )
+	measure 'Net Surplus vs PY Color' = VAR c = [Net Surplus FYTD] VAR p = [Net Surplus PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B", d > 0, "#2E7D32", d < 0, "#D84315", "#607D8B" )
 		displayFolder: Formatting
 
 	/// Contributed Revenue, fiscal year to date.
@@ -238,12 +238,12 @@ table _Measures
 		formatString: $#,0;($#,0)
 		displayFolder: Report\KPI cards
 
-	/// Card caption: prior year, change and % change for Contributed Revenue.
-	measure 'Contributed Revenue vs PY' = VAR c = [Contributed Revenue FYTD] VAR p = [Contributed Revenue PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior-year comparison", "PY " & IF ( ABS ( p ) >= 1000000, FORMAT ( p / 1000000, "$#,0.0" ) & "M", FORMAT ( p / 1000, "$#,0" ) & "K" ) & "    " & IF ( d >= 0, "+", "-" ) & IF ( ABS ( ABS ( d ) ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" ) & "    " & FORMAT ( DIVIDE ( d, ABS ( p ) ), "+0.0%;-0.0%;0.0%" ) & IF ( d >= 0, "  ▲", "  ▼" ) )
+	/// KPI card detail: change vs the same period last year for Contributed Revenue. Formatting only; use Contributed Revenue FYTD / Contributed Revenue PY FYTD for numbers.
+	measure 'Contributed Revenue vs PY' = VAR c = [Contributed Revenue FYTD] VAR p = [Contributed Revenue PY FYTD] VAR d = c - p VAR icon = IF ( d > 0, UNICHAR ( 9650 ), IF ( d < 0, UNICHAR ( 9660 ), UNICHAR ( 9472 ) ) ) RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior year", UNICHAR ( 160 ) & IF ( d >= 0, "+", "-" ) & IF ( ABS ( d ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" ) & " | " & FORMAT ( DIVIDE ( d, ABS ( p ) ), "+0.0%;-0.0%;0.0%" ) & UNICHAR ( 160 ) & icon & UNICHAR ( 160 ) )
 		displayFolder: Report\KPI cards
 
 	/// Green when it rises.
-	measure 'Contributed Revenue vs PY Color' = VAR c = [Contributed Revenue FYTD] VAR p = [Contributed Revenue PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "#6B7280", IF ( d >= 0, "#15803D", "#B42318" ) )
+	measure 'Contributed Revenue vs PY Color' = VAR c = [Contributed Revenue FYTD] VAR p = [Contributed Revenue PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B", d > 0, "#2E7D32", d < 0, "#D84315", "#607D8B" )
 		displayFolder: Formatting
 
 	/// Earned Revenue %, fiscal year to date.
@@ -256,12 +256,12 @@ table _Measures
 		formatString: 0.0%
 		displayFolder: Report\KPI cards
 
-	/// Card caption: prior year, change and % change for Earned Revenue %.
-	measure 'Earned Revenue % vs PY' = VAR c = [Earned Revenue % FYTD] VAR p = [Earned Revenue % PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior-year comparison", "PY " & FORMAT ( p, "0.0%" ) & "    " & FORMAT ( d * 100, "+0.0;-0.0;0.0" ) & " pts" & IF ( d >= 0, "  ▲", "  ▼" ) )
+	/// KPI card detail: change vs the same period last year for Earned Revenue %. Formatting only.
+	measure 'Earned Revenue % vs PY' = VAR c = [Earned Revenue % FYTD] VAR p = [Earned Revenue % PY FYTD] VAR d = c - p VAR icon = IF ( d > 0, UNICHAR ( 9650 ), IF ( d < 0, UNICHAR ( 9660 ), UNICHAR ( 9472 ) ) ) RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior year", UNICHAR ( 160 ) & FORMAT ( d * 100, "+0.0;-0.0;0.0" ) & " pts" & UNICHAR ( 160 ) & icon & UNICHAR ( 160 ) )
 		displayFolder: Report\KPI cards
 
 	/// Green when it rises.
-	measure 'Earned Revenue % vs PY Color' = VAR c = [Earned Revenue % FYTD] VAR p = [Earned Revenue % PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "#6B7280", IF ( d >= 0, "#15803D", "#B42318" ) )
+	measure 'Earned Revenue % vs PY Color' = VAR c = [Earned Revenue % FYTD] VAR p = [Earned Revenue % PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B", d > 0, "#2E7D32", d < 0, "#D84315", "#607D8B" )
 		displayFolder: Formatting
 
 	/// Surplus Margin, fiscal year to date.
@@ -274,16 +274,16 @@ table _Measures
 		formatString: 0.0%
 		displayFolder: Report\KPI cards
 
-	/// Card caption: prior year, change and % change for Surplus Margin.
-	measure 'Surplus Margin vs PY' = VAR c = [Surplus Margin FYTD] VAR p = [Surplus Margin PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior-year comparison", "PY " & FORMAT ( p, "0.0%" ) & "    " & FORMAT ( d * 100, "+0.0;-0.0;0.0" ) & " pts" & IF ( d >= 0, "  ▲", "  ▼" ) )
+	/// KPI card detail: change vs the same period last year for Surplus Margin. Formatting only.
+	measure 'Surplus Margin vs PY' = VAR c = [Surplus Margin FYTD] VAR p = [Surplus Margin PY FYTD] VAR d = c - p VAR icon = IF ( d > 0, UNICHAR ( 9650 ), IF ( d < 0, UNICHAR ( 9660 ), UNICHAR ( 9472 ) ) ) RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "No prior year", UNICHAR ( 160 ) & FORMAT ( d * 100, "+0.0;-0.0;0.0" ) & " pts" & UNICHAR ( 160 ) & icon & UNICHAR ( 160 ) )
 		displayFolder: Report\KPI cards
 
 	/// Green when it rises.
-	measure 'Surplus Margin vs PY Color' = VAR c = [Surplus Margin FYTD] VAR p = [Surplus Margin PY FYTD] VAR d = c - p RETURN IF ( ISBLANK ( c ) || ISBLANK ( p ), "#6B7280", IF ( d >= 0, "#15803D", "#B42318" ) )
+	measure 'Surplus Margin vs PY Color' = VAR c = [Surplus Margin FYTD] VAR p = [Surplus Margin PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B", d > 0, "#2E7D32", d < 0, "#D84315", "#607D8B" )
 		displayFolder: Formatting
 
 	/// Subtitle for page headers: the fiscal year and the dates the numbers cover.
-	measure 'Period Label' = VAR AsOf = [As Of Date] VAR fy = SELECTEDVALUE ( dim_date[fiscal_year_label] ) VAR s = MIN ( dim_date[date] ) VAR e = MIN ( MAX ( dim_date[date] ), AsOf ) RETURN SWITCH ( TRUE (), ISBLANK ( fy ), "Select one fiscal year", s > AsOf, fy & "  ·  no ledger activity yet", fy & " to date  ·  " & FORMAT ( s, "mmm d, yyyy" ) & " – " & FORMAT ( e, "mmm d, yyyy" ) & "  ·  compared with the same period last year" )
+	measure 'Period Label' = VAR AsOf = [As Of Date] VAR fy = SELECTEDVALUE ( dim_date[fiscal_year_label] ) VAR s = MIN ( dim_date[date] ) VAR e = MIN ( MAX ( dim_date[date] ), AsOf ) VAR sp = REPT ( UNICHAR ( 160 ), 2 ) RETURN SWITCH ( TRUE (), ISBLANK ( fy ), "Period:" & sp & "select one fiscal year", s > AsOf, "Period:" & sp & fy & sp & "|" & sp & "no ledger activity yet", "Period:" & sp & fy & " YTD" & sp & "|" & sp & FORMAT ( s, "mmm d, yyyy" ) & " - " & FORMAT ( e, "mmm d, yyyy" ) )
 		displayFolder: Report
 
 	/// Plain-English summary of the period for the page header.
@@ -294,8 +294,36 @@ table _Measures
 	measure 'Sources Fresh' = VAR n = COUNTROWS ( VALUES ( source_freshness[source_name] ) ) VAR f = COUNTROWS ( FILTER ( VALUES ( source_freshness[source_name] ), [Freshness Status] = "Fresh" ) ) RETURN FORMAT ( f + 0, "0" ) & " of " & FORMAT ( n, "0" )
 		displayFolder: Data Trust
 
-	measure 'Sources Fresh Color' = VAR n = COUNTROWS ( VALUES ( source_freshness[source_name] ) ) VAR f = COUNTROWS ( FILTER ( VALUES ( source_freshness[source_name] ), [Freshness Status] = "Fresh" ) ) RETURN IF ( f + 0 = n, "#15803D", "#B42318" )
+	measure 'Sources Fresh Color' = VAR n = COUNTROWS ( VALUES ( source_freshness[source_name] ) ) VAR f = COUNTROWS ( FILTER ( VALUES ( source_freshness[source_name] ), [Freshness Status] = "Fresh" ) ) RETURN IF ( f + 0 = n, "#2E7D32", "#D84315" )
 		displayFolder: Formatting
+
+	/// Pill background behind the KPI change: the font colour at 90% transparency.
+	measure 'Revenue vs PY Background' = VAR c = [Revenue FYTD] VAR p = [Revenue PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B1A", d > 0, "#2E7D321A", d < 0, "#D843151A", "#607D8B1A" )
+		displayFolder: Formatting
+
+	/// Pill background behind the KPI change: the font colour at 90% transparency.
+	measure 'Expenses vs PY Background' = VAR c = [Expenses FYTD] VAR p = [Expenses PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B1A", d < 0, "#2E7D321A", d > 0, "#D843151A", "#607D8B1A" )
+		displayFolder: Formatting
+
+	/// Pill background behind the KPI change: the font colour at 90% transparency.
+	measure 'Net Surplus vs PY Background' = VAR c = [Net Surplus FYTD] VAR p = [Net Surplus PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B1A", d > 0, "#2E7D321A", d < 0, "#D843151A", "#607D8B1A" )
+		displayFolder: Formatting
+
+	/// Pill background behind the KPI change: the font colour at 90% transparency.
+	measure 'Contributed Revenue vs PY Background' = VAR c = [Contributed Revenue FYTD] VAR p = [Contributed Revenue PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B1A", d > 0, "#2E7D321A", d < 0, "#D843151A", "#607D8B1A" )
+		displayFolder: Formatting
+
+	/// Pill background behind the KPI change: the font colour at 90% transparency.
+	measure 'Earned Revenue % vs PY Background' = VAR c = [Earned Revenue % FYTD] VAR p = [Earned Revenue % PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B1A", d > 0, "#2E7D321A", d < 0, "#D843151A", "#607D8B1A" )
+		displayFolder: Formatting
+
+	/// Pill background behind the KPI change: the font colour at 90% transparency.
+	measure 'Surplus Margin vs PY Background' = VAR c = [Surplus Margin FYTD] VAR p = [Surplus Margin PY FYTD] VAR d = c - p RETURN SWITCH ( TRUE (), ISBLANK ( c ) || ISBLANK ( p ), "#607D8B1A", d > 0, "#2E7D321A", d < 0, "#D843151A", "#607D8B1A" )
+		displayFolder: Formatting
+
+	/// Dynamic title for the monthly trend chart.
+	measure 'Trend Title' = VAR sel = SUMMARIZE ( 'Trend Metric', 'Trend Metric'[Trend Metric], 'Trend Metric'[Trend Metric Fields] ) VAR metric = IF ( COUNTROWS ( sel ) = 1, MAXX ( sel, 'Trend Metric'[Trend Metric] ), "Revenue" ) RETURN metric & " by month  |  this year vs last year"
+		displayFolder: Report
 
 	column placeholder
 		isHidden
