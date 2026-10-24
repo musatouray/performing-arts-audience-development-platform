@@ -350,7 +350,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Source systems (Tessitura + Diese)'"
+                  "Value": "'Source revenue'"
                 }
               }
             }
@@ -364,7 +364,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'General ledger (MIP)'"
+                  "Value": "'Ledger revenue'"
                 }
               }
             }
@@ -378,7 +378,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Net variance (ledger - source)'"
+                  "Value": "'Net variance'"
                 }
               }
             }
@@ -392,7 +392,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Lines within tolerance'"
+                  "Value": "'Reconciled'"
                 }
               }
             }
@@ -406,7 +406,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Lines outside tolerance'"
+                  "Value": "'To investigate'"
                 }
               }
             }
@@ -420,7 +420,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'No cause recorded yet'"
+                  "Value": "'Still open'"
                 }
               }
             }
@@ -628,6 +628,174 @@
           "selector": {
             "id": "default"
           }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Source Amount",
+            "id": "field-7c7224ff-24fc-5fba-b6da-2f0a5d6d5f86",
+            "order": 0
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Ledger Amount",
+            "id": "field-082f1ac6-ccdc-5249-92f2-179e5b50a354",
+            "order": 0
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Variance",
+            "id": "field-ea172455-4d32-5f12-81cc-989f45344f79",
+            "order": 0
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Reconciled %",
+            "id": "field-7ff04785-cee8-5fb7-8812-ed58b602aa1b",
+            "order": 0
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Lines to Investigate",
+            "id": "field-d3ea4ae7-65f3-5efa-89df-ff3ad2c9f5e7",
+            "order": 0
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Caption"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 0
+                }
+              }
+            ],
+            "metadata": "_Measures.Open Items",
+            "id": "field-4e23190c-128e-57dd-a3f0-8ac647aacd6e",
+            "order": 0
+          }
         }
       ],
       "referenceLabelTitle": [
@@ -636,7 +804,7 @@
             "titleFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },
@@ -662,6 +830,138 @@
           "selector": {
             "id": "default"
           }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Tessitura + Diese'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Source Amount",
+            "id": "field-7c7224ff-24fc-5fba-b6da-2f0a5d6d5f86"
+          }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'MIP general ledger'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Ledger Amount",
+            "id": "field-082f1ac6-ccdc-5249-92f2-179e5b50a354"
+          }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Ledger minus source'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Variance",
+            "id": "field-ea172455-4d32-5f12-81cc-989f45344f79"
+          }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Lines within tolerance'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Reconciled %",
+            "id": "field-7ff04785-cee8-5fb7-8812-ed58b602aa1b"
+          }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Lines outside tolerance'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Lines to Investigate",
+            "id": "field-d3ea4ae7-65f3-5efa-89df-ff3ad2c9f5e7"
+          }
+        },
+        {
+          "properties": {
+            "titleContentType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'custom'"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'No cause recorded yet'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Open Items",
+            "id": "field-4e23190c-128e-57dd-a3f0-8ac647aacd6e"
+          }
         }
       ],
       "referenceLabelValue": [
@@ -670,7 +970,7 @@
             "valueFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },
@@ -718,7 +1018,7 @@
             "detailFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },
@@ -732,6 +1032,96 @@
           },
           "selector": {
             "id": "default"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Source Amount",
+            "id": "field-7c7224ff-24fc-5fba-b6da-2f0a5d6d5f86"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Ledger Amount",
+            "id": "field-082f1ac6-ccdc-5249-92f2-179e5b50a354"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Variance",
+            "id": "field-ea172455-4d32-5f12-81cc-989f45344f79"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Reconciled %",
+            "id": "field-7ff04785-cee8-5fb7-8812-ed58b602aa1b"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Lines to Investigate",
+            "id": "field-d3ea4ae7-65f3-5efa-89df-ff3ad2c9f5e7"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Measures.Open Items",
+            "id": "field-4e23190c-128e-57dd-a3f0-8ac647aacd6e"
           }
         }
       ],

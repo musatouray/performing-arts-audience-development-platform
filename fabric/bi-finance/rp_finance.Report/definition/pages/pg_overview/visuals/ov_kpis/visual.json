@@ -771,7 +771,7 @@
             "titleFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },
@@ -937,7 +937,7 @@
             "valueFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },
@@ -1159,7 +1159,7 @@
             "detailFontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "11D"
                 }
               }
             },

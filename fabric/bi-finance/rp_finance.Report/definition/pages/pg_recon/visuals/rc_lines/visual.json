@@ -203,6 +203,51 @@
                   "Value": "true"
                 }
               }
+            },
+            "columnAdjustment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'growToFit'"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Right'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "rowHeaders": [
+        {
+          "properties": {
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#1E3A5F'"
+                    }
+                  }
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI Semibold'"
+                }
+              }
             }
           }
         }
@@ -283,6 +328,13 @@
       "total": [
         {
           "properties": {
+            "totals": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
             "fontColor": {
               "solid": {
                 "color": {

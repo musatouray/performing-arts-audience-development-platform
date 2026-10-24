@@ -192,9 +192,9 @@ def kpi_strip(page, name, kpis):
     o["label"].append(sel_props({"id": "default"}, position=lit("aboveValue"), fontSize=num(12), fontColor=col(SLATE), fontFamily=lit(FONT), bold=lit(False)))
     o["accentBar"].append(sel_props({"id": "default"}, show=lit(True), color=col(BLUE), width=num(2)))
     o["referenceLabel"].append(sel_props({"id": "default"}, paddingUniform=lit(10)))
-    o["referenceLabelTitle"].append(sel_props({"id": "default"}, titleFontSize=num(12), titleFontFamily=lit(FONT), titleFontColor=col(SLATE)))
-    o["referenceLabelValue"].append(sel_props({"id": "default"}, valueFontSize=num(12), valueFontFamily=lit(FONT), valueFontColor=col(INK), valueBold=lit(True)))
-    o["referenceLabelDetail"].append(sel_props({"id": "default"}, show=lit(True), detailFontSize=num(12), detailFontFamily=lit(FONT)))
+    o["referenceLabelTitle"].append(sel_props({"id": "default"}, titleFontSize=num(11), titleFontFamily=lit(FONT), titleFontColor=col(SLATE)))
+    o["referenceLabelValue"].append(sel_props({"id": "default"}, valueFontSize=num(11), valueFontFamily=lit(FONT), valueFontColor=col(INK), valueBold=lit(True)))
+    o["referenceLabelDetail"].append(sel_props({"id": "default"}, show=lit(True), detailFontSize=num(11), detailFontFamily=lit(FONT)))
     for k in kpis:
         m = k["measure"]
         o["value"].append(sel_props(meta(m), labelDisplayUnits=num(k.get("units", 1)), labelPrecision=lit(k.get("precision", 0)),
@@ -212,6 +212,13 @@ def kpi_strip(page, name, kpis):
             o["referenceLabelDetail"].append(sel_props({"data": [{"dataViewWildcard": {"matchingOption": 0}}], **meta(m), "id": f},
                                                        detailValue=mexpr(k["detail"]), detailFontColor=mcol(k["detail_color"]),
                                                        detailBackgroundColor=mcol(k["detail_bg"])))
+        elif k.get("caption"):
+            # caption-only reference label: custom title text, empty value
+            f = fid(page, m, "caption")
+            o["referenceLabel"].append(sel_props({"data": [{"dataViewWildcard": {"matchingOption": 0}}], **meta(m), "id": f, "order": 0},
+                                                 value=mexpr("Caption")))
+            o["referenceLabelTitle"].append(sel_props({**meta(m), "id": f}, titleContentType=lit("custom"), titleText=lit(k["caption"])))
+            o["referenceLabelDetail"].append(sel_props({**meta(m), "id": f}, show=lit(False)))
     o["referenceLabelLayout"] = [sel_props({"id": "default"}, labelSpace=num(2), style=lit("sentence"), verticalAlignment=lit("top"),
                                            arrangement=lit("rows"), horizontalAlignment=lit("left"))]
     o["layout"] = [sel_props({"id": "default"}, paddingUniform=lit(0)), {"properties": {"cellPadding": lit(30), "maxTiles": lit(len(kpis))}}]
@@ -231,11 +238,13 @@ def axis(units=0):
             "categoryAxis": props(show=lit(True)),
             "legend": props(show=lit(True), position=lit("TopRight"))}
 
-def table_fmt():
-    return {"columnHeaders": props(fontColor=col(WHITE), backColor=col(NAVY), fontFamily=lit(FONT_B), fontSize=num(11), wordWrap=lit(True)),
+def table_fmt(totals=True):
+    return {"columnHeaders": props(fontColor=col(WHITE), backColor=col(NAVY), fontFamily=lit(FONT_B), fontSize=num(11), wordWrap=lit(True),
+                                   columnAdjustment=lit("growToFit"), alignment=lit("Right")),
+            "rowHeaders": props(fontColor=col(INK), fontSize=num(11), fontFamily=lit(FONT_B)),
             "values": props(fontColor=col(INK), fontSize=num(11), backColorSecondary=col("#F7F9FB")),
             "grid": props(gridHorizontal=lit(True), gridHorizontalColor=col(LINE), gridVertical=lit(False), rowPadding=num(6)),
-            "total": props(fontColor=col(INK), fontFamily=lit(FONT_B), backColor=col("#EEF2F6"))}
+            "total": props(totals=lit(totals), fontColor=col(INK), fontFamily=lit(FONT_B), backColor=col("#EEF2F6"))}
 
 TI = ("Time Intelligence", "Calculation")
 def money_kpi(label, base, accent):
@@ -285,17 +294,18 @@ visual(p, "ov_dept", "clusteredBarChart", RIGHT_X, R2_Y, RIGHT_W, R2_H, 2000,
        vco=titled("Where the money goes", "Expenses by department, year to date vs the same period last year", divider=True))
 visual(p, "ov_statement", "pivotTable", M, R3_Y, LEFT_W, R3_H, 2000,
        query={"Rows": [proj(Cf("dim_account", "account_type"), "Line"), proj(Cf("dim_account", "account_group"), "Group")],
-              "Columns": [proj(Cf(*TI), " ")],
-              "Values": [proj(Mf("Statement Amount"), "Amount")]},
-       filters=[in_filter("ov_statement_ti", *TI, ["FYTD", "PY FYTD", "FYTD vs PY", "FYTD vs PY %"])],
-       objects={**table_fmt(), "rowHeaders": props(fontColor=col(INK), fontSize=num(11), stepped=lit(True)),
-                "columnHeaders": props(fontColor=col(WHITE), backColor=col(NAVY), fontFamily=lit(FONT_B), fontSize=num(11), alignment=lit("Right"))},
-       vco=titled("Income statement", "Year to date vs the same period last year  |  bottom row = net surplus", divider=True))
-visual(p, "ov_fund", "donutChart", RIGHT_X, R3_Y, RIGHT_W, R3_H, 2000,
+              "Values": [proj(Mf("Statement FYTD"), "This year to date"), proj(Mf("Statement PY FYTD"), "Same period last year"),
+                         proj(Mf("Statement vs PY"), "Change"), proj(Mf("Statement vs PY %"), "Change %")]},
+       sort=[{"field": Cf("dim_account", "account_type"), "direction": "Descending"}],
+       objects={**table_fmt(), "rowHeaders": props(fontColor=col(INK), fontSize=num(11), fontFamily=lit(FONT_B), stepped=lit(True))},
+       vco=titled("Income statement", "Revenue and expenses, year to date vs the same period last year  |  total row = net surplus", divider=True))
+visual(p, "ov_fund", "clusteredBarChart", RIGHT_X, R3_Y, RIGHT_W, R3_H, 2000,
        query={"Category": [proj(Cf("dim_fund", "fund_name"), "Fund")], "Y": [proj(Mf("Revenue"))]},
-       objects={"legend": props(show=lit(True), position=lit("Right")),
-                "labels": props(show=lit(True), labelStyle=lit("Percent of total")),
-                "slices": props(innerRadiusRatio=num(65))},
+       sort=[{"field": Mf("Revenue"), "direction": "Descending"}],
+       objects={"dataPoint": props(fill=col(NAVY)),
+                "labels": props(show=lit(True), labelDisplayUnits=num(1000000), labelPrecision=lit(1)),
+                "valueAxis": props(show=lit(False), gridlineShow=lit(False)),
+                "categoryAxis": props(show=lit(True)), "legend": props(show=lit(False))},
        vco=titled("Revenue by fund", "How much of this year's revenue comes with donor restrictions?", divider=True))
 
 # ================================================================= Page 2: Reconciliation
@@ -305,15 +315,15 @@ header(p, "Revenue Reconciliation",
        narrative="Each night Tessitura (tickets, subscriptions, gifts) and Diese (hall rentals) are matched to the MIP ledger by month, "
                  "revenue stream and fund. A line ties out when the gap is within the larger of $1,000 or 1%; anything else stays below until finance records the cause.")
 kpi_strip(p, "rc_kpis", [
-    dict(measure="Source Amount", label="Source systems (Tessitura + Diese)", units=1000000, precision=1, accent=BLUE),
-    dict(measure="Ledger Amount", label="General ledger (MIP)", units=1000000, precision=1, accent=BLUE),
-    dict(measure="Variance", label="Net variance (ledger - source)", units=1000, precision=1, accent=GOLD),
-    dict(measure="Reconciled %", label="Lines within tolerance", units=1, precision=1, accent=GOOD, value_color=GOOD),
-    dict(measure="Lines to Investigate", label="Lines outside tolerance", units=1, precision=0, accent=BAD, value_color=BAD),
-    dict(measure="Open Items", label="No cause recorded yet", units=1, precision=0, accent=BAD, value_color=BAD)])
+    dict(measure="Source Amount", label="Source revenue", caption="Tessitura + Diese", units=1000000, precision=1, accent=BLUE),
+    dict(measure="Ledger Amount", label="Ledger revenue", caption="MIP general ledger", units=1000000, precision=1, accent=BLUE),
+    dict(measure="Variance", label="Net variance", caption="Ledger minus source", units=1000, precision=1, accent=GOLD),
+    dict(measure="Reconciled %", label="Reconciled", caption="Lines within tolerance", units=1, precision=1, accent=GOOD, value_color=GOOD),
+    dict(measure="Lines to Investigate", label="To investigate", caption="Lines outside tolerance", units=1, precision=0, accent=BAD, value_color=BAD),
+    dict(measure="Open Items", label="Still open", caption="No cause recorded yet", units=1, precision=0, accent=BAD, value_color=BAD)])
 visual(p, "rc_grid", "pivotTable", M, R2_Y, LEFT_W, R2_H, 2000,
-       query={"Rows": [proj(Cf("dim_date", "month_name"), "Month")],
-              "Columns": [proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream")],
+       query={"Rows": [proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream")],
+              "Columns": [proj(Cf("dim_date", "month_name"), "Month")],
               "Values": [proj(Mf("Variance"))]},
        objects={**table_fmt(),
                 "values": [{"properties": {"fontColor": col(INK), "fontSize": num(11)}},
@@ -324,7 +334,7 @@ visual(p, "rc_trend", "clusteredColumnChart", RIGHT_X, R2_Y, RIGHT_W, R2_H, 2000
        query={"Category": [proj(Cf("dim_date", "month_name"), "Month")], "Y": [proj(Mf("Variance"))],
               "Series": [proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream")]},
        sort=[{"field": Cf("dim_date", "month_name"), "direction": "Ascending"}],
-       objects=axis(1000),
+       objects={**axis(1000), "labels": props(show=lit(False))},
        vco=titled("Where the gaps are", "Ledger minus source by month  |  a cut-off shows as mirrored bars", divider=True))
 visual(p, "rc_lines", "tableEx", M, R3_Y, CW, R3_H, 2000,
        query={"Values": [proj(Cf("recon_revenue_to_gl", "month_start"), "Month"), proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream"),
@@ -343,15 +353,15 @@ header(p, "Data Trust", slicer=False, period_text="Live status, not filtered by 
        narrative="Can I rely on these numbers? When each source was last loaded, whether the ledger balances and how much of the "
                  "revenue reconciliation is still open. It is the same evidence the platform checks every night.")
 kpi_strip(p, "tr_kpis", [
-    dict(measure="Sources Fresh", label="Sources loaded on time", accent=GOOD, value_color=GOOD),
-    dict(measure="As Of Date", label="Ledger data through", accent=BLUE),
-    dict(measure="Out of Balance", label="Out of balance (debits - credits)", units=1, precision=2, accent=GOOD),
-    dict(measure="Reconciled %", label="Revenue lines within tolerance", units=1, precision=1, accent=GOLD)])
+    dict(measure="Sources Fresh", label="Sources on time", caption="Loaded within their expected refresh", accent=GOOD, value_color=GOOD),
+    dict(measure="As Of Date", label="Ledger data through", caption="Last date with activity in MIP", accent=BLUE),
+    dict(measure="Out of Balance", label="Out of balance", caption="Debits minus credits, must be $0.00", units=1, precision=2, accent=GOOD),
+    dict(measure="Reconciled %", label="Reconciled", caption="Revenue lines within tolerance", units=1, precision=1, accent=GOLD)])
 visual(p, "tr_fresh", "tableEx", M, R2_Y, CW, R2_H, 2000,
        query={"Values": [proj(Cf("source_freshness", "source_name"), "Source"), proj(Cf("source_freshness", "expected_refresh"), "Expected"),
                          proj(Cf("source_freshness", "last_loaded_et"), "Last loaded (ET)"), proj(Mf("Data Through"), "Data through"),
                          proj(Mf("Hours Since Load"), "Hours since load"), proj(Mf("Freshness Status"), "Status")]},
-       objects={**table_fmt(),
+       objects={**table_fmt(totals=False),
                 "values": [{"properties": {"fontColor": col(INK), "fontSize": num(12)}},
                            sel_props({"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": "_Measures.Freshness Status"},
                                      fontColor=mcol("Freshness Color"))]},
