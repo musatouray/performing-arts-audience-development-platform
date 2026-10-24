@@ -6,7 +6,7 @@
     "y": 420,
     "z": 2000,
     "width": 1230,
-    "height": 340,
+    "height": 260,
     "tabOrder": 2000
   },
   "visual": {
@@ -123,13 +123,6 @@
               "expr": {
                 "Literal": {
                   "Value": "'growToFit'"
-                }
-              }
-            },
-            "alignment": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Right'"
                 }
               }
             }

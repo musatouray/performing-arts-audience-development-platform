@@ -47,6 +47,12 @@ rules:
     - { rule: range,       column: credit_amount, min: 0, max: 100000000, severity: error }
     - { rule: expression,  check: "NOT (debit_amount > 0 AND credit_amount > 0)", severity: error }   # a line is a debit or a credit, not both
 
+  mip.gl_budget:
+    - { rule: foreign_key, column: account_code, ref_entity: mip.gl_account, ref_column: account_code, severity: error }
+    - { rule: foreign_key, column: fund_code, ref_entity: mip.fund, ref_column: fund_code, severity: error }
+    - { rule: foreign_key, column: department_code, ref_entity: mip.department, ref_column: department_code, severity: warn }
+    - { rule: range,       column: amount, min: 0, max: 50000000, severity: error }
+
   diese.event:
     - { rule: accepted_values, column: event_type, values: [Concert, Rental, Rehearsal], severity: warn }
     - { rule: accepted_values, column: status, values: [Tentative, Confirmed, Completed, Cancelled], severity: warn }

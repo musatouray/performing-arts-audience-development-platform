@@ -96,6 +96,9 @@ class State:
     recent_campaigns: dict = field(default_factory=dict)  # recent email campaigns and the list size when sent
     journals: int = 0                                      # MIP journal and line numbers
     gl_lines: int = 0
+    settle_journals: int = 0                               # payments and opening balance (JS/GS numbers)
+    settle_lines: int = 0
+    open_payables: dict = field(default_factory=dict)      # due date -> payroll and bills not paid yet
 
     def save(self, path: Path = STATE_FILE):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -541,6 +544,7 @@ class Generator:
         cutoff_day = fo.cutoff_day(end)                         # the planted one-time exceptions (finance_ops docstring)
         reclass_month = date(cutoff_day.year, 5, 31)
         for d in days:
+            fo.settle_due(ledger, d, start)                     # payday (every other Friday) and bills due today
             day_gifts = gifts.get(d, {})
             cutoff = d == cutoff_day
             fo.post_day(ledger, diese, d, sales.get(d, 0), returns.get(d, 0), subs.get(d, 0),
@@ -645,9 +649,11 @@ class Generator:
         ta_by_month = {}
         for e in enrollments:
             ta_by_month[e["session_date"][:7]] = ta_by_month.get(e["session_date"][:7], 0) + e["teaching_artist_hours"]
-        ledger = fo.Ledger(self.st)
+        ledger = fo.Ledger(self.st, backfill_at=datetime.combine(end + timedelta(days=1), time(7, 0)))
+        fo.post_opening_balance(ledger, start)
         self._post_ledger(ledger, diese, daterange(start, end), sales, returns, subs_by_day,
                           self._gifts_by_day_fund(gifts, end), ta_by_month)
+        budget = fo.budget_rows(ledger.rows, start, end, self.st.seed)
 
         batch = {
             ("tessitura_db", "constituent"): self._new_customers + donor_records,
@@ -670,6 +676,7 @@ class Generator:
             ("mip_db", "department"): fo.departments(),
             ("mip_db", "fund"): fo.gl_funds(),
             ("mip_db", "gl_transaction"): ledger.rows,
+            ("mip_db", "gl_budget"): budget,
             ("diese_api", "room"): fo.rooms(),
             ("diese_api", "event"): events,
             ("diese_api", "booking"): bookings,
@@ -754,6 +761,7 @@ class Generator:
             ("mip_db", "department"): fo.departments(),
             ("mip_db", "fund"): fo.gl_funds(),
             ("mip_db", "gl_transaction"): ledger.rows,
+            ("mip_db", "gl_budget"): [],                       # adopted once a year; the daily run doesn't change it
             ("diese_api", "room"): fo.rooms(),
             ("diese_api", "event"): events,
             ("diese_api", "booking"): bookings,

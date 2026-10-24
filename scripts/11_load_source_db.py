@@ -162,7 +162,7 @@ def load_table_day(cur, schema: str, ent: dict, path: Path):
     return len(rows), inserted, updated
 
 
-def load_source(src: dict, data: Path, load_date: str | None, dry_run: bool):
+def load_source(src: dict, data: Path, load_date: str | None, dry_run: bool, reload: bool = False):
     db = src["ingestion"]["source_db"]
     schema = db["schema"]
     prefix = (src.get("system") or src["source"]).upper()           # TESSITURA, MIP: names the .env settings
@@ -192,6 +192,11 @@ def load_source(src: dict, data: Path, load_date: str | None, dry_run: bool):
                 "loaded_at datetime2(0) DEFAULT SYSUTCDATETIME(), PRIMARY KEY (load_date, table_name));")
     conn.commit()
     done = {(str(r[0]), r[1]) for r in cur.execute(f"SELECT load_date, table_name FROM [{schema}].[_load_history]").fetchall()}
+    if reload:                     # apply the chosen days again (MERGE: new rows inserted, changed rows updated)
+        done = {k for k in done if k[0] not in days}
+        for d in days:
+            cur.execute(f"DELETE FROM [{schema}].[_load_history] WHERE load_date = ?", d)
+        conn.commit()
 
     for d in days:
         print(f"\n  load_date={d}")
@@ -215,11 +220,15 @@ def main():
     ap.add_argument("--source", choices=[s["source"] for s in db_sources], help="one source (default: all)")
     ap.add_argument("--data", type=Path, help="folder with the generated CSVs (default: data/<source>)")
     ap.add_argument("--load-date", help="only apply this day (default: every day not applied yet)")
+    ap.add_argument("--reload", action="store_true",
+                    help="apply days that were already loaded again, e.g. after regenerating them (needs --load-date)")
     a = ap.parse_args()
     for src in db_sources:
         if a.source and src["source"] != a.source:
             continue
-        load_source(src, a.data or ROOT / "data" / src["source"], a.load_date, a.dry_run)
+        if a.reload and not a.load_date:
+            sys.exit("--reload needs --load-date, so only the day you regenerated is applied again.")
+        load_source(src, a.data or ROOT / "data" / src["source"], a.load_date, a.dry_run, a.reload)
 
 
 if __name__ == "__main__":

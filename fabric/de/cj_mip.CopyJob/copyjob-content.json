@@ -210,6 +210,51 @@
           }
         }
       }
+    },
+    {
+      "id": "0eb28a13-8edb-5fc6-b821-82d9d1614b51",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "schema": "dbo",
+            "table": "gl_budget"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "updated_at",
+                "type": "DateTime",
+                "physicalType": "datetime2"
+              }
+            ],
+            "nullWatermarkBehavior": "Skip"
+          },
+          "partitionSettings": {
+            "partitionOption": "None"
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "schema": "mip",
+            "table": "gl_budget"
+          },
+          "applyVOrder": false,
+          "enableTimestampNtz": false,
+          "enableChangeDataFeed": false
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator"
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
     }
   ]
 }

@@ -230,6 +230,22 @@ sources:
           description: string
           reference: string
           updated_at: timestamp
+      # The adopted budget, from MIP's budget module: one row per fiscal year, month,
+      # account, fund and department. Approved once a year (mid-June), so it rarely changes.
+      - name: gl_budget
+        primary_key: [budget_line_id]
+        order_by: updated_at
+        columns:
+          budget_line_id: string
+          fiscal_year: int
+          budget_version: string
+          period_start: date
+          account_code: string
+          fund_code: string
+          department_code: string
+          amount: "decimal(14,2)"
+          approved_at: timestamp
+          updated_at: timestamp
 
   # ---------------------------------------------------------------------------
   # Diese, the hall and room booking system: concerts, outside rentals and

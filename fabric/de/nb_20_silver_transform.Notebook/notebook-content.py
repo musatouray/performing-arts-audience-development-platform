@@ -228,7 +228,7 @@ process_entity("tessitura.contribution")
 
 # ## MIP: the general ledger
 # Source: the on-premises MIP SQL Server, copied by `cj_mip`. Accounts, departments and funds
-# run first, because every journal line is checked against them. A line that is both a debit
+# run first, because every journal line and budget line is checked against them. A line that is both a debit
 # and a credit, or points at an account that doesn't exist, goes to quarantine.
 
 # CELL ********************
@@ -240,6 +240,8 @@ process_entity("mip.department")
 process_entity("mip.fund")
 
 process_entity("mip.gl_transaction")
+
+process_entity("mip.gl_budget")
 
 # METADATA ********************
 

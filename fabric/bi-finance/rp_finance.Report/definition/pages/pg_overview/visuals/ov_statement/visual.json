@@ -185,13 +185,6 @@
                   "Value": "'growToFit'"
                 }
               }
-            },
-            "alignment": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Right'"
-                }
-              }
             }
           }
         }

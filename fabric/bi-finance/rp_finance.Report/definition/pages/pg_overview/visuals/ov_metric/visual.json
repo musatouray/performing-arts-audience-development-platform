@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "ov_metric",
   "position": {
-    "x": 930,
+    "x": 860,
     "y": 432,
     "z": 2500,
-    "width": 310,
+    "width": 380,
     "height": 34,
     "tabOrder": 2500
   },

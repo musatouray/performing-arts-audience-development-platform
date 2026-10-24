@@ -166,7 +166,7 @@ BEGIN
     -- Without this, a step that hits a missing table or column is skipped
     -- and the remaining steps carry on as if nothing happened.
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM dim.[date]) EXEC etl.usp_load_dim_date;
+        EXEC etl.usp_ensure_dim_date;                 -- only the fiscal years in the data (30)
         EXEC etl.usp_load_dim_reference @run_id;
         EXEC etl.usp_load_finance_dims @run_id;        -- accounts, departments, ledger fund codes (70)
         EXEC etl.usp_load_dim_patron @run_id;          -- facts need the dimension keys, so dimensions load first
@@ -176,6 +176,7 @@ BEGIN
         EXEC etl.usp_load_fact_subscriptions_and_education @run_id;
         EXEC etl.usp_load_marketing @run_id;           -- email and paid ads; clicks need dim.patron (75)
         EXEC etl.usp_load_fact_gl_entry @run_id;       -- the ledger (70)
+        EXEC etl.usp_load_budget_and_cash @run_id;     -- adopted budget (daily) and cash-flow modules (72)
         EXEC etl.usp_build_recon_revenue_to_gl @run_id; -- last: compares the facts above with the ledger (70)
         EXEC etl.usp_snapshot_source_freshness @run_id; -- how current each source is, for the models (80)
     END TRY
