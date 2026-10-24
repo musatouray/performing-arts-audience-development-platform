@@ -11,9 +11,10 @@
 -- ---------------------------------------------------------------------------
 -- dim.date is generated rather than loaded. The fiscal year runs July to June.
 -- Crossing the digits 0-9 five times gives up to 100,000 days to build from.
+-- No default range: etl.usp_ensure_dim_date (below) works it out from the data.
 -- ---------------------------------------------------------------------------
 CREATE   PROCEDURE etl.usp_load_dim_date
-    @start date = '2020-07-01', @end date = '2030-06-30'
+    @start date, @end date
 AS
 BEGIN
     DELETE FROM dim.[date];
