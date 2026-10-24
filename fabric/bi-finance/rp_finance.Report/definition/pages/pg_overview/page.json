@@ -3,8 +3,8 @@
   "name": "pg_overview",
   "displayName": "Overview",
   "displayOption": "FitToPage",
-  "height": 720,
-  "width": 1280,
+  "height": 1080,
+  "width": 1920,
   "objects": {
     "background": [
       {
@@ -14,7 +14,7 @@
               "color": {
                 "expr": {
                   "Literal": {
-                    "Value": "'#EEF2F7'"
+                    "Value": "'#F3F5F8'"
                   }
                 }
               }
@@ -38,7 +38,7 @@
               "color": {
                 "expr": {
                   "Literal": {
-                    "Value": "'#EEF2F7'"
+                    "Value": "'#F3F5F8'"
                   }
                 }
               }
@@ -48,6 +48,19 @@
             "expr": {
               "Literal": {
                 "Value": "0D"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "displayArea": [
+      {
+        "properties": {
+          "verticalAlignment": {
+            "expr": {
+              "Literal": {
+                "Value": "'Top'"
               }
             }
           }
