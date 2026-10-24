@@ -345,7 +345,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Change in net assets'"
+                  "Value": "'Change in Net Assets'"
                 }
               }
             }
@@ -359,7 +359,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Surplus margin'"
+                  "Value": "'Surplus Margin'"
                 }
               }
             }
@@ -373,7 +373,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Contributed revenue'"
+                  "Value": "'Contributed Revenue'"
                 }
               }
             }
@@ -387,7 +387,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Earned revenue'"
+                  "Value": "'Earned Revenue'"
                 }
               }
             }
@@ -1986,67 +1986,7 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "preset": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Custom'"
-                }
-              }
-            },
-            "position": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Outer'"
-                }
-              }
-            },
-            "color": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#000000'"
-                    }
-                  }
-                }
-              }
-            },
-            "transparency": {
-              "expr": {
-                "Literal": {
-                  "Value": "93D"
-                }
-              }
-            },
-            "shadowBlur": {
-              "expr": {
-                "Literal": {
-                  "Value": "6D"
-                }
-              }
-            },
-            "shadowDistance": {
-              "expr": {
-                "Literal": {
-                  "Value": "2D"
-                }
-              }
-            },
-            "angle": {
-              "expr": {
-                "Literal": {
-                  "Value": "90D"
-                }
-              }
-            },
-            "shadowSpread": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
+                  "Value": "false"
                 }
               }
             }

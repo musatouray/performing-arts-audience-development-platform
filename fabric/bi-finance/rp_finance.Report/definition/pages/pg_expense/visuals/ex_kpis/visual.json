@@ -261,7 +261,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Full-year budget'"
+                  "Value": "'Full-Year Budget'"
                 }
               }
             }
@@ -275,7 +275,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Budget used'"
+                  "Value": "'Budget Used'"
                 }
               }
             }
@@ -289,7 +289,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Owed to suppliers and staff'"
+                  "Value": "'Owed to Suppliers and Staff'"
                 }
               }
             }
@@ -1380,67 +1380,7 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "preset": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Custom'"
-                }
-              }
-            },
-            "position": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Outer'"
-                }
-              }
-            },
-            "color": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#000000'"
-                    }
-                  }
-                }
-              }
-            },
-            "transparency": {
-              "expr": {
-                "Literal": {
-                  "Value": "93D"
-                }
-              }
-            },
-            "shadowBlur": {
-              "expr": {
-                "Literal": {
-                  "Value": "6D"
-                }
-              }
-            },
-            "shadowDistance": {
-              "expr": {
-                "Literal": {
-                  "Value": "2D"
-                }
-              }
-            },
-            "angle": {
-              "expr": {
-                "Literal": {
-                  "Value": "90D"
-                }
-              }
-            },
-            "shadowSpread": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
+                  "Value": "false"
                 }
               }
             }

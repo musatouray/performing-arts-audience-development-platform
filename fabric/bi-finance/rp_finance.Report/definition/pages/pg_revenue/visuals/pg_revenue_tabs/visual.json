@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "pg_revenue_tabs",
   "position": {
-    "x": 1130,
+    "x": 940,
     "y": 0,
     "z": 2000,
-    "width": 760,
+    "width": 950,
     "height": 64,
     "tabOrder": 2000
   },
@@ -275,7 +275,7 @@
             "showHiddenPages": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "true"
                 }
               }
             }
@@ -335,6 +335,20 @@
           },
           "selector": {
             "id": "pg_recon"
+          }
+        },
+        {
+          "properties": {
+            "showPage": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          },
+          "selector": {
+            "id": "pg_trust"
           }
         }
       ]
