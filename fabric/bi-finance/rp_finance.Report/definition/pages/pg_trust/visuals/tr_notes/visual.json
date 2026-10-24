@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "tr_notes",
   "position": {
-    "x": 28,
-    "y": 492,
-    "z": 3000,
-    "width": 1224,
-    "height": 186,
-    "tabOrder": 3000
+    "x": 30,
+    "y": 790,
+    "z": 2000,
+    "width": 1860,
+    "height": 260,
+    "tabOrder": 2000
   },
   "visual": {
     "visualType": "textbox",
@@ -23,25 +23,23 @@
                     "value": "How these checks work",
                     "textStyle": {
                       "fontFamily": "Segoe UI Semibold",
-                      "fontSize": "12pt",
-                      "color": "#1F2937"
+                      "fontSize": "14pt",
+                      "color": "#1E3A5F"
                     }
                   }
-                ],
-                "horizontalTextAlignment": "left"
+                ]
               },
               {
                 "textRuns": [
                   {
-                    "value": "•  Every journal in the ledger balances; Out of balance must be $0.00.",
+                    "value": "•  Every journal in the ledger balances; out of balance must be $0.00.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "10pt",
-                      "color": "#1F2937"
+                      "fontSize": "11pt",
+                      "color": "#1E3A5F"
                     }
                   }
-                ],
-                "horizontalTextAlignment": "left"
+                ]
               },
               {
                 "textRuns": [
@@ -49,12 +47,11 @@
                     "value": "•  Tessitura and Diese revenue are reconciled to the ledger every night; lines outside tolerance stay on the Reconciliation page until finance explains them.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "10pt",
-                      "color": "#1F2937"
+                      "fontSize": "11pt",
+                      "color": "#1E3A5F"
                     }
                   }
-                ],
-                "horizontalTextAlignment": "left"
+                ]
               },
               {
                 "textRuns": [
@@ -62,12 +59,11 @@
                     "value": "•  Freshness comes from the platform's run log: a source counts as current when the nightly run checked it, even if nothing changed.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "10pt",
-                      "color": "#1F2937"
+                      "fontSize": "11pt",
+                      "color": "#1E3A5F"
                     }
                   }
-                ],
-                "horizontalTextAlignment": "left"
+                ]
               },
               {
                 "textRuns": [
@@ -75,12 +71,11 @@
                     "value": "•  Every number comes from the certified semantic model sm_finance, so Excel, this report and SQL users see the same figures.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "10pt",
-                      "color": "#1F2937"
+                      "fontSize": "11pt",
+                      "color": "#1E3A5F"
                     }
                   }
-                ],
-                "horizontalTextAlignment": "left"
+                ]
               }
             ]
           }
@@ -88,13 +83,26 @@
       ]
     },
     "visualContainerObjects": {
-      "background": [
+      "title": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
                   "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
                 }
               }
             },
@@ -125,14 +133,25 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E0E0E0'"
+                    }
+                  }
                 }
               }
             },
             "radius": {
               "expr": {
                 "Literal": {
-                  "Value": "10D"
+                  "Value": "8D"
                 }
               }
             }
@@ -145,7 +164,21 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "true"
+                }
+              }
+            },
+            "preset": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Custom'"
+                }
+              }
+            },
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Outer'"
                 }
               }
             },
@@ -154,7 +187,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#0F172A'"
+                      "Value": "'#E0E0E0'"
                     }
                   }
                 }
@@ -167,31 +200,17 @@
                 }
               }
             },
-            "position": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Outer'"
-                }
-              }
-            },
-            "preset": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Custom'"
-                }
-              }
-            },
-            "shadowSpread": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
-                }
-              }
-            },
             "shadowBlur": {
               "expr": {
                 "Literal": {
-                  "Value": "14D"
+                  "Value": "4D"
+                }
+              }
+            },
+            "shadowDistance": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
                 }
               }
             },
@@ -202,10 +221,10 @@
                 }
               }
             },
-            "shadowDistance": {
+            "shadowSpread": {
               "expr": {
                 "Literal": {
-                  "Value": "2D"
+                  "Value": "0D"
                 }
               }
             }
@@ -218,14 +237,14 @@
             "top": {
               "expr": {
                 "Literal": {
-                  "Value": "6D"
+                  "Value": "10D"
                 }
               }
             },
             "bottom": {
               "expr": {
                 "Literal": {
-                  "Value": "6D"
+                  "Value": "10D"
                 }
               }
             },
@@ -247,19 +266,6 @@
         }
       ],
       "visualHeader": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "title": [
         {
           "properties": {
             "show": {
