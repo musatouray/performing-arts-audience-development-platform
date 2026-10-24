@@ -325,6 +325,31 @@ table _Measures
 	measure 'Trend Title' = VAR sel = SUMMARIZE ( 'Trend Metric', 'Trend Metric'[Trend Metric], 'Trend Metric'[Trend Metric Fields] ) VAR metric = IF ( COUNTROWS ( sel ) = 1, MAXX ( sel, 'Trend Metric'[Trend Metric] ), "Revenue" ) RETURN metric & " by month  |  this year vs last year"
 		displayFolder: Report
 
+	/// Income statement amount, fiscal year to date.
+	measure 'Statement FYTD' = CALCULATE ( [Statement Amount], 'Time Intelligence'[Calculation] = "FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Income statement
+
+	/// Income statement amount, same stretch of the prior fiscal year.
+	measure 'Statement PY FYTD' = CALCULATE ( [Statement Amount], 'Time Intelligence'[Calculation] = "PY FYTD" )
+		formatString: $#,0;($#,0)
+		displayFolder: Report\Income statement
+
+	/// Change against the same stretch of the prior year.
+	measure 'Statement vs PY' = VAR c = [Statement FYTD] VAR p = [Statement PY FYTD] RETURN IF ( NOT ISBLANK ( c ) && NOT ISBLANK ( p ), c - p )
+		formatString: +$#,0;-$#,0;$0
+		displayFolder: Report\Income statement
+
+	/// Change against the same stretch of the prior year, as a percentage.
+	measure 'Statement vs PY %' = VAR c = [Statement FYTD] VAR p = [Statement PY FYTD] RETURN DIVIDE ( c - p, ABS ( p ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Report\Income statement
+
+	/// Empty value for KPI card reference labels that only show a caption.
+	measure Caption = UNICHAR ( 160 )
+		isHidden
+		displayFolder: Formatting
+
 	column placeholder
 		isHidden
 		lineageTag: 8334bced-3def-4ea3-8740-4cb06f12a963
