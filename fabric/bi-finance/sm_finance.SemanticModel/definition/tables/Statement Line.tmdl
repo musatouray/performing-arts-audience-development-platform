@@ -1,0 +1,24 @@
+/// Layout of the Statement of Activities: one row per line, in order. Finance owns the layout; the measures in the 'Statement of Activities' folder fill it.
+table 'Statement Line'
+
+	column 'Line Order'
+		isNameInferred
+		sourceColumn: [Line Order]
+
+	column Line
+		isNameInferred
+		sourceColumn: [Line]
+		sortByColumn: 'Line Order'
+
+	column 'Line Type'
+		isNameInferred
+		sourceColumn: [Line Type]
+
+	column 'Account Code'
+		isNameInferred
+		sourceColumn: [Account Code]
+
+	partition 'Statement Line' = calculated
+		mode: import
+		source = DATATABLE ( "Line Order", INTEGER, "Line", STRING, "Line Type", STRING, "Account Code", STRING, { { 1, "Revenue", "Header", "" }, { 2, "    Single ticket sales", "Account", "4100" }, { 3, "    Subscriptions", "Account", "4110" }, { 4, "    Hall rentals", "Account", "4300" }, { 5, "    Contributions", "Account", "4200" }, { 6, "Total revenue", "Total Revenue", "" }, { 7, "Expenses", "Header", "" }, { 8, "    Artist fees", "Account", "5100" }, { 9, "    Salaries and wages", "Account", "5200" }, { 10, "    Venue operations", "Account", "5300" }, { 11, "    Marketing and advertising", "Account", "5400" }, { 12, "    Education programs", "Account", "5500" }, { 13, "    General and administrative", "Account", "5600" }, { 14, "Total expenses", "Total Expenses", "" }, { 15, "Change in net assets", "Net", "" }, { 16, "Surplus margin", "Ratio", "" } } )
+

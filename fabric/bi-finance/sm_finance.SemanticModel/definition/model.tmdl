@@ -24,6 +24,9 @@ ref table source_freshness
 ref table _Measures
 ref table 'Time Intelligence'
 ref table 'Trend Metric'
+ref table fact_budget
+ref table dim_source_module
+ref table 'Statement Line'
 
 ref role Finance
 

@@ -1,0 +1,34 @@
+/// Ledger posting modules and where their cash lands on the cash flow.
+table dim_source_module
+
+	column sort_order
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: sort_order
+
+	column source_module
+		dataType: string
+		isHidden
+		sourceColumn: source_module
+
+	column module_name
+		dataType: string
+		sourceColumn: module_name
+
+	column cash_flow_line
+		dataType: string
+		sourceColumn: cash_flow_line
+		sortByColumn: sort_order
+
+	column cash_direction
+		dataType: string
+		sourceColumn: cash_direction
+
+	partition dim_source_module = entity
+		mode: directLake
+		source
+			entityName: dim_source_module
+			schemaName: fin
+			expressionSource: 'DirectLake - wh_gold'
+

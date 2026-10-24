@@ -197,6 +197,7 @@
           "secureOutput": false
         },
         "name": "sp_load_gold",
+        "description": "Loads Gold. Retries twice, 3 minutes apart: right after Silver creates a new table, the lh_silver SQL endpoint can briefly report 'in transition' (error 952) while it syncs.",
         "dependsOn": [
           {
             "activity": "nb_silver",
@@ -204,8 +205,7 @@
               "Succeeded"
             ]
           }
-        ],
-        "description": "Loads Gold. Retries twice, 3 minutes apart: right after Silver creates a new table, the lh_silver SQL endpoint can briefly report 'in transition' (error 952) while it syncs."
+        ]
       },
       {
         "type": "MicrosoftTeams",

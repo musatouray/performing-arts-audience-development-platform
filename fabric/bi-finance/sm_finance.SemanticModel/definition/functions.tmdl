@@ -1,0 +1,25 @@
+/// KPI pill text for a change between actual and a comparison (budget or last year). kind: money (+$1.2M | +3.4%), money_only (+$1.2M), pct (+1.2 pts), days (+5 days). The sign shows the real direction; colour (Color.Change) says whether it is good.
+function 'Fmt.Change' =
+		( actual : SCALAR VAL, comparison : SCALAR VAL, kind : STRING VAL, no_value_text : STRING VAL ) =>
+		VAR d = actual - comparison
+		VAR sp = UNICHAR ( 160 )
+		VAR icon = IF ( d > 0, UNICHAR ( 9650 ), IF ( d < 0, UNICHAR ( 9660 ), UNICHAR ( 9472 ) ) )
+		VAR money = IF ( d >= 0, "+", "-" ) & IF ( ABS ( d ) >= 1000000, FORMAT ( ABS ( d ) / 1000000, "$#,0.0" ) & "M", FORMAT ( ABS ( d ) / 1000, "$#,0" ) & "K" )
+		VAR body = SWITCH ( kind,
+		    "pct", FORMAT ( d * 100, "+0.0;-0.0;0.0" ) & " pts",
+		    "days", FORMAT ( d, "+#,0;-#,0;0" ) & " days",
+		    "money_only", money,
+		    money & " | " & FORMAT ( DIVIDE ( d, ABS ( comparison ) ), "+0.0%;-0.0%;0.0%" ) )
+		RETURN IF ( ISBLANK ( actual ) || ISBLANK ( comparison ), no_value_text, sp & body & sp & icon & sp )
+
+/// Green when a change is favourable, red when not, grey when there is nothing to compare. favourable_when_up = FALSE for costs and money owed. alpha: hex transparency suffix ("" solid, "1A" for a pill background).
+function 'Color.Change' =
+		( actual : SCALAR VAL, comparison : SCALAR VAL, favourable_when_up : SCALAR VAL, alpha : STRING VAL ) =>
+		VAR d = actual - comparison
+		VAR g = IF ( favourable_when_up, d, - d )
+		RETURN SWITCH ( TRUE (),
+		    ISBLANK ( actual ) || ISBLANK ( comparison ), "#607D8B" & alpha,
+		    g > 0, "#2E7D32" & alpha,
+		    g < 0, "#D84315" & alpha,
+		    "#607D8B" & alpha )
+
