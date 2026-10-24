@@ -628,7 +628,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Adopted for the whole fiscal year'"
+                  "Value": "'Adopted for the Whole Fiscal Year'"
                 }
               }
             }
@@ -650,7 +650,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Share of the year''s budget spent so far'"
+                  "Value": "'Share of the Year''s Budget Spent So Far'"
                 }
               }
             }

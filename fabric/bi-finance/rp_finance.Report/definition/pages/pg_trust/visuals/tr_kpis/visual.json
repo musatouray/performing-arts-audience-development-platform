@@ -617,7 +617,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Loaded within their expected refresh'"
+                  "Value": "'Loaded Within Their Expected Refresh'"
                 }
               }
             }
@@ -639,7 +639,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Last date with activity in MIP'"
+                  "Value": "'Last Date With Activity in MIP'"
                 }
               }
             }
@@ -661,7 +661,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Debits minus credits, must be $0.00'"
+                  "Value": "'Debits Minus Credits, Must Be $0.00'"
                 }
               }
             }
@@ -683,7 +683,7 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Revenue lines within tolerance'"
+                  "Value": "'Revenue Lines Within Tolerance'"
                 }
               }
             }

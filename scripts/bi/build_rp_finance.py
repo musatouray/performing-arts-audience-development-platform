@@ -295,7 +295,7 @@ def kpi_strip(page, name, kpis):
             f = fid(page, m, "caption")
             o["referenceLabel"].append(sel_props({"data": [{"dataViewWildcard": {"matchingOption": 0}}], **meta(m), "id": f, "order": 0},
                                                  value=mexpr("Caption")))
-            o["referenceLabelTitle"].append(sel_props({**meta(m), "id": f}, titleContentType=lit("custom"), titleText=lit(k["caption"])))
+            o["referenceLabelTitle"].append(sel_props({**meta(m), "id": f}, titleContentType=lit("custom"), titleText=lit(title_case(k["caption"]))))
             o["referenceLabelValue"].append(sel_props({**meta(m), "id": f}, valueFontColor=col(WHITE), valueFontSize=num(6)))
             o["referenceLabelDetail"].append(sel_props({**meta(m), "id": f}, show=lit(False)))
     o["referenceLabelLayout"] = [sel_props({"id": "default"}, labelSpace=num(2), style=lit("sentence"), verticalAlignment=lit("top"),
@@ -471,14 +471,15 @@ kpi_strip(p, "cf_kpis", [
     py_kpi("Cash paid", "Cash Paid FYTD", "Cash Paid PY FYTD", "Cash Paid vs PY", BLUE),
     py_kpi("Net cash flow", "Net Cash Flow FYTD", "Net Cash Flow PY FYTD", "Net Cash Flow vs PY", GOLD),
     py_kpi("Owed to suppliers and staff", "Owed to Suppliers and Staff", "Owed to Suppliers and Staff PY", "Owed vs PY", GOLD)])
-lines_chart(p, "cf_balance", M, R2_Y, LEFT_W, R2_H, MONTH,
+CF_H = (H - G - R2_Y - G) // 2; CF3_Y = R2_Y + CF_H + G   # 300 + 30 + 300: both rows the same height
+lines_chart(p, "cf_balance", M, R2_Y, LEFT_W, CF_H, MONTH,
             [("Cash Balance", "This year", NAVY, False, True), ("Cash Balance Last Year", "Last year", LY_C, True, False)],
             title="Cash balance at month end", subtitle="Operating cash this fiscal year against the same month last year")
-bars(p, "cf_inout", RIGHT_X, R2_Y, RIGHT_W, R2_H, MONTH, "Month",
+bars(p, "cf_inout", RIGHT_X, R2_Y, RIGHT_W, CF_H, MONTH, "Month",
      [("Cash Received", "Received", BLUE), ("Cash Paid", "Paid", "#C9D3E0")],
      "Cash in and out", "By month of the fiscal year", horizontal=False)
 CFL = ("dim_source_module", "cash_flow_line")
-visual(p, "cf_statement", "pivotTable", M, R3_Y, LEFT_W, R3_H, 2000,
+visual(p, "cf_statement", "pivotTable", M, CF3_Y, LEFT_W, CF_H, 2000,
        query={"Rows": [proj(Cf(*CFL), "Cash flow line")],
               "Values": [proj(Mf("Cash Flow Amount FYTD"), "This year to date"), proj(Mf("Cash Flow Amount PY FYTD"), "Same period last year")]},
        filters=[in_filter("cf_statement_lines", "dim_source_module", "cash_direction", ["In", "Out"])],
@@ -486,7 +487,7 @@ visual(p, "cf_statement", "pivotTable", M, R3_Y, LEFT_W, R3_H, 2000,
        objects={**table_fmt(), "subTotals": props(rowSubtotals=lit(True)),
                 "rowHeaders": props(fontColor=col(INK), fontSize=num(12), fontFamily=lit(FONT_B))},
        vco=titled("Cash flow statement", "Receipts and payments, year to date  |  total = net cash flow", divider=True))
-bars(p, "cf_owed", RIGHT_X, R3_Y, RIGHT_W, R3_H, MONTH, "Month",
+bars(p, "cf_owed", RIGHT_X, CF3_Y, RIGHT_W, CF_H, MONTH, "Month",
      [("Accounts Payable", "Suppliers and artists", NAVY), ("Accrued Payroll", "Staff (earned, not yet paid)", GOLD)],
      "Owed at month end", "Bills and pay not yet paid", horizontal=False, stacked=True)
 
@@ -503,7 +504,8 @@ kpi_strip(p, "rc_kpis", [
     dict(measure="Reconciled %", label="Reconciled", caption="Lines within tolerance", units=1, precision=1, accent=GOOD, value_color=GOOD),
     dict(measure="Lines to Investigate", label="To investigate", caption="Lines outside tolerance", units=1, precision=0, accent=BAD, value_color=BAD),
     dict(measure="Open Items", label="Still open", caption="No cause recorded yet", units=1, precision=0, accent=BAD, value_color=BAD)])
-RC2_H = 260; RC3_Y = R2_Y + RC2_H + G; RC3_H = H - G - RC3_Y   # streams heatmap is short, the lines table gets the room
+RC2_H = 260; RC3_Y = R2_Y + RC2_H + G; RC3_H = H - G - RC3_Y   # left: short heatmap over the lines table
+RC_RIGHT_H = H - G - R2_Y                                     # right: the column chart runs to the bottom
 visual(p, "rc_grid", "pivotTable", M, R2_Y, LEFT_W, RC2_H, 2000,
        query={"Rows": [proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream")],
               "Columns": [proj(Cf("dim_date", "month_name"), "Month")],
@@ -513,13 +515,13 @@ visual(p, "rc_grid", "pivotTable", M, R2_Y, LEFT_W, RC2_H, 2000,
                            sel_props({"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": "_Measures.Variance"},
                                      backColor=mcol("Recon Status Color"))]},
        vco=titled("Variance heatmap", "Which months and streams don't tie out? Red = outside tolerance", divider=True))
-visual(p, "rc_trend", "clusteredColumnChart", RIGHT_X, R2_Y, RIGHT_W, RC2_H, 2000,
+visual(p, "rc_trend", "clusteredColumnChart", RIGHT_X, R2_Y, RIGHT_W, RC_RIGHT_H, 2000,
        query={"Category": [proj(Cf("dim_date", "month_name"), "Month")], "Y": [proj(Mf("Variance"))],
               "Series": [proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream")]},
        sort=[{"field": Cf("dim_date", "month_name"), "direction": "Ascending"}],
        objects={**axis(1000), "labels": props(show=lit(False))},
        vco=titled("Where the gaps are", "Ledger minus source by month  |  a cut-off shows as mirrored bars", divider=True))
-visual(p, "rc_lines", "tableEx", M, RC3_Y, CW, RC3_H, 2000,
+visual(p, "rc_lines", "tableEx", M, RC3_Y, LEFT_W, RC3_H, 2000,
        query={"Values": [proj(Cf("recon_revenue_to_gl", "month_start"), "Month"), proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream"),
                          proj(Cf("recon_revenue_to_gl", "fund_code"), "Fund"), proj(Mf("Source Amount"), "Source"),
                          proj(Mf("Ledger Amount"), "Ledger"), proj(Mf("Variance")), proj(Cf("recon_revenue_to_gl", "cause"), "Cause"),

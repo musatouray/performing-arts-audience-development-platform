@@ -3,10 +3,10 @@
   "name": "cf_owed",
   "position": {
     "x": 1290,
-    "y": 790,
+    "y": 750,
     "z": 2000,
     "width": 600,
-    "height": 260,
+    "height": 300,
     "tabOrder": 2000
   },
   "visual": {

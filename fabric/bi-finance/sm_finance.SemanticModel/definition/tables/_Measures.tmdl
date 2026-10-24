@@ -598,10 +598,11 @@ table _Measures
 		formatString: +0.0%;-0.0%;-
 		displayFolder: Statement of Activities
 
-	measure 'SoA Row Background' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN SWITCH ( t, "Header", "#F3F5F8", "Total Revenue", "#E8EEF5", "Total Expenses", "#E8EEF5", "Net", "#1E3A5F", "Ratio", "#E8EEF5", "#FFFFFF" )
+	measure 'SoA Row Background' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN SWITCH ( t, "Header", "#D5DFEC", "Total Revenue", "#EEF2F7", "Total Expenses", "#EEF2F7", "Net", "#1E3A5F", "Ratio", "#EEF2F7", "#FFFFFF" )
 		displayFolder: Formatting
 
-	measure 'SoA Row Font' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN IF ( t = "Net", "#FFFFFF", "#1E3A5F" )
+	/// Section rows (Revenue, Expenses) and totals in navy; account sub-rows in a softer grey so the sections carry more weight.
+	measure 'SoA Row Font' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN SWITCH ( t, "Net", "#FFFFFF", "Account", "#5B6B80", "#1E3A5F" )
 		displayFolder: Formatting
 
 	measure 'SoA vs Budget Font' = VAR t = SELECTEDVALUE ( 'Statement Line'[Line Type] ) RETURN IF ( t = "Net", "#FFFFFF", IF ( [vs Budget] < 0, "#D84315", "#2E7D32" ) )
