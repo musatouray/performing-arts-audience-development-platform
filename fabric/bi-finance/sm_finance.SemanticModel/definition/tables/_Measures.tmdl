@@ -3,13 +3,13 @@ table _Measures
 	lineageTag: 67f6ff6d-0c08-4930-a6ce-af478338e7b8
 
 	/// Revenue posted to the ledger (credits less debits on revenue accounts).
-	measure Revenue = CALCULATE ( SUM ( fact_gl_entry[net_amount] ), dim_account[account_type] = "Revenue" )
+	measure Revenue = CALCULATE ( SUM ( fact_gl_entry[net_amount] ), KEEPFILTERS ( dim_account[account_type] = "Revenue" ) )
 		formatString: $#,0;($#,0)
 		displayFolder: Ledger
 		lineageTag: ceae9d0e-edfa-40c8-bd0f-62781d09c7cf
 
 	/// Expenses posted to the ledger, shown as positive amounts.
-	measure Expenses = CALCULATE ( - SUM ( fact_gl_entry[net_amount] ), dim_account[account_type] = "Expense" )
+	measure Expenses = CALCULATE ( - SUM ( fact_gl_entry[net_amount] ), KEEPFILTERS ( dim_account[account_type] = "Expense" ) )
 		formatString: $#,0;($#,0)
 		displayFolder: Ledger
 		lineageTag: b3b2978d-fa0d-458b-981c-2868f98954c4
