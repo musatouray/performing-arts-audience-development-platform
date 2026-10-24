@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "tr_notes",
   "position": {
-    "x": 24,
-    "y": 444,
-    "z": 3,
-    "width": 1232,
-    "height": 160,
-    "tabOrder": 3
+    "x": 28,
+    "y": 492,
+    "z": 3000,
+    "width": 1224,
+    "height": 186,
+    "tabOrder": 3000
   },
   "visual": {
     "visualType": "textbox",
@@ -24,7 +24,7 @@
                     "textStyle": {
                       "fontFamily": "Segoe UI Semibold",
                       "fontSize": "12pt",
-                      "color": "#0B2545"
+                      "color": "#1F2937"
                     }
                   }
                 ],
@@ -33,10 +33,11 @@
               {
                 "textRuns": [
                   {
-                    "value": "\u2022 Every journal in the ledger balances; Out of balance must be $0.00.",
+                    "value": "•  Every journal in the ledger balances; Out of balance must be $0.00.",
                     "textStyle": {
+                      "fontFamily": "Segoe UI",
                       "fontSize": "10pt",
-                      "color": "#1F2A37"
+                      "color": "#1F2937"
                     }
                   }
                 ],
@@ -45,10 +46,11 @@
               {
                 "textRuns": [
                   {
-                    "value": "\u2022 Tessitura and Diese revenue are reconciled to the ledger every night; lines outside tolerance appear on the Reconciliation page until finance explains them.",
+                    "value": "•  Tessitura and Diese revenue are reconciled to the ledger every night; lines outside tolerance stay on the Reconciliation page until finance explains them.",
                     "textStyle": {
+                      "fontFamily": "Segoe UI",
                       "fontSize": "10pt",
-                      "color": "#1F2A37"
+                      "color": "#1F2937"
                     }
                   }
                 ],
@@ -57,10 +59,11 @@
               {
                 "textRuns": [
                   {
-                    "value": "\u2022 Freshness comes from the platform's run log: a source counts as current when the nightly run checked it, even if nothing changed.",
+                    "value": "•  Freshness comes from the platform's run log: a source counts as current when the nightly run checked it, even if nothing changed.",
                     "textStyle": {
+                      "fontFamily": "Segoe UI",
                       "fontSize": "10pt",
-                      "color": "#1F2A37"
+                      "color": "#1F2937"
                     }
                   }
                 ],
@@ -69,10 +72,11 @@
               {
                 "textRuns": [
                   {
-                    "value": "\u2022 Definitions live in the certified semantic model sm_finance, so Excel, this report and SQL users get the same numbers.",
+                    "value": "•  Every number comes from the certified semantic model sm_finance, so Excel, this report and SQL users see the same figures.",
                     "textStyle": {
+                      "fontFamily": "Segoe UI",
                       "fontSize": "10pt",
-                      "color": "#1F2A37"
+                      "color": "#1F2937"
                     }
                   }
                 ],
@@ -90,7 +94,7 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             },
@@ -125,21 +129,10 @@
                 }
               }
             },
-            "color": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#E5E7EB'"
-                    }
-                  }
-                }
-              }
-            },
             "radius": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "10D"
                 }
               }
             }
@@ -155,6 +148,66 @@
                   "Value": "false"
                 }
               }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#0F172A'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "92D"
+                }
+              }
+            },
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Outer'"
+                }
+              }
+            },
+            "preset": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Custom'"
+                }
+              }
+            },
+            "shadowSpread": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "shadowBlur": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            },
+            "angle": {
+              "expr": {
+                "Literal": {
+                  "Value": "90D"
+                }
+              }
+            },
+            "shadowDistance": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
+                }
+              }
             }
           }
         }
@@ -165,28 +218,41 @@
             "top": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "6D"
                 }
               }
             },
             "bottom": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "6D"
                 }
               }
             },
             "left": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "10D"
                 }
               }
             },
             "right": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "10D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
                 }
               }
             }
