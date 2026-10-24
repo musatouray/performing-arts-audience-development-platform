@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "pg_revenue_back",
   "position": {
-    "x": 1520,
+    "x": 1450,
     "y": 122,
     "z": 4000,
-    "width": 104,
+    "width": 174,
     "height": 34,
     "tabOrder": 4000
   },
@@ -19,7 +19,7 @@
             "shapeType": {
               "expr": {
                 "Literal": {
-                  "Value": "'blank'"
+                  "Value": "'leftArrow'"
                 }
               }
             },
@@ -40,6 +40,20 @@
                   "Value": "2D"
                 }
               }
+            },
+            "iconSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            },
+            "placement": {
+              "expr": {
+                "Literal": {
+                  "Value": "'left'"
+                }
+              }
             }
           },
           "selector": {
@@ -48,10 +62,28 @@
         },
         {
           "properties": {
+            "lineColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "id": "hover"
+          }
+        },
+        {
+          "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "true"
                 }
               }
             }
@@ -71,7 +103,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'‹  Back'"
+                  "Value": "'Back to Overview'"
                 }
               }
             },
@@ -378,7 +410,7 @@
             "type": {
               "expr": {
                 "Literal": {
-                  "Value": "'Back'"
+                  "Value": "'PageNavigation'"
                 }
               }
             },
@@ -386,6 +418,20 @@
               "expr": {
                 "Literal": {
                   "Value": "false"
+                }
+              }
+            },
+            "navigationSection": {
+              "expr": {
+                "Literal": {
+                  "Value": "'pg_overview'"
+                }
+              }
+            },
+            "tooltip": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Back to the Overview page'"
                 }
               }
             }

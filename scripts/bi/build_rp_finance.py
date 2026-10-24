@@ -76,7 +76,17 @@ def titled(title=None, subtitle=None, title_measure=None, subtitle_measure=None,
     else:
         o["subTitle"] = props(show=lit(False))
     o["divider"] = props(show=lit(divider))
+    o.update(card_frame())
     return o
+
+def card_frame():
+    """White card, 8px corners, light border and soft shadow, 10px padding: set on every visual
+    (not left to the theme), so it renders the same in Desktop, the service and the app."""
+    return {"background": props(show=lit(True), color=col(WHITE), transparency=num(0)),
+            "border": props(show=lit(True), color=col(LINE), radius=num(8), width=num(1)),
+            "dropShadow": props(show=lit(True), preset=lit("Custom"), position=lit("Outer"), color=col("#000000"),
+                                transparency=num(93), shadowBlur=num(6), shadowDistance=num(2), angle=num(90), shadowSpread=num(0)),
+            "padding": props(top=num(10), bottom=num(10), left=num(10), right=num(10))}
 
 def bare():
     return {"title": props(show=lit(False)), "subTitle": props(show=lit(False)), "background": props(show=lit(False)),
@@ -158,7 +168,9 @@ def button(page, name, x, y, w, h, text, target=None, back=False, icon=None, sol
         link["tooltip"] = lit(tooltip)
     fg, bg = (WHITE, BLUE) if solid else (BLUE, WHITE)
     visual(page, name, "actionButton", x, y, w, h, z, how="InsertVisualButton",
-           objects={"icon": [sel_props({"id": "default"}, shapeType=lit(icon or "blank"), lineColor=col(fg), lineWeight=num(2)),
+           objects={"icon": [sel_props({"id": "default"}, shapeType=lit(icon or "blank"), lineColor=col(fg), lineWeight=num(2),
+                                       iconSize=num(14), placement=lit("left")),
+                             sel_props({"id": "hover"}, lineColor=col(WHITE)),
                              {"properties": {"show": lit(bool(icon))}}],
                     "text": [sel_props({"id": "default"}, show=lit(bool(text)), text=lit(text or ""), fontColor=col(fg), fontSize=num(10),
                                        fontFamily=lit(FONT_B), horizontalAlignment=lit("center"), verticalAlignment=lit("middle")),
@@ -183,7 +195,9 @@ def nav(page):
     shape(page, f"{page}_strip", 0, NAV_H, W, STRIP_H, 0, GOLD, rounded=False)
     textbox(page, f"{page}_brand", M, 8, 300, 48, 1000,
             [[("HARMONIA HALL", ts(9, GOLD, True))], [("Finance", ts(14, WHITE, True))]])
-    visual(page, f"{page}_tabs", "pageNavigator", 600, 0, W - 600 - M, NAV_H, 2000, how="InsertVisualButton",
+    tabs = [pid for pid, _ in ORDER if pid not in HIDDEN]
+    tab_w = 190
+    visual(page, f"{page}_tabs", "pageNavigator", W - M - tab_w * len(tabs), 0, tab_w * len(tabs), NAV_H, 2000, how="InsertVisualButton",
            objects={"shape": props(tileShape=lit("rectangleRoundedByPixel"), rectangleRoundedCurve=num(4), roundEdge=num(4)),
                     "fill": [sel_props({"id": "default"}, show=lit(True), fillColor=col(NAVY), transparency=num(100)),
                              sel_props({"id": "selected"}, show=lit(True), fillColor=col(BLUE), transparency=num(0)),
@@ -193,21 +207,25 @@ def nav(page):
                                        horizontalAlignment=lit("center"), verticalAlignment=lit("middle"), bold=lit(False)),
                              sel_props({"id": "selected"}, fontColor=col(WHITE)),
                              sel_props({"id": "hover"}, fontColor=col(WHITE))],
-                    "layout": props(cellPadding=num(12))},
+                    "layout": props(cellPadding=num(12)),
+                    # list the main pages explicitly; hidden pages (details, about) never show as tabs
+                    "pages": [{"properties": {"showByDefault": lit(False), "showHiddenPages": lit(False)}}]
+                             + [sel_props({"id": pid}, showPage=lit(True)) for pid in tabs]},
            vco={**bare(), "padding": props(top=num(12), bottom=num(12), left=num(0), right=num(0))})
 
 def header(page, title, narrative=None, narrative_measure=None, slicer=True, period_text=None, back=False, info=True):
     shape(page, f"{page}_hdrbg", M, HDR_Y, CW, HDR_H, 0, WHITE, shadow=True, outline=LINE)
     if back:
-        bx = M + CW - (250 if slicer else 0) - 120
-        button(page, f"{page}_back", bx, HDR_Y + 24, 104, 34, "\u2039  Back", back=True)
+        bx = M + CW - (250 if slicer else 0) - 190
+        button(page, f"{page}_back", bx, HDR_Y + 24, 174, 34, "Back to Overview", target="pg_overview", icon="leftArrow",
+               tooltip="Back to the Overview page")
     elif info:
         bx = M + CW - (250 if slicer else 0) - 56
         button(page, f"{page}_about", bx, HDR_Y + 24, 40, 34, "i", target="pg_trust", tooltip="About the data")
     period = [(period_text, ts(10, SLATE))] if period_text else [(("m", "Period Label"), ts(10, SLATE))]
     textbox(page, f"{page}_title", M + 20, HDR_Y + 12, 360, 60, 1000, [[(title, ts(14, INK, True))], period])
     # narrative between the title and the buttons/slicer on the right
-    right = (250 if slicer else 0) + (130 if back else 70 if info else 0)
+    right = (250 if slicer else 0) + (200 if back else 70 if info else 0)
     nx, nw = M + 400, CW - 400 - right - 20
     story = [(("m", narrative_measure), ts(11, INK))] if narrative_measure else [(narrative, ts(11, INK))]
     textbox(page, f"{page}_story", nx, HDR_Y + 8, nw, 46, 1000, [story])
@@ -282,17 +300,23 @@ def kpi_strip(page, name, kpis):
     visual(page, name, "cardVisual", M, KPI_Y, CW, KPI_H, 3000, query={"Data": [proj(Mf(k["measure"])) for k in kpis]},
            objects=o, vco={**titled(), "visualHeader": props(show=lit(False))})
 
+def left_columns(*query_refs):
+    """Table columns that hold text (labels, codes, statuses): header and values aligned left."""
+    return {"columnFormatting": [sel_props({"metadata": r}, alignment=lit("Left"), styleHeader=lit(True), styleValues=lit(True))
+                                 for r in query_refs]}
+
 def axis(units=0):
     return {"valueAxis": props(show=lit(True), labelDisplayUnits=num(units), gridlineShow=lit(True), gridlineStyle=lit("dotted")),
             "categoryAxis": props(show=lit(True)),
             "legend": props(show=lit(True), position=lit("TopRight"))}
 
 def table_fmt(totals=True):
+    # Headers right-aligned over the numbers; the row-header (first) column's title stays left with its labels.
     return {"columnHeaders": props(fontColor=col(WHITE), backColor=col(NAVY), fontFamily=lit(FONT_B), fontSize=num(11), wordWrap=lit(True),
-                                   columnAdjustment=lit("growToFit")),
+                                   columnAdjustment=lit("growToFit"), alignment=lit("Right"), titleAlignment=lit("Left")),
             "rowHeaders": props(fontColor=col(INK), fontSize=num(11), fontFamily=lit(FONT_B)),
             "values": props(fontColor=col(INK), fontSize=num(11), backColorSecondary=col("#F7F9FB")),
-            "grid": props(gridHorizontal=lit(True), gridHorizontalColor=col(LINE), gridVertical=lit(False), rowPadding=num(6)),
+            "grid": props(gridHorizontal=lit(True), gridHorizontalColor=col(LINE), gridVertical=lit(False), rowPadding=num(4)),
             "total": props(totals=lit(totals), fontColor=col(INK), fontFamily=lit(FONT_B), backColor=col("#EEF2F6"))}
 
 TI = ("Time Intelligence", "Calculation")
@@ -410,12 +434,14 @@ for m, f in (("vs Budget", "SoA vs Budget Font"), ("vs Budget %", "SoA vs Budget
     font = [x for x in font if x["selector"].get("metadata") != f"_Measures.{m}"]
     font.append(sel_props({"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": f"_Measures.{m}"}, fontColor=mcol(f)))
 visual(p, "st_table", "tableEx", M, R2_Y, CW, H - G - R2_Y, 2000,
-       query={"Values": [proj(Cf(SL, "Line"), " ")] + [proj(Mf(m), lbl) for m, lbl in st_cols]},
+       # showAll keeps the "Revenue" and "Expenses" heading rows, which have no numbers of their own
+       query={"Values": {"projections": [proj(Cf(SL, "Line"), " ")] + [proj(Mf(m), lbl) for m, lbl in st_cols], "showAll": True}},
        sort=[{"field": Cf(SL, "Line"), "direction": "Ascending"}],
        objects={"columnHeaders": props(fontColor=col(WHITE), backColor=col(NAVY), fontFamily=lit(FONT_B), fontSize=num(12),
-                                       columnAdjustment=lit("growToFit")),
+                                       columnAdjustment=lit("growToFit"), alignment=lit("Right")),
+                **left_columns(f"{SL}.Line"),
                 "values": [{"properties": {"fontSize": num(12), "fontFamily": lit(FONT)}}] + every_column("backColor", "SoA Row Background") + font,
-                "grid": props(gridHorizontal=lit(True), gridHorizontalColor=col(LINE), gridVertical=lit(False), rowPadding=num(7)),
+                "grid": props(gridHorizontal=lit(True), gridHorizontalColor=col(LINE), gridVertical=lit(False), rowPadding=num(4)),
                 "total": props(totals=lit(False))},
        vco=titled(title_measure="Statement Title",
                   subtitle="Fiscal year to date  |  favourable variances in green, unfavourable in red  |  last line: change in net assets as a share of revenue",
@@ -488,10 +514,13 @@ visual(p, "rc_lines", "tableEx", M, RC3_Y, CW, RC3_H, 2000,
                          proj(Cf("recon_revenue_to_gl", "resolution"), "Status")]},
        sort=[{"field": Mf("Abs Variance"), "direction": "Descending"}],
        filters=[in_filter("rc_lines_status", "recon_revenue_to_gl", "status", ["Investigate"])],
-       objects=table_fmt(),
+       objects={**table_fmt(), **left_columns(*(f"recon_revenue_to_gl.{c}" for c in
+                                                ("month_start", "revenue_stream", "fund_code", "cause", "resolution")))},
        vco=titled("Lines to investigate", "Biggest gaps first  |  finance records the cause in fin.recon_note and it shows here the next morning", divider=True))
 
 # ================================================================= Revenue Detail (hidden)
+# Detail pages give the breakdown table more room: charts 280 high, table the rest.
+D2_H = 280; D3_Y = R2_Y + D2_H + G; D3_H = H - G - D3_Y
 p = "pg_revenue"
 new_page(p, "Revenue Detail"); nav(p)
 header(p, "Revenue Detail", back=True,
@@ -499,14 +528,14 @@ header(p, "Revenue Detail", back=True,
                  "(tickets, subscriptions, rentals); contributed revenue is what donors give.")
 kpi_strip(p, "rv_kpis", [REV, EARNED, CONTRIB,
                          dict(pct_kpi("Earned revenue share", "Earned Revenue %", NAVY))])
-lines_chart(p, "rv_trend", M, R2_Y, LEFT_W, R2_H, MONTH,
+lines_chart(p, "rv_trend", M, R2_Y, LEFT_W, D2_H, MONTH,
             [("Revenue Actual to Date", "Actual", BLUE, False, True), ("Revenue Budget", "Budget", BUDGET_C, True, False),
              ("Revenue Last Year", "Last year", LY_C, True, False)],
             title="Revenue by month", subtitle="Actual against the adopted budget and last year")
-bars(p, "rv_fund", RIGHT_X, R2_Y, RIGHT_W, R2_H, Cf("dim_fund", "fund_name"), "Fund",
+bars(p, "rv_fund", RIGHT_X, R2_Y, RIGHT_W, D2_H, Cf("dim_fund", "fund_name"), "Fund",
      [("Revenue FYTD", "Actual", NAVY), ("Revenue Budget FYTD", "Budget", "#C9D3E0")],
      "Revenue by fund", "Year to date against budget", sort_by="Revenue FYTD")
-visual(p, "rv_matrix", "pivotTable", M, R3_Y, CW, R3_H, 2000,
+visual(p, "rv_matrix", "pivotTable", M, D3_Y, CW, D3_H, 2000,
        query={"Rows": [proj(Cf("dim_account", "account_group"), "Group"), proj(Cf("dim_account", "account_name"), "Revenue line")],
               "Values": [proj(Mf("Revenue FYTD"), "Actual"), proj(Mf("Revenue Budget FYTD"), "Budget"),
                          proj(Mf("Revenue vs Budget FYTD"), "vs Budget"), proj(Mf("Revenue vs Budget FYTD %"), "vs Budget %"),
@@ -531,14 +560,14 @@ kpi_strip(p, "ex_kpis", [
     dict(measure="Expense Budget Used %", label="Budget used", caption="Share of the year's budget spent so far", accent=GOLD,
          units=1, precision=1),
     py_kpi("Owed to suppliers and staff", "Owed to Suppliers and Staff", "Owed to Suppliers and Staff PY", "Owed vs PY", NAVY)])
-lines_chart(p, "ex_trend", M, R2_Y, LEFT_W, R2_H, MONTH,
+lines_chart(p, "ex_trend", M, R2_Y, LEFT_W, D2_H, MONTH,
             [("Expenses Actual to Date", "Actual", BLUE, False, True), ("Expense Budget", "Budget", BUDGET_C, True, False),
              ("Expenses Last Year", "Last year", LY_C, True, False)],
             title="Expenses by month", subtitle="Actual against the adopted budget and last year")
-bars(p, "ex_dept", RIGHT_X, R2_Y, RIGHT_W, R2_H, Cf("dim_department", "department_name"), "Department",
+bars(p, "ex_dept", RIGHT_X, R2_Y, RIGHT_W, D2_H, Cf("dim_department", "department_name"), "Department",
      [("Expenses FYTD", "Actual", NAVY), ("Expense Budget FYTD", "Budget", "#C9D3E0")],
      "Spending by department", "Year to date against budget", sort_by="Expenses FYTD")
-visual(p, "ex_matrix", "pivotTable", M, R3_Y, CW, R3_H, 2000,
+visual(p, "ex_matrix", "pivotTable", M, D3_Y, CW, D3_H, 2000,
        query={"Rows": [proj(Cf("dim_department", "department_name"), "Department"), proj(Cf("dim_account", "account_name"), "Expense line")],
               "Values": [proj(Mf("Expenses FYTD"), "Actual"), proj(Mf("Expense Budget FYTD"), "Budget"),
                          proj(Mf("Expenses vs Budget FYTD"), "vs Budget"), proj(Mf("Expenses vs Budget FYTD %"), "vs Budget %"),
@@ -567,6 +596,8 @@ visual(p, "tr_fresh", "tableEx", M, R2_Y, CW, TR2_H, 2000,
                          proj(Cf("source_freshness", "last_loaded_et"), "Last loaded (ET)"), proj(Mf("Data Through"), "Data through"),
                          proj(Mf("Hours Since Load"), "Hours since load"), proj(Mf("Freshness Status"), "Status")]},
        objects={**table_fmt(totals=False),
+                **left_columns("source_freshness.source_name", "source_freshness.expected_refresh", "source_freshness.last_loaded_et",
+                               "_Measures.Freshness Status"),
                 "values": [{"properties": {"fontColor": col(INK), "fontSize": num(12)}},
                            sel_props({"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": "_Measures.Freshness Status"},
                                      fontColor=mcol("Freshness Color"))]},
