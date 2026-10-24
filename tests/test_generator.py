@@ -50,7 +50,7 @@ class GeneratorTests(unittest.TestCase):
 
     def test_partitions_and_manifests_exist(self):
         for d in ("2025-12-31", "2026-01-01", "2026-01-02"):
-            for folder, n in (("tessitura_db", 7), ("marketing_adls", 3), ("mip_db", 4)):
+            for folder, n in (("tessitura_db", 7), ("marketing_adls", 3), ("mip_db", 5)):
                 m = json.loads((self.out / folder / "_manifests" / f"load_date={d}.json").read_text())
                 self.assertEqual(len(m["files"]), n)
 
@@ -111,6 +111,17 @@ class GeneratorTests(unittest.TestCase):
     def test_ad_spend_restates_last_two_days(self):
         days = {r["ad_date"] for r in self._rows("marketing", "ad_spend_daily", "2026-01-02")}
         self.assertEqual(days, {"2025-12-31", "2026-01-01", "2026-01-02"})
+
+    def test_cash_payments_and_budget(self):
+        """Payroll and bills are paid from cash after month end, and every fiscal year has a budget."""
+        rows = self._rows("mip", "gl_transaction", "2025-12-31")
+        modules = {r["source_module"] for r in rows}
+        self.assertTrue({"OPENING", "PAYROLL_PAYMENT", "AP_PAYMENT"} <= modules)
+        cash = sum(float(r["debit_amount"]) - float(r["credit_amount"]) for r in rows if r["account_code"] == "1010")
+        self.assertGreater(cash, 0)
+        budget = self._rows("mip", "gl_budget", "2025-12-31")
+        self.assertEqual({r["fiscal_year"] for r in budget}, {"2026"})
+        self.assertTrue(all(float(r["amount"]) > 0 for r in budget))
 
     def test_every_ledger_journal_balances(self):
         for d in ("2025-12-31", "2026-01-01", "2026-01-02"):

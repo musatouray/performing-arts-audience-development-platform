@@ -512,6 +512,27 @@ Use this if the platform already runs the original sources (Phases 0–9 at leas
 
 ---
 
+## Phase 15c — Add budget and cash to MIP
+
+MIP now carries what finance needs for budget vs actual and a cash flow: an opening cash balance, biweekly payroll runs (every other Friday, `PAYROLL_PAYMENT`), payables paid 30 days after month end (`AP_PAYMENT`), and each year's adopted budget (`gl_budget`). Payments use their own journal numbers (`JS`/`GS`), so no existing ledger line changes, and their `updated_at` is the backfill time, so the Copy job and Silver pick them up without a reset.
+
+1. **Regenerate** with the same end date as your data (`end` in `data/state.json`). Tessitura, Diese and the existing ledger lines come out identical:
+   ```powershell
+   uv run python -m data_generator.generate full --end <end in data/state.json>
+   uv run python scripts/11_load_source_db.py --source mip_db --load-date <same date> --reload
+   ```
+   ✅ The loader shows `gl_account` 1 new (3100 Net Assets), `gl_transaction` ~248 new, `gl_budget` ~872 new.
+2. **Sync:** commit and push as usual, then `hh-dataplatform-dev` › Source control › **Update all**. `cj_mip` gains a `gl_budget` table; `nb_silver` processes `mip.gl_budget`. Upload the config: `uv run python scripts/06_upload_config.py --env dev`.
+3. **Gold:** in `wh_gold`, run `72_budget_and_cash.sql`, then `40_load_facts.sql` again.
+4. **Run `pl_daily_load`** (`load_date` blank), then check:
+   ```sql
+   SELECT fiscal_year, SUM(budget_amount) AS budget FROM fin.fact_budget GROUP BY fiscal_year ORDER BY 1;
+   SELECT TOP 12 * FROM rpt.vw_cash_flow_monthly ORDER BY month_start DESC;
+   ```
+   ✅ Four budget years; cash never goes below zero and ends around $30M.
+
+---
+
 ## Phase 16 — Operate and govern
 
 - **Tenant settings audit:** run `uv run python scripts/08_audit_tenant_settings.py` and commit `docs/tenant-settings-audit.md`.

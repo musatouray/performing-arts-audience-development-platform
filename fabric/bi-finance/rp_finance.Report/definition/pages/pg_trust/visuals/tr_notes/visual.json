@@ -3,10 +3,10 @@
   "name": "tr_notes",
   "position": {
     "x": 30,
-    "y": 790,
+    "y": 750,
     "z": 2000,
     "width": 1860,
-    "height": 260,
+    "height": 300,
     "tabOrder": 2000
   },
   "visual": {
@@ -35,7 +35,7 @@
                     "value": "•  Every journal in the ledger balances; out of balance must be $0.00.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "11pt",
+                      "fontSize": "12pt",
                       "color": "#1E3A5F"
                     }
                   }
@@ -47,7 +47,7 @@
                     "value": "•  Tessitura and Diese revenue are reconciled to the ledger every night; lines outside tolerance stay on the Reconciliation page until finance explains them.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "11pt",
+                      "fontSize": "12pt",
                       "color": "#1E3A5F"
                     }
                   }
@@ -59,7 +59,7 @@
                     "value": "•  Freshness comes from the platform's run log: a source counts as current when the nightly run checked it, even if nothing changed.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "11pt",
+                      "fontSize": "12pt",
                       "color": "#1E3A5F"
                     }
                   }
@@ -71,7 +71,7 @@
                     "value": "•  Every number comes from the certified semantic model sm_finance, so Excel, this report and SQL users see the same figures.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "11pt",
+                      "fontSize": "12pt",
                       "color": "#1E3A5F"
                     }
                   }

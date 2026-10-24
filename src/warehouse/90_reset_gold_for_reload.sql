@@ -25,6 +25,7 @@ TRUNCATE TABLE fact.email_campaign_results;
 TRUNCATE TABLE fact.email_click;
 TRUNCATE TABLE fact.ad_spend_daily;
 TRUNCATE TABLE fin.fact_gl_entry;
+TRUNCATE TABLE fin.fact_budget;          -- rebuilt each run anyway (72)
 TRUNCATE TABLE rpt.source_freshness;
 TRUNCATE TABLE fin.recon_revenue_to_gl;   -- rebuilt each run; fin.recon_note (finance's notes) is kept
 

@@ -16,6 +16,20 @@ Planted exceptions, for the revenue-to-ledger reconciliation to catch (docs/adr/
      (fund totals change, the overall total doesn't).
   4. A few rentals were invoiced, then cancelled in Diese; the ledger still has them.
 Each is a one-time event, so the reconciliation shows a short list where every line has a story.
+
+Cash and budget, so finance can run a cash flow and budget vs actual:
+  * The ledger opens with a cash balance (Operating Cash against net assets).
+  * Staff are paid biweekly, the most common US pay frequency: every other Friday, for the
+    two weeks ending the Saturday before (paid in arrears). The ledger still books the
+    month's salaries at month end (the accrual), so Accrued Payroll at month end is what
+    staff have earned but not yet been paid. Supplier and artist bills (accounts payable)
+    are paid 30 days after month end. Ticketing, gifts and rentals arrive as cash (rentals
+    are prepaid). So cash = opening + receipts - payments.
+  * Each fiscal year has an adopted budget (MIP's budget module), approved mid-June:
+    last year's actuals by month, account, fund and department, plus planned growth.
+    The first year, which has no prior year, is budgeted from its own activity.
+Payments and the opening balance use their own journal numbers (JS/GS), so adding
+them never renumbers an existing journal line.
 Diese also has a few concert events with no Tessitura link, and a few bookings that end
 before they start, for the data quality checks.
 
@@ -53,6 +67,7 @@ GL_ACCOUNTS = [  # (code, name, type, group, normal balance)
     ("1100", "Accounts Receivable", "Asset", "Receivables", "Debit"),
     ("2100", "Accounts Payable", "Liability", "Payables", "Credit"),
     ("2200", "Accrued Payroll", "Liability", "Payables", "Credit"),
+    ("3100", "Net Assets Without Donor Restrictions", "Net Assets", "Net Assets", "Credit"),
     ("4100", "Single Ticket Revenue", "Revenue", "Earned Revenue", "Credit"),
     ("4110", "Subscription Revenue", "Revenue", "Earned Revenue", "Credit"),
     ("4200", "Contributions - Individuals", "Revenue", "Contributed Revenue", "Credit"),
@@ -77,6 +92,9 @@ GL_FUNDS = [  # (code, name, restriction, tessitura fund_id)
     ("ACC", "Community Access", "With Donor Restrictions", "F05"),
 ]
 FUND_BY_TESSITURA = {f[3]: f[0] for f in GL_FUNDS}
+OPENING_CASH = 12_000_000            # Operating Cash on the first day of the data
+PAY_LAG_DAYS = {"AP": 30}           # bills booked at month end, paid this many days later
+FIRST_PAYDAY = date(2023, 7, 14)    # a Friday; paydays repeat every 14 days
 MONTHLY_PAYROLL = {"100": 520_000, "200": 240_000, "300": 180_000, "400": 210_000, "500": 300_000, "600": 260_000}
 
 
@@ -270,31 +288,134 @@ class Diese:
 class Ledger:
     """Builds balanced journals. Every journal's debits equal its credits."""
 
-    def __init__(self, state):
+    def __init__(self, state, backfill_at: datetime | None = None):
         self.st = state
         self.rows: list[dict] = []
+        # Payments and the opening balance were back-filled into MIP when finance started recording
+        # them, so on the first load their updated_at is the backfill time, not the payment date.
+        # That keeps them after every watermark the Copy job and Silver already hold.
+        self.backfill_at = backfill_at
 
-    def journal(self, session: str, source: str, eff: date, posted: datetime, lines: list[tuple], ref: str):
+    def journal(self, session: str, source: str, eff: date, posted: datetime, lines: list[tuple], ref: str,
+                settlement: bool = False):
         """lines: (account, fund, department, amount, description). Positive = credit, negative = debit.
-        A cash line is added to balance the journal."""
+        A cash (or payable) line is added to balance the journal. Settlement journals (payments,
+        the opening balance) are already balanced and use their own JS/GS numbers."""
         lines = [ln for ln in lines if round(ln[3], 2) != 0]
         if not lines:
             return
         total = round(sum(ln[3] for ln in lines), 2)
-        offset_acct = "1010" if source in ("TESSITURA", "DIESE") else ("2200" if source == "PAYROLL" else "2100")
-        if total != 0:
-            lines = lines + [(offset_acct, "GEN", "600", -total, f"{source} {ref} offset")]
-        self.st.journals += 1
-        jid = f"J{self.st.journals:07d}"
+        if not settlement:
+            offset_acct = "1010" if source in ("TESSITURA", "DIESE") else ("2200" if source == "PAYROLL" else "2100")
+            if total != 0:
+                lines = lines + [(offset_acct, "GEN", "600", -total, f"{source} {ref} offset")]
+            if source in PAY_LAG_DAYS and total != 0:            # owed until paid (see settle_due)
+                due = (eff + timedelta(days=PAY_LAG_DAYS[source])).isoformat()
+                open_items = self.st.open_payables.setdefault(due, [])
+                open_items.append([source, offset_acct, round(-total, 2), ref])
+        if settlement:
+            self.st.settle_journals += 1
+            jid = f"JS{self.st.settle_journals:06d}"
+        else:
+            self.st.journals += 1
+            jid = f"J{self.st.journals:07d}"
         for n, (acct, fund, dept, amt, desc) in enumerate(lines, start=1):
-            self.st.gl_lines += 1
+            if settlement:
+                self.st.settle_lines += 1
+                line_id = f"GS{self.st.settle_lines:08d}"
+            else:
+                self.st.gl_lines += 1
+                line_id = f"GL{self.st.gl_lines:09d}"
             amt = round(amt, 2)
             self.rows.append({
-                "gl_transaction_id": f"GL{self.st.gl_lines:09d}", "journal_id": jid, "line_number": n,
+                "gl_transaction_id": line_id, "journal_id": jid, "line_number": n,
                 "session_id": session, "source_module": source, "effective_date": eff.isoformat(),
                 "posted_at": ts(posted), "account_code": acct, "fund_code": fund, "department_code": dept,
                 "debit_amount": -amt if amt < 0 else 0.0, "credit_amount": amt if amt > 0 else 0.0,
-                "description": desc, "reference": ref, "updated_at": ts(posted)})
+                "description": desc, "reference": ref,
+                "updated_at": ts(self.backfill_at if settlement and self.backfill_at else posted)})
+
+
+def post_opening_balance(ledger: Ledger, start: date):
+    """The ledger's opening position: cash on hand, held as unrestricted net assets."""
+    ledger.journal("OPEN-BAL", "OPENING", start, datetime.combine(start, time(0, 5)),
+                   [("1010", "GEN", "600", -OPENING_CASH, "Opening cash balance"),
+                    ("3100", "GEN", "600", OPENING_CASH, "Opening net assets")],
+                   "Opening balance", settlement=True)
+
+
+def monthly_payroll(month_end: date) -> float:
+    """The month's salaries, exactly as post_month_end books them (same seed, same draws)."""
+    rng = random.Random(month_end.toordinal() * 7)
+    return sum(round(amt * rng.uniform(0.97, 1.04), 2) for amt in MONTHLY_PAYROLL.values())
+
+
+def _month_end(d: date) -> date:
+    nxt = date(d.year + (d.month == 12), d.month % 12 + 1, 1)
+    return nxt - timedelta(days=1)
+
+
+def settle_due(ledger: Ledger, d: date, start: date):
+    """Pay what falls due today: the biweekly payroll, and bills 30 days after month end."""
+    if d >= FIRST_PAYDAY and (d - FIRST_PAYDAY).days % 14 == 0:
+        first, last = d - timedelta(days=19), d - timedelta(days=6)        # Sunday to Saturday, two weeks
+        wages = 0.0
+        for i in range((last - first).days + 1):
+            day = first + timedelta(days=i)
+            if day >= start:                                                 # nothing was earned before the data starts
+                eom = _month_end(day)
+                wages += monthly_payroll(eom) / eom.day
+        wages = round(wages, 2)
+        if wages:
+            ledger.journal(f"PAYRUN-{d:%Y%m%d}", "PAYROLL_PAYMENT", d, datetime.combine(d, time(9, 0)),
+                           [("2200", "GEN", "600", -wages, "Biweekly payroll"), ("1010", "GEN", "600", wages, "Biweekly payroll")],
+                           f"Payroll for {first:%b %d} to {last:%b %d %Y}", settlement=True)
+    for due in sorted(k for k in ledger.st.open_payables if k <= d.isoformat()):
+        for _source, liability, amount, ref in ledger.st.open_payables.pop(due):
+            ledger.journal(f"AP_PAYMENT-{d:%Y%m%d}", "AP_PAYMENT", d, datetime.combine(d, time(15, 0)),
+                           [(liability, "GEN", "600", -amount, "Suppliers and artists paid"),
+                            ("1010", "GEN", "600", amount, "Suppliers and artists paid")],
+                           f"Payment of {ref}", settlement=True)
+
+
+def budget_rows(gl_rows: list[dict], start: date, end: date, seed: int) -> list[dict]:
+    """The adopted budget for each fiscal year in the data, by month, account, fund and department.
+    Amounts are positive for revenue and expense alike (account_type says which)."""
+    types = {a[0]: a[2] for a in GL_ACCOUNTS}
+    actual: dict = {}                                   # (fy, month, account, fund, dept) -> natural amount
+    for r in gl_rows:
+        kind = types.get(r["account_code"])
+        if kind not in ("Revenue", "Expense"):
+            continue
+        eff = date.fromisoformat(r["effective_date"])
+        fy = eff.year + (1 if eff.month >= 7 else 0)
+        amt = r["credit_amount"] - r["debit_amount"]
+        amt = amt if kind == "Revenue" else -amt
+        key = (fy, eff.month, r["account_code"], r["fund_code"], r["department_code"])
+        actual[key] = actual.get(key, 0.0) + amt
+    first_fy = start.year + (1 if start.month >= 7 else 0)
+    last_fy = end.year + (1 if end.month >= 7 else 0)
+    rows, n = [], 0
+    for fy in range(first_fy, last_fy + 1):
+        base_fy = fy - 1 if fy > first_fy else fy           # incremental budgeting: last year's actuals
+        rng = random.Random(seed * 31 + fy)
+        growth = {}
+        for code, kind in types.items():
+            if kind == "Revenue":
+                growth[code] = rng.uniform(0.94, 1.06) if fy == first_fy else rng.uniform(1.02, 1.09)
+            elif kind == "Expense":
+                growth[code] = rng.uniform(0.97, 1.03) if fy == first_fy else rng.uniform(1.01, 1.05)
+        approved = datetime(fy - 1, 6, 15, 10, 0)
+        for (bfy, month, acct, fund, dept), amt in sorted(actual.items()):
+            if bfy != base_fy or amt <= 0:
+                continue
+            value = round(amt * growth[acct] * rng.uniform(0.97, 1.03), -2)
+            n += 1
+            rows.append({"budget_line_id": f"B{fy}{n:06d}", "fiscal_year": fy, "budget_version": "Adopted",
+                         "period_start": date(fy - 1 if month >= 7 else fy, month, 1).isoformat(),
+                         "account_code": acct, "fund_code": fund, "department_code": dept,
+                         "amount": value, "approved_at": ts(approved), "updated_at": ts(approved)})
+    return rows
 
 
 def post_day(ledger: Ledger, diese: Diese, d: date, sales: float, returns: float, subs: float,

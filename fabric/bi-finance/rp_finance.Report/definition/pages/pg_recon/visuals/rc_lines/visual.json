@@ -3,10 +3,10 @@
   "name": "rc_lines",
   "position": {
     "x": 30,
-    "y": 790,
+    "y": 710,
     "z": 2000,
     "width": 1860,
-    "height": 260,
+    "height": 340,
     "tabOrder": 2000
   },
   "visual": {
@@ -208,13 +208,6 @@
               "expr": {
                 "Literal": {
                   "Value": "'growToFit'"
-                }
-              }
-            },
-            "alignment": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Right'"
                 }
               }
             }

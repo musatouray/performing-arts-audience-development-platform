@@ -181,6 +181,11 @@ def fy_slicer(page, x, y, default="FY2026"):
                     "header": props(show=lit(True), fontColor=col(SLATE), textSize=num(9)),
                     "items": props(fontColor=col(INK), textSize=num(11), background=col(WHITE)),
                     "general": [{"properties": {"filter": {"filter": sel}}}]},
+           filters=[{"name": f"{page}_fy_real_years", "field": Cf("dim_date", "fiscal_year_label"), "type": "Categorical",
+                     "filter": {"Version": 2, "From": [{"Name": "d", "Entity": "dim_date", "Type": 0}],
+                                "Where": [{"Condition": {"Not": {"Expression": {"In": {
+                                    "Expressions": [{"Column": {"Expression": {"SourceRef": {"Source": "d"}}, "Property": "fiscal_year_label"}}],
+                                    "Values": [[{"Literal": {"Value": "'Unknown'"}}], [{"Literal": {"Value": "null"}}]]}}}}}]}}],
            vco=bare(), extra={"syncGroup": {"groupName": "fiscal_year", "fieldChanges": True, "filterChanges": True}})
 
 def kpi_strip(page, name, kpis):
@@ -218,6 +223,7 @@ def kpi_strip(page, name, kpis):
             o["referenceLabel"].append(sel_props({"data": [{"dataViewWildcard": {"matchingOption": 0}}], **meta(m), "id": f, "order": 0},
                                                  value=mexpr("Caption")))
             o["referenceLabelTitle"].append(sel_props({**meta(m), "id": f}, titleContentType=lit("custom"), titleText=lit(k["caption"])))
+            o["referenceLabelValue"].append(sel_props({**meta(m), "id": f}, valueFontColor=col(WHITE), valueFontSize=num(6)))
             o["referenceLabelDetail"].append(sel_props({**meta(m), "id": f}, show=lit(False)))
     o["referenceLabelLayout"] = [sel_props({"id": "default"}, labelSpace=num(2), style=lit("sentence"), verticalAlignment=lit("top"),
                                            arrangement=lit("rows"), horizontalAlignment=lit("left"))]
@@ -240,7 +246,7 @@ def axis(units=0):
 
 def table_fmt(totals=True):
     return {"columnHeaders": props(fontColor=col(WHITE), backColor=col(NAVY), fontFamily=lit(FONT_B), fontSize=num(11), wordWrap=lit(True),
-                                   columnAdjustment=lit("growToFit"), alignment=lit("Right")),
+                                   columnAdjustment=lit("growToFit")),
             "rowHeaders": props(fontColor=col(INK), fontSize=num(11), fontFamily=lit(FONT_B)),
             "values": props(fontColor=col(INK), fontSize=num(11), backColorSecondary=col("#F7F9FB")),
             "grid": props(gridHorizontal=lit(True), gridHorizontalColor=col(LINE), gridVertical=lit(False), rowPadding=num(6)),
@@ -274,7 +280,7 @@ visual(p, "ov_trend", "lineChart", M, R2_Y, LEFT_W, R2_H, 2000,
                                sel_props(series_sel(*TI, "Current"), areaShow=lit(True), areaTransparency=num(85)),
                                sel_props(series_sel(*TI, "PY"), lineStyle=lit("dashed"), strokeWidth=num(2))]},
        vco=titled(title_measure="Trend Title", subtitle_measure="Period Label", divider=True))
-visual(p, "ov_metric", "advancedSlicerVisual", M + LEFT_W - 330, R2_Y + 12, 310, 34, 2500,
+visual(p, "ov_metric", "advancedSlicerVisual", M + LEFT_W - 400, R2_Y + 12, 380, 34, 2500,
        query={"Values": [proj(Cf("Trend Metric", "Trend Metric"), "Metric")]},
        objects={"layout": props(orientation=num(2), maxTiles=lit(3)),
                 "selection": props(strictSingleSelect=lit(True)),
@@ -321,7 +327,8 @@ kpi_strip(p, "rc_kpis", [
     dict(measure="Reconciled %", label="Reconciled", caption="Lines within tolerance", units=1, precision=1, accent=GOOD, value_color=GOOD),
     dict(measure="Lines to Investigate", label="To investigate", caption="Lines outside tolerance", units=1, precision=0, accent=BAD, value_color=BAD),
     dict(measure="Open Items", label="Still open", caption="No cause recorded yet", units=1, precision=0, accent=BAD, value_color=BAD)])
-visual(p, "rc_grid", "pivotTable", M, R2_Y, LEFT_W, R2_H, 2000,
+RC2_H = 260; RC3_Y = R2_Y + RC2_H + G; RC3_H = H - G - RC3_Y   # streams heatmap is short, the lines table gets the room
+visual(p, "rc_grid", "pivotTable", M, R2_Y, LEFT_W, RC2_H, 2000,
        query={"Rows": [proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream")],
               "Columns": [proj(Cf("dim_date", "month_name"), "Month")],
               "Values": [proj(Mf("Variance"))]},
@@ -330,13 +337,13 @@ visual(p, "rc_grid", "pivotTable", M, R2_Y, LEFT_W, R2_H, 2000,
                            sel_props({"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": "_Measures.Variance"},
                                      backColor=mcol("Recon Status Color"))]},
        vco=titled("Variance heatmap", "Which months and streams don't tie out? Red = outside tolerance", divider=True))
-visual(p, "rc_trend", "clusteredColumnChart", RIGHT_X, R2_Y, RIGHT_W, R2_H, 2000,
+visual(p, "rc_trend", "clusteredColumnChart", RIGHT_X, R2_Y, RIGHT_W, RC2_H, 2000,
        query={"Category": [proj(Cf("dim_date", "month_name"), "Month")], "Y": [proj(Mf("Variance"))],
               "Series": [proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream")]},
        sort=[{"field": Cf("dim_date", "month_name"), "direction": "Ascending"}],
        objects={**axis(1000), "labels": props(show=lit(False))},
        vco=titled("Where the gaps are", "Ledger minus source by month  |  a cut-off shows as mirrored bars", divider=True))
-visual(p, "rc_lines", "tableEx", M, R3_Y, CW, R3_H, 2000,
+visual(p, "rc_lines", "tableEx", M, RC3_Y, CW, RC3_H, 2000,
        query={"Values": [proj(Cf("recon_revenue_to_gl", "month_start"), "Month"), proj(Cf("recon_revenue_to_gl", "revenue_stream"), "Stream"),
                          proj(Cf("recon_revenue_to_gl", "fund_code"), "Fund"), proj(Mf("Source Amount"), "Source"),
                          proj(Mf("Ledger Amount"), "Ledger"), proj(Mf("Variance")), proj(Cf("recon_revenue_to_gl", "cause"), "Cause"),
@@ -357,7 +364,8 @@ kpi_strip(p, "tr_kpis", [
     dict(measure="As Of Date", label="Ledger data through", caption="Last date with activity in MIP", accent=BLUE),
     dict(measure="Out of Balance", label="Out of balance", caption="Debits minus credits, must be $0.00", units=1, precision=2, accent=GOOD),
     dict(measure="Reconciled %", label="Reconciled", caption="Revenue lines within tolerance", units=1, precision=1, accent=GOLD)])
-visual(p, "tr_fresh", "tableEx", M, R2_Y, CW, R2_H, 2000,
+TR2_H = 300; TR3_Y = R2_Y + TR2_H + G; TR3_H = H - G - TR3_Y
+visual(p, "tr_fresh", "tableEx", M, R2_Y, CW, TR2_H, 2000,
        query={"Values": [proj(Cf("source_freshness", "source_name"), "Source"), proj(Cf("source_freshness", "expected_refresh"), "Expected"),
                          proj(Cf("source_freshness", "last_loaded_et"), "Last loaded (ET)"), proj(Mf("Data Through"), "Data through"),
                          proj(Mf("Hours Since Load"), "Hours since load"), proj(Mf("Freshness Status"), "Status")]},
@@ -366,12 +374,12 @@ visual(p, "tr_fresh", "tableEx", M, R2_Y, CW, R2_H, 2000,
                            sel_props({"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": "_Measures.Freshness Status"},
                                      fontColor=mcol("Freshness Color"))]},
        vco=titled("Source freshness", "Daily sources go Stale after 26 hours, weekly ones after 8 days", divider=True))
-textbox(p, "tr_notes", M, R3_Y, CW, R3_H, 2000,
+textbox(p, "tr_notes", M, TR3_Y, CW, TR3_H, 2000,
         [[("How these checks work", ts(14, INK, True))],
-         [("•  Every journal in the ledger balances; out of balance must be $0.00.", ts(11))],
-         [("•  Tessitura and Diese revenue are reconciled to the ledger every night; lines outside tolerance stay on the Reconciliation page until finance explains them.", ts(11))],
-         [("•  Freshness comes from the platform's run log: a source counts as current when the nightly run checked it, even if nothing changed.", ts(11))],
-         [("•  Every number comes from the certified semantic model sm_finance, so Excel, this report and SQL users see the same figures.", ts(11))]],
+         [("•  Every journal in the ledger balances; out of balance must be $0.00.", ts(12))],
+         [("•  Tessitura and Diese revenue are reconciled to the ledger every night; lines outside tolerance stay on the Reconciliation page until finance explains them.", ts(12))],
+         [("•  Freshness comes from the platform's run log: a source counts as current when the nightly run checked it, even if nothing changed.", ts(12))],
+         [("•  Every number comes from the certified semantic model sm_finance, so Excel, this report and SQL users see the same figures.", ts(12))]],
         vco={"title": props(show=lit(False)), "background": props(show=lit(True), color=col(WHITE), transparency=num(0)),
              "border": props(show=lit(True), color=col(LINE), radius=num(8)),
              "dropShadow": props(show=lit(True), preset=lit("Custom"), position=lit("Outer"), color=col(LINE), transparency=num(92),
