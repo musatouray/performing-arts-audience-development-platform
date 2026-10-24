@@ -111,6 +111,59 @@ table _Measures
 		displayFolder: Data Trust
 		lineageTag: 5debaf70-fbce-4f58-8226-d6a1e60957e7
 
+	/// Fresh within each source's expected refresh (daily = 26 hours, weekly = 8 days), worked out when the report opens.
+	measure 'Freshness Status' =
+			VAR Loaded = [Last Loaded (UTC)]
+			VAR Sla = MAX ( source_freshness[sla_hours] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( Loaded ), "Never loaded",
+			        DATEDIFF ( Loaded, UTCNOW (), HOUR ) <= Sla, "Fresh",
+			        "Stale"
+			    )
+		displayFolder: Data Trust
+
+	/// One line for the top of a page or an Excel sheet: when Tessitura, MIP and Diese were last loaded. A source past its expected refresh is marked STALE.
+	measure 'Data Freshness Banner' =
+			VAR Sources =
+			    FILTER ( source_freshness, source_freshness[source_system] IN { "tessitura", "mip", "diese" } )
+			RETURN
+			    "Data as of: "
+			        & CONCATENATEX (
+			            Sources,
+			            source_freshness[source_label] & " "
+			                & FORMAT ( source_freshness[last_loaded_et], "mmm d h:nn AM/PM" )
+			                & IF (
+			                    DATEDIFF ( source_freshness[last_loaded_utc], UTCNOW (), HOUR ) > source_freshness[sla_hours],
+			                    " STALE (expected " & source_freshness[expected_refresh] & ")"
+			                ),
+			            " · ",
+			            source_freshness[source_label], ASC
+			        )
+			        & " (ET)"
+		displayFolder: Data Trust
+
+	/// For income statement layouts: revenue and expense lines as positive amounts, and Net Surplus on the total row.
+	measure 'Statement Amount' = IF ( ISINSCOPE ( dim_account[account_type] ), [Revenue] + [Expenses], [Net Surplus] )
+		formatString: $#,0;($#,0)
+		displayFolder: Ledger
+
+	/// Size of the variance, for sorting the biggest gaps first.
+	measure 'Abs Variance' = ABS ( [Variance] )
+		formatString: $#,0
+		displayFolder: Reconciliation
+
+	/// Background colour for reconciliation cells: soft red to investigate, soft green when it ties out.
+	measure 'Recon Status Color' = IF ( [Lines to Investigate] > 0, "#F6D5D5", "#E2EFE6" )
+		isHidden
+		displayFolder: Formatting
+
+	/// Font colour for the freshness status.
+	measure 'Freshness Color' = SWITCH ( [Freshness Status], "Fresh", "#2E7D4F", "Stale", "#B23A3A", "#7A7F87" )
+		isHidden
+		displayFolder: Formatting
+
 	column placeholder
 		isHidden
 		lineageTag: 8334bced-3def-4ea3-8740-4cb06f12a963
