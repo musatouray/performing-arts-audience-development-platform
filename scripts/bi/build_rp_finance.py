@@ -80,12 +80,11 @@ def titled(title=None, subtitle=None, title_measure=None, subtitle_measure=None,
     return o
 
 def card_frame():
-    """White card, 8px corners, light border and soft shadow, 10px padding: set on every visual
+    """White card, 8px corners, light border, no shadow, 10px padding: set on every visual
     (not left to the theme), so it renders the same in Desktop, the service and the app."""
     return {"background": props(show=lit(True), color=col(WHITE), transparency=num(0)),
             "border": props(show=lit(True), color=col(LINE), radius=num(8), width=num(1)),
-            "dropShadow": props(show=lit(True), preset=lit("Custom"), position=lit("Outer"), color=col("#000000"),
-                                transparency=num(93), shadowBlur=num(6), shadowDistance=num(2), angle=num(90), shadowSpread=num(0)),
+            "dropShadow": props(show=lit(False)),   # flat cards: border only, no shadow
             "padding": props(top=num(10), bottom=num(10), left=num(10), right=num(10))}
 
 def bare():
@@ -135,20 +134,22 @@ def textbox(page, name, x, y, w, h, z, paragraphs, vco=None):
     if values: obj["values"] = values
     visual(page, name, "textbox", x, y, w, h, z, objects=obj, vco=vco or bare())
 
-def shape(page, name, x, y, w, h, z, fill, rounded=True, shadow=False, outline=None):
+def shape(page, name, x, y, w, h, z, fill, rounded=True, outline=None):
     visual(page, name, "shape", x, y, w, h, z,
            objects={"shape": props(tileShape=lit("rectangleRounded" if rounded else "rectangle"), roundEdge=num(8 if rounded else 0)),
                     "fill": [sel_props({"id": "default"}, fillColor=col(fill), transparency=num(0)), {"properties": {"show": lit(True)}}],
                     "outline": [{"properties": {"show": lit(bool(outline))}}] + ([sel_props({"id": "default"}, lineColor=col(outline), weight=num(1))] if outline else [])},
-           vco={**bare(), "dropShadow": props(show=lit(shadow), preset=lit("Custom"), position=lit("Outer"), color=col(LINE),
-                                              transparency=num(92), shadowBlur=num(4), shadowDistance=num(2), angle=num(90), shadowSpread=num(0))})
+           vco=bare())
 
 # ---------------------------------------------------------------- page chrome
-# Page order. The tabs show the first four; the last three are hidden and opened from buttons.
+# Page order. Overview is the landing page and the only page left visible in the page list; every other
+# page is hidden. The nav lists the five main pages; the two detail pages open from the KPI buttons only.
 ORDER = [("pg_overview", "Overview"), ("pg_statement", "Statement of Activities"), ("pg_cash", "Cash Flow"),
          ("pg_recon", "Reconciliation"), ("pg_revenue", "Revenue Detail"), ("pg_expense", "Expense Detail"),
-         ("pg_trust", "About the Data")]
-HIDDEN = {"pg_revenue", "pg_expense", "pg_trust"}
+         ("pg_trust", "About this Data")]
+LANDING = "pg_overview"
+HIDDEN = {pid for pid, _ in ORDER if pid != LANDING}
+NAV_PAGES = ["pg_overview", "pg_statement", "pg_cash", "pg_recon", "pg_trust"]
 
 def new_page(pid, name):
     pages[pid] = {"page": {"$schema": PAGE, "name": pid, "displayName": name, "displayOption": "FitToPage", "height": H, "width": W,
@@ -172,12 +173,15 @@ def button(page, name, x, y, w, h, text, target=None, back=False, icon=None, sol
                                        iconSize=num(14), placement=lit("left")),
                              sel_props({"id": "hover"}, lineColor=col(WHITE)),
                              {"properties": {"show": lit(bool(icon))}}],
-                    "text": [sel_props({"id": "default"}, show=lit(bool(text)), text=lit(text or ""), fontColor=col(fg), fontSize=num(10),
+                    "text": [{"properties": {"show": lit(bool(text))}},
+                             sel_props({"id": "default"}, text=lit(text or ""), fontColor=col(fg), fontSize=num(10),
                                        fontFamily=lit(FONT_B), horizontalAlignment=lit("center"), verticalAlignment=lit("middle")),
                              sel_props({"id": "hover"}, fontColor=col(WHITE))],
-                    "fill": [sel_props({"id": "default"}, show=lit(True), fillColor=col(bg), transparency=num(0)),
+                    "fill": [{"properties": {"show": lit(True)}},
+                             sel_props({"id": "default"}, fillColor=col(bg), transparency=num(0)),
                              sel_props({"id": "hover"}, fillColor=col("#106EBE"), transparency=num(0))],
-                    "outline": [sel_props({"id": "default"}, show=lit(True), lineColor=col(BLUE), weight=num(1), roundEdge=num(6))],
+                    "outline": [{"properties": {"show": lit(True)}},
+                             sel_props({"id": "default"}, lineColor=col(BLUE), weight=num(1), roundEdge=num(6))],
                     "shape": props(roundEdge=num(6))},
            vco={**bare(), "visualLink": props(**link)})
 
@@ -188,14 +192,14 @@ def tile_x(i, n):
 
 def detail_button(page, name, i, n, target):
     x, w = tile_x(i, n)
-    button(page, name, round(x + w - 96), KPI_Y + 12, 88, 26, "Details  \u203a", target=target, tooltip="Open the breakdown")
+    button(page, name, round(x + w - 106), KPI_Y + 12, 98, 26, "See details", target=target, tooltip="Open the breakdown")
 
 def nav(page):
     shape(page, f"{page}_navbg", 0, 0, W, NAV_H, 0, NAVY, rounded=False)
     shape(page, f"{page}_strip", 0, NAV_H, W, STRIP_H, 0, GOLD, rounded=False)
     textbox(page, f"{page}_brand", M, 8, 300, 48, 1000,
             [[("HARMONIA HALL", ts(9, GOLD, True))], [("Finance", ts(14, WHITE, True))]])
-    tabs = [pid for pid, _ in ORDER if pid not in HIDDEN]
+    tabs = NAV_PAGES
     tab_w = 190
     visual(page, f"{page}_tabs", "pageNavigator", W - M - tab_w * len(tabs), 0, tab_w * len(tabs), NAV_H, 2000, how="InsertVisualButton",
            objects={"shape": props(tileShape=lit("rectangleRoundedByPixel"), rectangleRoundedCurve=num(4), roundEdge=num(4)),
@@ -208,13 +212,14 @@ def nav(page):
                              sel_props({"id": "selected"}, fontColor=col(WHITE)),
                              sel_props({"id": "hover"}, fontColor=col(WHITE))],
                     "layout": props(cellPadding=num(12)),
-                    # list the main pages explicitly; hidden pages (details, about) never show as tabs
-                    "pages": [{"properties": {"showByDefault": lit(False), "showHiddenPages": lit(False)}}]
+                    # the main pages are hidden from the page list, so show hidden pages and pick the five explicitly;
+                    # the detail pages are left out and open from their KPI buttons only
+                    "pages": [{"properties": {"showByDefault": lit(False), "showHiddenPages": lit(True)}}]
                              + [sel_props({"id": pid}, showPage=lit(True)) for pid in tabs]},
            vco={**bare(), "padding": props(top=num(12), bottom=num(12), left=num(0), right=num(0))})
 
-def header(page, title, narrative=None, narrative_measure=None, slicer=True, period_text=None, back=False, info=True):
-    shape(page, f"{page}_hdrbg", M, HDR_Y, CW, HDR_H, 0, WHITE, shadow=True, outline=LINE)
+def header(page, title, narrative=None, narrative_measure=None, slicer=True, period_text=None, back=False, info=False):
+    shape(page, f"{page}_hdrbg", M, HDR_Y, CW, HDR_H, 0, WHITE, outline=LINE)
     if back:
         bx = M + CW - (250 if slicer else 0) - 190
         button(page, f"{page}_back", bx, HDR_Y + 24, 174, 34, "Back to Overview", target="pg_overview", icon="leftArrow",
@@ -249,6 +254,13 @@ def fy_slicer(page, x, y, default="FY2026"):
                                     "Values": [[{"Literal": {"Value": "'Unknown'"}}], [{"Literal": {"Value": "null"}}]]}}}}}]}}],
            vco=bare(), extra={"syncGroup": {"groupName": "fiscal_year", "fieldChanges": True, "filterChanges": True}})
 
+SMALL_WORDS = {"a", "an", "and", "as", "at", "by", "for", "in", "of", "on", "or", "the", "to", "vs"}
+def title_case(text):
+    """Surplus margin -> Surplus Margin, Days cash on hand -> Days Cash on Hand, Full-year budget -> Full-Year Budget."""
+    words = text.split(" ")
+    return " ".join("-".join(p if (i and p.lower() in SMALL_WORDS) else p[:1].upper() + p[1:] for p in w.split("-"))
+                    for i, w in enumerate(words))
+
 def kpi_strip(page, name, kpis):
     """New card visual: one tile per measure. kpis: dicts with measure, label, accent, units, precision,
     and optionally py (reference value), detail / detail_color / detail_bg (change pill)."""
@@ -265,7 +277,7 @@ def kpi_strip(page, name, kpis):
         m = k["measure"]
         o["value"].append(sel_props(meta(m), labelDisplayUnits=num(k.get("units", 1)), labelPrecision=lit(k.get("precision", 0)),
                                     **({"fontColor": col(k["value_color"])} if k.get("value_color") else {})))
-        o["label"].append(sel_props(meta(m), text=lit(k["label"])))
+        o["label"].append(sel_props(meta(m), text=lit(title_case(k["label"]))))
         o["accentBar"].append(sel_props(meta(m), color=col(k.get("accent", BLUE)), width=num(2)))
         if k.get("py"):
             f = fid(page, m)
@@ -582,7 +594,7 @@ visual(p, "ex_matrix", "pivotTable", M, D3_Y, CW, D3_H, 2000,
 # ================================================================= About the Data (hidden)
 p = "pg_trust"
 new_page(p, "About the Data"); nav(p)
-header(p, "About the Data", slicer=False, back=True, period_text="Live status, not filtered by fiscal year",
+header(p, "About this Data", slicer=False, period_text="Live status, not filtered by fiscal year",
        narrative="Can I rely on these numbers? When each source was last loaded, whether the ledger balances and how much of the "
                  "revenue reconciliation is still open. It is the same evidence the platform checks every night.")
 kpi_strip(p, "tr_kpis", [
@@ -610,8 +622,7 @@ textbox(p, "tr_notes", M, TR3_Y, CW, TR3_H, 2000,
          [("•  Every number comes from the certified semantic model sm_finance, so Excel, this report and SQL users see the same figures.", ts(12))]],
         vco={"title": props(show=lit(False)), "background": props(show=lit(True), color=col(WHITE), transparency=num(0)),
              "border": props(show=lit(True), color=col(LINE), radius=num(8)),
-             "dropShadow": props(show=lit(True), preset=lit("Custom"), position=lit("Outer"), color=col(LINE), transparency=num(92),
-                                 shadowBlur=num(4), shadowDistance=num(2), angle=num(90), shadowSpread=num(0)),
+             "dropShadow": props(show=lit(False)),
              "padding": props(top=num(10), bottom=num(10), left=num(10), right=num(10)), "visualHeader": props(show=lit(False))})
 
 # ================================================================= write
@@ -625,7 +636,7 @@ for pid in order:
         vd = os.path.join(pd, pid, "visuals", v["name"]); os.makedirs(vd)
         json.dump(v, open(os.path.join(vd, "visual.json"), "w", encoding="utf-8"), indent=2, ensure_ascii=False)
 json.dump({"$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.1.0/schema.json",
-           "pageOrder": order, "activePageName": order[0]}, open(os.path.join(pd, "pages.json"), "w"), indent=2)
+           "pageOrder": order, "activePageName": LANDING, "landingPageName": LANDING}, open(os.path.join(pd, "pages.json"), "w"), indent=2)
 
 rr = os.path.join(R, "StaticResources", "RegisteredResources"); os.makedirs(rr, exist_ok=True)
 shutil.copyfile(os.path.join(HERE, "harmonia_finance_theme.json"), os.path.join(rr, "HarmoniaFinance.json"))

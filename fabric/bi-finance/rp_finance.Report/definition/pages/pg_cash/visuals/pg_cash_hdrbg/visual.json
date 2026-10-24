@@ -169,67 +169,7 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "preset": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Custom'"
-                }
-              }
-            },
-            "position": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Outer'"
-                }
-              }
-            },
-            "color": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#E0E0E0'"
-                    }
-                  }
-                }
-              }
-            },
-            "transparency": {
-              "expr": {
-                "Literal": {
-                  "Value": "92D"
-                }
-              }
-            },
-            "shadowBlur": {
-              "expr": {
-                "Literal": {
-                  "Value": "4D"
-                }
-              }
-            },
-            "shadowDistance": {
-              "expr": {
-                "Literal": {
-                  "Value": "2D"
-                }
-              }
-            },
-            "angle": {
-              "expr": {
-                "Literal": {
-                  "Value": "90D"
-                }
-              }
-            },
-            "shadowSpread": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
+                  "Value": "false"
                 }
               }
             }

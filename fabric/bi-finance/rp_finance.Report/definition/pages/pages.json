@@ -9,5 +9,6 @@
     "pg_expense",
     "pg_trust"
   ],
-  "activePageName": "pg_overview"
+  "activePageName": "pg_overview",
+  "landingPageName": "pg_overview"
 }

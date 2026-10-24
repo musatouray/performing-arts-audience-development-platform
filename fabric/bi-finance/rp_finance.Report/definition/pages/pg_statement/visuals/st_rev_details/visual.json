@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "st_rev_details",
   "position": {
-    "x": 227,
+    "x": 217,
     "y": 222,
     "z": 4000,
-    "width": 88,
+    "width": 98,
     "height": 26,
     "tabOrder": 4000
   },
@@ -99,11 +99,15 @@
                   "Value": "true"
                 }
               }
-            },
+            }
+          }
+        },
+        {
+          "properties": {
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Details  ›'"
+                  "Value": "'See details'"
                 }
               }
             },
@@ -179,7 +183,11 @@
                   "Value": "true"
                 }
               }
-            },
+            }
+          }
+        },
+        {
+          "properties": {
             "fillColor": {
               "solid": {
                 "color": {
@@ -238,7 +246,11 @@
                   "Value": "true"
                 }
               }
-            },
+            }
+          }
+        },
+        {
+          "properties": {
             "lineColor": {
               "solid": {
                 "color": {
