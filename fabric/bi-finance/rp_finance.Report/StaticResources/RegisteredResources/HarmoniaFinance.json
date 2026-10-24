@@ -1,41 +1,44 @@
 {
   "name": "Harmonia Finance",
   "dataColors": [
-    "#0B2545",
+    "#1B3A6B",
     "#C9A227",
-    "#8DA9C4",
-    "#13315C",
-    "#5C6B73",
-    "#B8860B",
-    "#2E7D4F",
-    "#B23A3A",
-    "#A3B8CC",
-    "#E0C66B"
+    "#8FA9C9",
+    "#5B7DB1",
+    "#94A3B8",
+    "#D9C27A",
+    "#3F5E8C",
+    "#CBD5E1",
+    "#7C6A2E",
+    "#A9B8CF"
   ],
   "background": "#FFFFFF",
-  "foreground": "#1F2A37",
-  "tableAccent": "#0B2545",
-  "good": "#2E7D4F",
+  "foreground": "#1F2937",
+  "tableAccent": "#1B3A6B",
+  "good": "#15803D",
   "neutral": "#C9A227",
-  "bad": "#B23A3A",
+  "bad": "#B42318",
+  "maximum": "#1B3A6B",
+  "center": "#F8FAFC",
+  "minimum": "#FDECEC",
   "textClasses": {
     "callout": {
-      "fontSize": 26,
+      "fontSize": 22,
       "fontFace": "Segoe UI Semibold",
-      "color": "#0B2545"
+      "color": "#1F2937"
     },
     "title": {
       "fontSize": 12,
       "fontFace": "Segoe UI Semibold",
-      "color": "#0B2545"
+      "color": "#1F2937"
     },
     "header": {
-      "fontSize": 11,
+      "fontSize": 10,
       "fontFace": "Segoe UI Semibold",
-      "color": "#1F2A37"
+      "color": "#1F2937"
     },
     "label": {
-      "fontSize": 10,
+      "fontSize": 9,
       "fontFace": "Segoe UI",
       "color": "#6B7280"
     }
@@ -47,7 +50,7 @@
           {
             "color": {
               "solid": {
-                "color": "#F4F6F9"
+                "color": "#EEF2F7"
               }
             },
             "transparency": 0
@@ -57,10 +60,30 @@
           {
             "color": {
               "solid": {
-                "color": "#F4F6F9"
+                "color": "#EEF2F7"
               }
             },
             "transparency": 0
+          }
+        ]
+      }
+    },
+    "*": {
+      "*": {
+        "border": [
+          {
+            "show": false
+          }
+        ],
+        "title": [
+          {
+            "fontColor": {
+              "solid": {
+                "color": "#1F2937"
+              }
+            },
+            "fontSize": 12,
+            "fontFamily": "Segoe UI Semibold"
           }
         ]
       }

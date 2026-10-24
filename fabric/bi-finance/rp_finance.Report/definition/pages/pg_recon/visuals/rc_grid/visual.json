@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "rc_grid",
   "position": {
-    "x": 24,
-    "y": 218,
-    "z": 3,
-    "width": 600,
-    "height": 276,
-    "tabOrder": 3
+    "x": 16,
+    "y": 266,
+    "z": 3000,
+    "width": 612,
+    "height": 206,
+    "tabOrder": 3000
   },
   "visual": {
     "visualType": "pivotTable",
@@ -21,14 +21,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "recon_revenue_to_gl"
+                      "Entity": "dim_date"
                     }
                   },
-                  "Property": "month_start"
+                  "Property": "month_name"
                 }
               },
-              "queryRef": "recon_revenue_to_gl.month_start",
-              "nativeQueryRef": "month_start",
+              "queryRef": "dim_date.month_name",
+              "nativeQueryRef": "month_name",
               "displayName": "Month"
             }
           ]
@@ -81,7 +81,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#FFFFFF'"
+                      "Value": "'#6B7280'"
                     }
                   }
                 }
@@ -92,7 +92,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#0B2545'"
+                      "Value": "'#FFFFFF'"
                     }
                   }
                 }
@@ -108,7 +108,32 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "10D"
+                  "Value": "9D"
+                }
+              }
+            },
+            "outline": {
+              "expr": {
+                "Literal": {
+                  "Value": "'BottomOnly'"
+                }
+              }
+            },
+            "outlineColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E5E9F0'"
+                    }
+                  }
+                }
+              }
+            },
+            "wordWrap": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
                 }
               }
             }
@@ -123,7 +148,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#1F2A37'"
+                      "Value": "'#1F2937'"
                     }
                   }
                 }
@@ -133,6 +158,13 @@
               "expr": {
                 "Literal": {
                   "Value": "10D"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI'"
                 }
               }
             }
@@ -147,7 +179,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#1F2A37'"
+                      "Value": "'#1F2937'"
                     }
                   }
                 }
@@ -157,6 +189,13 @@
               "expr": {
                 "Literal": {
                   "Value": "10D"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI'"
                 }
               }
             }
@@ -208,7 +247,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#E5E7EB'"
+                      "Value": "'#E5E9F0'"
                     }
                   }
                 }
@@ -224,7 +263,18 @@
             "rowPadding": {
               "expr": {
                 "Literal": {
-                  "Value": "4D"
+                  "Value": "5D"
+                }
+              }
+            },
+            "outlineColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E5E9F0'"
+                    }
+                  }
                 }
               }
             }
@@ -239,7 +289,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#0B2545'"
+                      "Value": "'#1B3A6B'"
                     }
                   }
                 }
@@ -249,6 +299,17 @@
               "expr": {
                 "Literal": {
                   "Value": "'Segoe UI Semibold'"
+                }
+              }
+            },
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#F1F5F9'"
+                    }
+                  }
                 }
               }
             }
@@ -294,25 +355,14 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "color": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#E5E7EB'"
-                    }
-                  }
+                  "Value": "false"
                 }
               }
             },
             "radius": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "10D"
                 }
               }
             }
@@ -325,7 +375,67 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#0F172A'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "92D"
+                }
+              }
+            },
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Outer'"
+                }
+              }
+            },
+            "preset": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Custom'"
+                }
+              }
+            },
+            "shadowSpread": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "shadowBlur": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            },
+            "angle": {
+              "expr": {
+                "Literal": {
+                  "Value": "90D"
+                }
+              }
+            },
+            "shadowDistance": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
                 }
               }
             }
@@ -338,28 +448,41 @@
             "top": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "10D"
                 }
               }
             },
             "bottom": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "10D"
                 }
               }
             },
             "left": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "14D"
                 }
               }
             },
             "right": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "14D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
                 }
               }
             }
@@ -379,7 +502,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Variance by month and stream \u00b7 red = outside tolerance'"
+                  "Value": "'Variance heatmap'"
                 }
               }
             },
@@ -388,7 +511,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#0B2545'"
+                      "Value": "'#1F2937'"
                     }
                   }
                 }
@@ -412,6 +535,58 @@
               "expr": {
                 "Literal": {
                   "Value": "'Segoe UI Semibold'"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'left'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Which months and streams don''t tie out? Red = outside tolerance'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#6B7280'"
+                    }
+                  }
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9D"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI'"
                 }
               }
             }

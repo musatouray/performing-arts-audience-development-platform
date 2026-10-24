@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "ov_statement",
   "position": {
-    "x": 24,
-    "y": 520,
-    "z": 3,
-    "width": 1232,
-    "height": 184,
-    "tabOrder": 3
+    "x": 16,
+    "y": 484,
+    "z": 3000,
+    "width": 740,
+    "height": 202,
+    "tabOrder": 3000
   },
   "visual": {
     "visualType": "pivotTable",
@@ -29,7 +29,7 @@
               },
               "queryRef": "dim_account.account_type",
               "nativeQueryRef": "account_type",
-              "displayName": "Type"
+              "displayName": "Line"
             },
             {
               "field": {
@@ -97,7 +97,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#FFFFFF'"
+                      "Value": "'#6B7280'"
                     }
                   }
                 }
@@ -108,7 +108,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#0B2545'"
+                      "Value": "'#FFFFFF'"
                     }
                   }
                 }
@@ -124,7 +124,32 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "10D"
+                  "Value": "9D"
+                }
+              }
+            },
+            "outline": {
+              "expr": {
+                "Literal": {
+                  "Value": "'BottomOnly'"
+                }
+              }
+            },
+            "outlineColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E5E9F0'"
+                    }
+                  }
+                }
+              }
+            },
+            "wordWrap": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
                 }
               }
             }
@@ -139,7 +164,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#1F2A37'"
+                      "Value": "'#1F2937'"
                     }
                   }
                 }
@@ -158,6 +183,13 @@
                   "Value": "true"
                 }
               }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI'"
+                }
+              }
             }
           }
         }
@@ -170,7 +202,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#1F2A37'"
+                      "Value": "'#1F2937'"
                     }
                   }
                 }
@@ -180,6 +212,24 @@
               "expr": {
                 "Literal": {
                   "Value": "10D"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI'"
+                }
+              }
+            },
+            "backColorSecondary": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#F8FAFC'"
+                    }
+                  }
                 }
               }
             }
@@ -201,7 +251,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#E5E7EB'"
+                      "Value": "'#E5E9F0'"
                     }
                   }
                 }
@@ -217,7 +267,18 @@
             "rowPadding": {
               "expr": {
                 "Literal": {
-                  "Value": "4D"
+                  "Value": "5D"
+                }
+              }
+            },
+            "outlineColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E5E9F0'"
+                    }
+                  }
                 }
               }
             }
@@ -232,7 +293,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#0B2545'"
+                      "Value": "'#1B3A6B'"
                     }
                   }
                 }
@@ -242,6 +303,17 @@
               "expr": {
                 "Literal": {
                   "Value": "'Segoe UI Semibold'"
+                }
+              }
+            },
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#F1F5F9'"
+                    }
+                  }
                 }
               }
             }
@@ -287,25 +359,14 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "color": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#E5E7EB'"
-                    }
-                  }
+                  "Value": "false"
                 }
               }
             },
             "radius": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "10D"
                 }
               }
             }
@@ -318,7 +379,67 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#0F172A'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "92D"
+                }
+              }
+            },
+            "position": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Outer'"
+                }
+              }
+            },
+            "preset": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Custom'"
+                }
+              }
+            },
+            "shadowSpread": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "shadowBlur": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            },
+            "angle": {
+              "expr": {
+                "Literal": {
+                  "Value": "90D"
+                }
+              }
+            },
+            "shadowDistance": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
                 }
               }
             }
@@ -331,28 +452,41 @@
             "top": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "10D"
                 }
               }
             },
             "bottom": {
               "expr": {
                 "Literal": {
-                  "Value": "8D"
+                  "Value": "10D"
                 }
               }
             },
             "left": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "14D"
                 }
               }
             },
             "right": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "14D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
                 }
               }
             }
@@ -372,7 +506,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Income statement \u00b7 year to date vs prior year (total row = net surplus)'"
+                  "Value": "'Income statement'"
                 }
               }
             },
@@ -381,7 +515,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#0B2545'"
+                      "Value": "'#1F2937'"
                     }
                   }
                 }
@@ -405,6 +539,58 @@
               "expr": {
                 "Literal": {
                   "Value": "'Segoe UI Semibold'"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'left'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Year to date vs the same period last year · bottom row = net surplus'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#6B7280'"
+                    }
+                  }
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9D"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI'"
                 }
               }
             }
@@ -471,14 +657,14 @@
                     [
                       {
                         "Literal": {
-                          "Value": "'YoY'"
+                          "Value": "'FYTD vs PY'"
                         }
                       }
                     ],
                     [
                       {
                         "Literal": {
-                          "Value": "'YoY %'"
+                          "Value": "'FYTD vs PY %'"
                         }
                       }
                     ]
