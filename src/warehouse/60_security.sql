@@ -42,6 +42,7 @@ GO
 --    Gifts from donors who asked to stay anonymous are only visible to people
 --    listed in sec.privileged_users (for example, the head of fundraising).
 -- ---------------------------------------------------------------------------
+IF OBJECT_ID('sec.privileged_users') IS NULL
 CREATE TABLE sec.privileged_users (
     user_principal_name varchar(256) NOT NULL,
     reason              varchar(200) NULL
@@ -49,25 +50,28 @@ CREATE TABLE sec.privileged_users (
 GO
 -- Rows are added by 61_security_users.local.sql.
 
-CREATE FUNCTION sec.fn_gift_access(@is_anonymous bit)
+-- Created once. A schema-bound filter can't be altered while its policy uses it, so a change to this
+-- rule is a deliberate migration (drop the policy, change the function, recreate the policy), never a re-run.
+IF OBJECT_ID('sec.fn_gift_access') IS NULL EXEC('CREATE FUNCTION sec.fn_gift_access(@is_anonymous bit)
 RETURNS TABLE
 WITH SCHEMABINDING
 AS
 RETURN
     SELECT 1 AS allowed
     WHERE @is_anonymous = 0
-       OR EXISTS (SELECT 1 FROM sec.privileged_users WHERE user_principal_name = USER_NAME());
+       OR EXISTS (SELECT 1 FROM sec.privileged_users WHERE user_principal_name = USER_NAME())');
 GO
 
-CREATE SECURITY POLICY sec.policy_gifts
+IF OBJECT_ID('sec.policy_gifts') IS NULL EXEC('CREATE SECURITY POLICY sec.policy_gifts
     ADD FILTER PREDICATE sec.fn_gift_access(is_anonymous) ON fact.gifts
-    WITH (STATE = ON);
+    WITH (STATE = ON)');
 GO
 
 -- ---------------------------------------------------------------------------
 -- 4) Which venues each manager can see. The semantic model's "Venue Manager"
 --    role uses this table so each manager only sees their own halls.
 -- ---------------------------------------------------------------------------
+IF OBJECT_ID('sec.user_venue') IS NULL
 CREATE TABLE sec.user_venue (
     user_principal_name varchar(256) NOT NULL,
     venue_id            varchar(10)  NOT NULL
