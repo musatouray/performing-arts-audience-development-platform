@@ -177,14 +177,17 @@
             }
           }
         },
-        "linkedService": {
-          "name": "wh_gold",
+        "connectionSettings": {
+          "name": "ce5d559a_b02f_477b_8d53_5e60116d174a",
           "properties": {
             "type": "DataWarehouse",
             "typeProperties": {
-              "artifactId": "1ee809a8-d5a1-96ac-4ad6-5641e45efcd0",
-              "endpoint": "ukzp3z4akpyebawyuo2uyh4bp4-ubpz7h4jni4u7gd6eqbrc5zdoe.datawarehouse.fabric.microsoft.com",
-              "workspaceId": "00000000-0000-0000-0000-000000000000"
+              "artifactId": "@pipeline().libraryVariables.vl_platform_wh_gold_id",
+              "endpoint": "@pipeline().libraryVariables.vl_platform_wh_gold_endpoint",
+              "workspaceId": "@pipeline().libraryVariables.vl_platform_workspace_id"
+            },
+            "externalReferences": {
+              "connection": "@pipeline().libraryVariables.vl_platform_wh_gold_connection"
             },
             "annotations": []
           }
@@ -276,6 +279,28 @@
     "parameters": {
       "load_date": {
         "type": "string"
+      }
+    },
+    "libraryVariables": {
+      "vl_platform_workspace_id": {
+        "type": "String",
+        "variableName": "workspace_id",
+        "libraryName": "vl_platform"
+      },
+      "vl_platform_wh_gold_id": {
+        "type": "String",
+        "variableName": "wh_gold_id",
+        "libraryName": "vl_platform"
+      },
+      "vl_platform_wh_gold_endpoint": {
+        "type": "String",
+        "variableName": "wh_gold_endpoint",
+        "libraryName": "vl_platform"
+      },
+      "vl_platform_wh_gold_connection": {
+        "type": "String",
+        "variableName": "wh_gold_connection",
+        "libraryName": "vl_platform"
       }
     }
   }

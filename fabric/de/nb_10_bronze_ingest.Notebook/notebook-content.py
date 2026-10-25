@@ -42,6 +42,22 @@
 # 5. Compare row counts with the source's manifest file and save the result in `audit.reconciliation`.
 
 
+# CELL ********************
+
+# MAGIC %%configure
+# MAGIC { "defaultLakehouse": { "name": "lh_bronze",
+# MAGIC                         "id": { "variableName": "$(/**/vl_platform/lh_bronze_id)" },
+# MAGIC                         "workspaceId": { "variableName": "$(/**/vl_platform/workspace_id)" }
+# MAGIC                       }
+# MAGIC }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # PARAMETERS CELL ********************
 
 load_date = ""          # empty = every folder not loaded yet; "2026-09-28" = just that day

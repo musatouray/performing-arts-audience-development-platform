@@ -34,6 +34,22 @@
 #   seven days of history so a table can be restored if needed.
 # It runs overnight so it doesn't slow down reports during the day.
 
+# CELL ********************
+
+# MAGIC %%configure
+# MAGIC { "defaultLakehouse": { "name": "lh_silver",
+# MAGIC                         "id": { "variableName": "$(/**/vl_platform/lh_silver_id)" },
+# MAGIC                         "workspaceId": { "variableName": "$(/**/vl_platform/workspace_id)" } 
+# MAGIC                     } 
+# MAGIC }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # PARAMETERS CELL ********************
 
 retain_hours = 168

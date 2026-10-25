@@ -44,6 +44,22 @@
 # The matches are saved in `core.patron_xref` so each person keeps the same ID.
 
 
+# CELL ********************
+
+# MAGIC %%configure
+# MAGIC { "defaultLakehouse": { "name": "lh_silver",
+# MAGIC                         "id": { "variableName": "$(/**/vl_platform/lh_silver_id)" },
+# MAGIC                         "workspaceId": { "variableName": "$(/**/vl_platform/workspace_id)" } 
+# MAGIC                     } 
+# MAGIC }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # PARAMETERS CELL ********************
 
 entities = ""            # empty = all tables
