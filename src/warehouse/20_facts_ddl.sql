@@ -5,6 +5,7 @@
    ============================================================================= */
 
 -- One row per order line (one show and price zone within an order).
+IF OBJECT_ID('fact.ticket_sales') IS NULL
 CREATE TABLE fact.ticket_sales (
     order_line_id         varchar(20)    NOT NULL,
     order_id              varchar(20)    NOT NULL,
@@ -28,6 +29,7 @@ CREATE TABLE fact.ticket_sales (
 GO
 
 -- One row per gift (payment) in the fundraising system.
+IF OBJECT_ID('fact.gifts') IS NULL
 CREATE TABLE fact.gifts (
     gift_id        varchar(20)    NOT NULL,
     patron_key     int            NOT NULL,
@@ -42,6 +44,7 @@ CREATE TABLE fact.gifts (
 GO
 
 -- One row per subscription package bought for a season.
+IF OBJECT_ID('fact.subscriptions') IS NULL
 CREATE TABLE fact.subscriptions (
     subscription_id    varchar(20)    NOT NULL,
     patron_key         int            NOT NULL,
@@ -57,6 +60,7 @@ CREATE TABLE fact.subscriptions (
 GO
 
 -- One row per education session. Only a participant count is kept, no student details.
+IF OBJECT_ID('fact.education_sessions') IS NULL
 CREATE TABLE fact.education_sessions (
     enrollment_id          varchar(20)   NOT NULL,
     program_key            int           NOT NULL,

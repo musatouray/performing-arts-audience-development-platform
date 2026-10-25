@@ -6,6 +6,7 @@
    query engine and documents what makes a row unique.
    ============================================================================= */
 
+IF OBJECT_ID('dim.date') IS NULL
 CREATE TABLE dim.[date] (
     date_key           int          NOT NULL,   -- yyyymmdd
     [date]             date         NOT NULL,
@@ -22,11 +23,13 @@ CREATE TABLE dim.[date] (
     fiscal_quarter     int          NOT NULL,
     season_label       varchar(12)  NOT NULL    -- '2026-27'
 );
+IF OBJECT_ID('dim.pk_dim_date') IS NULL
 ALTER TABLE dim.[date] ADD CONSTRAINT pk_dim_date PRIMARY KEY NONCLUSTERED (date_key) NOT ENFORCED;
 GO
 
 -- When a patron moves or changes type, a new row is added and the old one is kept.
 -- Sales and gifts stay linked to where the patron lived at the time.
+IF OBJECT_ID('dim.patron') IS NULL
 CREATE TABLE dim.patron (
     patron_key       int           NOT NULL,
     patron_id        varchar(20)   NOT NULL,   -- one ID per person, merged across duplicate source records
@@ -50,9 +53,11 @@ CREATE TABLE dim.patron (
     valid_to         datetime2(6)  NOT NULL,   -- 9999-12-31 for the current version
     is_current       bit           NOT NULL
 );
+IF OBJECT_ID('dim.pk_dim_patron') IS NULL
 ALTER TABLE dim.patron ADD CONSTRAINT pk_dim_patron PRIMARY KEY NONCLUSTERED (patron_key) NOT ENFORCED;
 GO
 
+IF OBJECT_ID('dim.venue') IS NULL
 CREATE TABLE dim.venue (
     venue_key   int          NOT NULL,
     venue_id    varchar(10)  NOT NULL,
@@ -61,6 +66,7 @@ CREATE TABLE dim.venue (
 );
 GO
 
+IF OBJECT_ID('dim.performance') IS NULL
 CREATE TABLE dim.performance (
     performance_key       int           NOT NULL,
     performance_id        varchar(20)   NOT NULL,
@@ -80,12 +86,14 @@ CREATE TABLE dim.performance (
 );
 GO
 
+IF OBJECT_ID('dim.channel') IS NULL
 CREATE TABLE dim.channel (
     channel_key   int          NOT NULL,
     channel_name  varchar(50)  NOT NULL
 );
 GO
 
+IF OBJECT_ID('dim.campaign') IS NULL
 CREATE TABLE dim.campaign (
     campaign_key   int            NOT NULL,
     campaign_id    varchar(20)    NOT NULL,
@@ -96,6 +104,7 @@ CREATE TABLE dim.campaign (
 );
 GO
 
+IF OBJECT_ID('dim.fund') IS NULL
 CREATE TABLE dim.fund (
     fund_key       int           NOT NULL,
     fund_id        varchar(10)   NOT NULL,
@@ -104,6 +113,7 @@ CREATE TABLE dim.fund (
 );
 GO
 
+IF OBJECT_ID('dim.program') IS NULL
 CREATE TABLE dim.program (
     program_key   int           NOT NULL,
     program_id    varchar(10)   NOT NULL,
@@ -113,6 +123,7 @@ CREATE TABLE dim.program (
 );
 GO
 
+IF OBJECT_ID('dim.school') IS NULL
 CREATE TABLE dim.school (
     school_key   int           NOT NULL,
     school_id    varchar(10)   NOT NULL,

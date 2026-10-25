@@ -1,7 +1,8 @@
 /* =============================================================================
    wh_gold 00: schemas and load logging
-   Run the files in order (00 to 60), once per environment, in the Fabric SQL
-   editor, SSMS or VS Code.
+   Run the files in order (00 to 80) with scripts/13_deploy_gold_sql.py, or in the
+   Fabric SQL editor, SSMS or VS Code. Every file is safe to run again: objects
+   are created only when missing (IF ... IS NULL) or with CREATE OR ALTER.
 
    Schemas:
      dim    descriptive tables (patrons, performances, dates...)
@@ -13,18 +14,19 @@
    Fabric Warehouse has no IDENTITY columns, so keys are numbered as MAX(key) + ROW_NUMBER().
    ============================================================================= */
 
-CREATE SCHEMA dim;
+IF SCHEMA_ID('dim') IS NULL EXEC('CREATE SCHEMA dim');
 GO
-CREATE SCHEMA fact;
+IF SCHEMA_ID('fact') IS NULL EXEC('CREATE SCHEMA fact');
 GO
-CREATE SCHEMA rpt;
+IF SCHEMA_ID('rpt') IS NULL EXEC('CREATE SCHEMA rpt');
 GO
-CREATE SCHEMA sec;
+IF SCHEMA_ID('sec') IS NULL EXEC('CREATE SCHEMA sec');
 GO
-CREATE SCHEMA etl;
+IF SCHEMA_ID('etl') IS NULL EXEC('CREATE SCHEMA etl');
 GO
 
 -- One row per procedure run. Use it to check whether last night's load worked.
+IF OBJECT_ID('etl.load_log') IS NULL
 CREATE TABLE etl.load_log (
     run_id          varchar(64)   NOT NULL,
     procedure_name  varchar(128)  NOT NULL,
@@ -41,6 +43,7 @@ CREATE TABLE etl.load_log (
 GO
 
 -- How far each incremental load got, so the next run only picks up newer rows.
+IF OBJECT_ID('etl.watermark') IS NULL
 CREATE TABLE etl.watermark (
     object_name  varchar(128) NOT NULL,
     last_value   datetime2(6) NOT NULL,

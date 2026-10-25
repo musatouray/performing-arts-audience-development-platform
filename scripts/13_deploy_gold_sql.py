@@ -12,6 +12,9 @@ schema change reaches TEST and PROD: merge it, then run this script for that env
   * Finds the warehouse's SQL endpoint through the Fabric API, so no server names live in the repo.
   * Runs 61_security_users.local.sql (real sign-in names, ignored by Git) when it exists.
   * Stops at the first failing batch and says which file and batch failed.
+  * First deployment to an empty stage: a few views read lakehouse tables (dq.dq_results, audit.run_log) that
+    only exist after the first pipeline run. Those batches are set aside and listed, and the script exits with
+    code 2 and the bootstrap steps: run the pipeline once, run this script again, rerun the failed activity.
 
 Run: uv run python scripts/13_deploy_gold_sql.py --env test [--dry-run] [--start-at 70]
 """
@@ -83,6 +86,7 @@ def main():
 
     conn = connect(server)
     cur = conn.cursor()
+    deferred, deferred_names = [], set()
     for f, bs in plan:
         t0 = time.time()
         for i, b in enumerate(bs, 1):
@@ -92,10 +96,44 @@ def main():
                     pass
             except Exception as e:
                 first_line = next((ln for ln in b.splitlines() if ln.strip() and not ln.strip().startswith("--")), "")[:100]
+                if waits_for_lakehouse(str(e), deferred_names):
+                    deferred.append(f"{f} batch {i}: {first_line}")
+                    deferred_names.update(created_objects(b))
+                    continue
                 sys.exit(f"\nFAILED in {f}, batch {i} of {len(bs)} ({first_line} ...):\n{e}\n"
                          f"Fix it, then resume with --start-at {f[:2]}")
         print(f"   ok {f} ({time.time() - t0:.0f}s)")
+
+    if deferred:
+        print(f"\n{len(deferred)} batch(es) set aside: they read lakehouse tables that don't exist in this stage yet.")
+        for d in deferred:
+            print(f"   - {d}")
+        print(f"\nFirst deployment to {ws['displayName']}:\n"
+              "  1. Run pl_daily_load once. Bronze and Silver create their tables; sp_load_gold fails at the\n"
+              "     source-freshness snapshot, because its view isn't there yet. That's expected, once.\n"
+              f"  2. Run this script again: uv run python scripts/13_deploy_gold_sql.py --env {a.env}\n"
+              "  3. In the Monitoring hub, rerun the pipeline from the failed activity.")
+        sys.exit(2)
     print(f"\nDone. Next: run pl_daily_load in {ws['displayName']} with load_date blank.")
+
+
+def waits_for_lakehouse(message: str, deferred_names: set[str]) -> bool:
+    """True when a batch failed only because something it reads doesn't exist yet: a lakehouse table the first
+    pipeline run creates (error 208 on lh_bronze / lh_silver), or an object set aside earlier in this run
+    (a GRANT on a deferred view, error 208 or 15151)."""
+    msg = message.lower()
+    if "(208)" not in msg and "(15151)" not in msg:
+        return False
+    return "lh_silver." in msg or "lh_bronze." in msg or any(n in msg for n in deferred_names)
+
+
+def created_objects(batch: str) -> set[str]:
+    """Names of the views and procedures a batch creates, e.g. {'rpt.vw_source_freshness', 'vw_source_freshness'}."""
+    out = set()
+    for m in re.finditer(r"CREATE\s+(?:OR\s+ALTER\s+)?(?:VIEW|PROCEDURE|FUNCTION)\s+([\w\.\[\]]+)", batch, re.IGNORECASE):
+        name = m.group(1).replace("[", "").replace("]", "").lower()
+        out.update({name, name.split(".")[-1]})
+    return out
 
 
 if __name__ == "__main__":
