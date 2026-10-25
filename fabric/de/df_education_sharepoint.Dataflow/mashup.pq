@@ -92,3 +92,13 @@ shared schools = let
 in
     IngestedDateTime;
 shared DefaultDestination = Lakehouse.Contents([EnableFolding = false]){[workspaceId = "9f9f5fa0-6a89-4f39-987e-240311772371"]}[Data]{[lakehouseId = "e4b5b873-13f4-4335-827c-bf8d757c7554"]}[Data];
+[BindToDefaultDestination = true]
+shared WorkspaceId = let
+    Source = Variable.Value("$(/**/vl_platform/workspace_id)")
+in
+    Source;
+[BindToDefaultDestination = true]
+shared LakehouseId = let
+    Source = Variable.Value("$(/**/vl_platform/lh_bronze_id)")
+in
+    Source;

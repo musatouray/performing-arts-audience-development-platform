@@ -46,6 +46,22 @@
 # Azure Key Vault and read it with `notebookutils.credentials.getSecret`.
 
 
+# CELL ********************
+
+# MAGIC %%configure
+# MAGIC { "defaultLakehouse": { "name": "lh_bronze",
+# MAGIC                         "id": { "variableName": "$(/**/vl_platform/lh_bronze_id)" },
+# MAGIC                         "workspaceId": { "variableName": "$(/**/vl_platform/workspace_id)" }
+# MAGIC                       }
+# MAGIC }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # PARAMETERS CELL ********************
 
 api_sources = ""        # empty = every API source; "diese_api" = just that one (comma-separated for several)

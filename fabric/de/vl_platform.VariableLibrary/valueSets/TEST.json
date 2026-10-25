@@ -1,0 +1,30 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
+  "name": "TEST",
+  "variableOverrides": [
+    {
+      "name": "wh_gold_endpoint",
+      "value": "ukzp3z4akpyebawyuo2uyh4bp4-iinx6cbak6cejpem7x4w6fw64a.datawarehouse.fabric.microsoft.com"
+    },
+    {
+      "name": "workspace_id",
+      "value": "087f1b42-5720-4484-bc8c-fdf96f16dee0"
+    },
+    {
+      "name": "lh_bronze_id",
+      "value": "4a2352ef-7061-4708-b50b-4f2c47deceae"
+    },
+    {
+      "name": "lh_silver_id",
+      "value": "2e3d695d-fdee-4e99-ab5c-491054719687"
+    },
+    {
+      "name": "wh_gold_id",
+      "value": "87dca461-2ab3-4391-ae0a-fd2319c3f61f"
+    },
+    {
+      "name": "wh_gold_connection",
+      "value": "d32e8a3f-c28a-46d4-a146-92bb671bcd53"
+    }
+  ]
+}

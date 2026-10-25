@@ -1,0 +1,41 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
+  "variables": [
+    {
+      "name": "workspace_id",
+      "note": "",
+      "type": "String",
+      "value": "9f9f5fa0-6a89-4f39-987e-240311772371"
+    },
+    {
+      "name": "lh_bronze_id",
+      "note": "",
+      "type": "String",
+      "value": "e4b5b873-13f4-4335-827c-bf8d757c7554"
+    },
+    {
+      "name": "lh_silver_id",
+      "note": "",
+      "type": "String",
+      "value": "814881f4-8c94-4ab2-ba49-80a69a3089e9"
+    },
+    {
+      "name": "wh_gold_id",
+      "note": "",
+      "type": "String",
+      "value": "e45efcd0-5641-4ad6-96ac-d5a11ee809a8"
+    },
+    {
+      "name": "wh_gold_endpoint",
+      "note": "",
+      "type": "String",
+      "value": "ukzp3z4akpyebawyuo2uyh4bp4-ubpz7h4jni4u7gd6eqbrc5zdoe.datawarehouse.fabric.microsoft.com"
+    },
+    {
+      "name": "wh_gold_connection",
+      "note": "",
+      "type": "String",
+      "value": "d32e8a3f-c28a-46d4-a146-92bb671bcd53"
+    }
+  ]
+}

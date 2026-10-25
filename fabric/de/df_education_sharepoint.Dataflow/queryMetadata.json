@@ -34,6 +34,16 @@
       "queryName": "DefaultDestination",
       "isHidden": true,
       "loadEnabled": false
+    },
+    "WorkspaceId": {
+      "queryId": "39f74aac-d6c9-4c9b-ab98-6e1f912ee7f0",
+      "queryName": "WorkspaceId",
+      "loadEnabled": false
+    },
+    "LakehouseId": {
+      "queryId": "3016a5ce-8cb4-4acb-804a-d63105ec6267",
+      "queryName": "LakehouseId",
+      "loadEnabled": false
     }
   },
   "connections": [
