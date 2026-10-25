@@ -405,12 +405,48 @@ Follow [`src/semantic_model/model.md`](../src/semantic_model/model.md).
 
 ---
 
+## Phase 14a — Variable libraries: what changes between stages (set up once, in DEV)
+
+Deployment pipelines copy definitions as they are. Anything that names a *specific* item by ID would still point at DEV after a deploy. References inside the same workspace rebind on their own (the pipeline's notebook, Copy job and Dataflow activities use logical IDs), so only these need a variable:
+
+| Consumer | What would stay on DEV | Fix |
+|---|---|---|
+| `pl_daily_load` › `sp_load_gold` | wh_gold's item ID and SQL endpoint | `vl_platform` variables in the activity's connection |
+| Notebooks' default lakehouse | lh_bronze / lh_silver IDs in the notebook metadata | `%%configure` from `vl_platform` (below) |
+| `cj_tessitura`, `cj_mip`, `df_education_sharepoint` destinations | lh_bronze's ID | `vl_platform` in the destination, where the item offers it; otherwise check the destination once after the first deploy |
+| `sm_finance` (Direct Lake on OneLake) | DEV wh_gold in the source URL | Semantic models can't read a variable library: `nb_rebind_sm_finance` reads `vl_finance` and rewrites the source |
+
+Values are IDs, not secrets, but they are tenant-specific, so they live in the variable library inside Fabric and never in the repo. Look them up in each item's URL (or `GET /v1/workspaces/{id}/items`). The warehouse SQL endpoint is under wh_gold › Settings › SQL endpoint.
+
+1. **`vl_platform`** in `hh-dataplatform-dev` (New item › Variable library). All variables are String, even the GUIDs:
+   `workspace_id`, `lh_bronze_id`, `lh_silver_id`, `wh_gold_id`, `wh_gold_endpoint`.
+   The default value set holds DEV's values. Add the value sets **TEST** and **PROD** with those workspaces' values. Save.
+2. **Pipeline:** open `pl_daily_load` › *Library variables* (bottom pane) and add the three Gold ones. In `sp_load_gold` › Settings, switch the warehouse connection to dynamic content: workspace ID `@pipeline().libraryVariables.workspace_id`, warehouse ID `@pipeline().libraryVariables.wh_gold_id`, SQL connection string `@pipeline().libraryVariables.wh_gold_endpoint`.
+3. **Notebooks:** make this the first cell of `nb_20_silver_transform` and `nb_90_maintenance` (`lh_bronze` / `lh_bronze_id` for `nb_05` and `nb_10`):
+   ```text
+   %%configure
+   { "defaultLakehouse": { "name": "lh_silver",
+                           "id": { "variableName": "$(/**/vl_platform/lh_silver_id)" },
+                           "workspaceId": { "variableName": "$(/**/vl_platform/workspace_id)" } } }
+   ```
+   The code itself already finds lakehouses by name in its own workspace (`nb_00_common`), so this cell is the only stage-specific part.
+4. **Copy jobs and Dataflow:** set the destination lakehouse from `vl_platform` where the editor offers it.
+5. **`vl_finance`** in `hh-finance-dev`: `gold_workspace_id` and `gold_warehouse_id` (String), with DEV / TEST / PROD value sets pointing at each stage's `hh-dataplatform-*` / `wh_gold`. Then create the notebook `nb_rebind_sm_finance` from [`scripts/bi/rebind_direct_lake.py`](../scripts/bi/rebind_direct_lake.py).
+6. **Prove DEV still works:** run `pl_daily_load` in DEV, then **Commit** both workspaces and bring the commit down (`git checkout main; git pull; git checkout dev; git merge --no-ff main`).
+
+After the **first** deploy to a stage, open that stage's variable library and make its value set active (TEST in TEST, PROD in PROD). Each stage keeps its own active set, so later deploys don't change it. Check that once after the second deploy.
+
+✅ After deploying to TEST, the run's `sp_load_gold` input shows TEST's warehouse ID, and `nb_rebind_sm_finance` prints TEST's IDs on the "now:" line.
+
+---
+
 ## Phase 14 — Promote DEV › TEST › PROD
 
 1. In `dp-hh-dataplatform`, **Deploy** Development › Test.
-   - Deployment rules: for notebooks, set the *Default lakehouse* rule to the Test stage's `lh_bronze`/`lh_silver`. Same-workspace names usually auto-bind, but verify.
-2. Set up TEST's ingestion: run `06_upload_config.py --env test` and `10_create_shortcuts.py --env test`. Open `cj_tessitura` and `df_education_sharepoint` in TEST and check their destination is **TEST's** `lh_bronze`; fix it if it still points at DEV. A deployment copies item definitions, **not data**: TEST and PROD start empty and load their own data by running `pl_daily_load` from their own connections. The person who deploys a Dataflow becomes its owner, so after each deploy have the right service account take it over (Phase 8.3, step 4): `svc-fabric-dataflows-nonprod` in TEST, `svc-fabric-dataflows-prod` in PROD. (In this lab all three environments read the same sources. In production each one would have its own connection.) In TEST, run the SQL files, then the pipeline. **Share TEST `wh_gold` with `sg-hh-bi-developers`** as in Phase 13, step 0, and run `09_verify_item_shares.py --env test`. Do the same for PROD before promoting the BI models.
-3. In `dp-hh-audience`, **Deploy** Development › Test. **Rebind the model** to TEST's `wh_gold`. Use a deployment rule if the UI offers the data source; otherwise run this in a notebook:
+   - Select the variable library, notebooks, Copy jobs, the Dataflow and the pipeline. **Leave out** `lh_bronze`, `lh_silver`, `wh_gold` (they already exist in each stage, and Gold's schema comes from the repo) and the `Staging*` items the Dataflow creates by itself.
+   - Stage-specific values come from `vl_platform` (Phase 14a), not from deployment rules. After the first deploy, make the **TEST** value set active in TEST.
+2. Set up TEST's ingestion: run `06_upload_config.py --env test` and `10_create_shortcuts.py --env test`. Open `cj_tessitura` and `df_education_sharepoint` in TEST and check their destination is **TEST's** `lh_bronze`; fix it if it still points at DEV. A deployment copies item definitions, **not data**: TEST and PROD start empty and load their own data by running `pl_daily_load` from their own connections. The person who deploys a Dataflow becomes its owner, so after each deploy have the right service account take it over (Phase 8.3, step 4): `svc-fabric-dataflows-nonprod` in TEST, `svc-fabric-dataflows-prod` in PROD. (In this lab all three environments read the same sources. In production each one would have its own connection.) In TEST, deploy the Gold schema from the repo with `uv run python scripts/13_deploy_gold_sql.py --env test` (the same files, in the same order, as Phase 10; `--dry-run` lists them), then run the pipeline. Warehouses are left out of the deployment on purpose: Gold's schema always comes from the repo. **Share TEST `wh_gold` with `sg-hh-bi-developers`** as in Phase 13, step 0, and run `09_verify_item_shares.py --env test`. Do the same for PROD before promoting the BI models.
+3. In `dp-hh-audience` (and `dp-hh-finance`, `dp-hh-operations`), **Deploy** Development › Test. **Rebind the model** to TEST's `wh_gold`: a Direct Lake on OneLake model keeps DEV's workspace and item IDs in its source URL, so without this the TEST model reads DEV data. Run `nb_rebind_sm_finance` ([`scripts/bi/rebind_direct_lake.py`](../scripts/bi/rebind_direct_lake.py)), which the deployment carried over: it reads that stage's Gold IDs from `vl_finance` and refreshes the model (Phase 14a). Then bind the model to a fixed-identity cloud connection (Phase 13, step 4). For a Direct Lake on SQL model the older call below also works:
 
    ```python
    %pip install semantic-link-labs
