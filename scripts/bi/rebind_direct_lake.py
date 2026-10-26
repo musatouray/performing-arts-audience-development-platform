@@ -12,13 +12,15 @@
 #
 # vl_finance variables (String): gold_workspace_id, gold_warehouse_id
 
-# --- cell 1 (parameters) ---
+# --- cell 1: in the notebook, this line on its own (it's a notebook magic, so commented out here).
+# It must come first: %pip restarts the Python kernel, which clears every variable defined before it.
+# (Or attach a Fabric Environment with semantic-link-labs installed and drop this cell.)
+# %pip install -q semantic-link-labs
+
+# --- cell 2 (parameters; toggle it as the parameter cell) ---
 MODEL = "sm_finance"
 LIBRARY = "vl_finance"
 EXPRESSION = "DirectLake - wh_gold"
-
-# --- cell 2: in the notebook, this line on its own (it's a notebook magic, so commented out here) ---
-# %pip install -q semantic-link-labs
 
 # --- cell 3 ---
 import re

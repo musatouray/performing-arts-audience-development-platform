@@ -802,7 +802,7 @@ def main(argv=None):
         print(f"load_date={m['load_date']}: {total:,} rows")
         for x in m["files"]:
             print(f"   {x['source']:<15}{x['entity']:<16}{x['rows']:>9,}   -> {x['where']}")
-    print(f"\nNext: see docs/01-runbook.md, Phase 8, for where each folder under {a.out}/ goes.")
+    print(f"\nNext: see docs/01-runbook.md, Part 3, for where each folder under {a.out}/ goes.")
 
 
 if __name__ == "__main__":

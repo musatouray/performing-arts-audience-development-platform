@@ -39,7 +39,7 @@ The sources load side by side, because none of them depends on another. Silver w
 | 3 | `nb_api` | Notebook | Notebook: `nb_05_api_ingest`. Base parameter `load_date` = `@pipeline().parameters.load_date`. Retry 2, interval 120s (the API can be busy). |
 | 4 | `nb_bronze` | Notebook | Notebook: `nb_10_bronze_ingest`. Depends on 3 = **Succeeded**. Base parameter `load_date` as above. Retry 2. Timeout 1h. |
 | 5 | `nb_silver` | Notebook | Notebook: `nb_20_silver_transform`. Depends on 1, 2 and 4 = **Succeeded**. Retry 1. |
-| 6 | `sp_load_gold` | Stored procedure | Connection: `wh_gold` (same workspace). Proc: `etl.usp_load_gold`. Param `@run_id` (String) = `@pipeline().RunId`. Depends on 5 = **Succeeded**. |
+| 6 | `sp_load_gold` | Stored procedure | Connection: dynamic, from the library variables `vl_platform_wh_gold_connection`, `vl_platform_workspace_id`, `vl_platform_wh_gold_id` and `vl_platform_wh_gold_endpoint`, so each stage loads its own `wh_gold`. Proc: `[etl].[usp_load_gold]` (typed in). Param `@run_id` (String) = `@pipeline().RunId`. Retry 2, every 180 s (Silver's SQL endpoint can briefly report error 952 after a new table). Depends on 5 = **Succeeded**. |
 | 7 | `notify_failure` | Teams (or Office 365 Outlook) | One arrow from 6, with **two** conditions ticked on it: **Failed** and **Skipped**. Message: `@concat('pl_daily_load failed. Run ID: ', pipeline().RunId)`. |
 | 8 | `fail_run` | Fail | Depends on 7 = **Completed**. Message: `pl_daily_load failed, see the activity runs`. Error code: `500`. |
 

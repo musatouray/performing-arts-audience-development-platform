@@ -10,7 +10,7 @@
 
 ## Decision
 
-Three families × three environments = **nine workspaces**, named `{org}-{family}-{env}`, with one deployment pipeline per family:
+Three families × three environments = **nine workspaces**, named `{org}-{family}-{env}`, with one deployment pipeline per family. ([ADR-009](ADR-009-domain-expansion-hub-and-spoke.md) later added Finance and Operations: five families, fifteen workspaces.)
 
 - `hh-dataplatform-*` holds `lh_bronze`, `lh_silver`, `wh_gold`, notebooks and pipelines. Engineers only.
 - `hh-audience-*` holds the Audience & Development model, reports and app.

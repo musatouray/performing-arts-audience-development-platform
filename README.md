@@ -1,87 +1,104 @@
-# Performing Arts Audience & Development Platform, on Microsoft Fabric
+# Harmonia Hall: a governed analytics platform on Microsoft Fabric
 
-An end-to-end, **governed** Microsoft Fabric platform for a (fictional) NYC performing-arts nonprofit, *Harmonia Hall*. It covers ticketing, subscriptions, fundraising, marketing and music-education data.
-The whole tenant design (Entra groups, domains, nine workspaces, deployment pipelines, Git, OneLake security) is **config-as-code, applied through the Fabric REST APIs**. The data product brings in four source systems four different ways (Copy job, API notebook, Dataflow Gen2 and a OneLake shortcut) and runs a medallion flow to certified Direct Lake semantic models.
+**One trusted set of numbers for a performing-arts organization: ticketing, fundraising, finance and venue operations brought together in Microsoft Fabric, checked every night, and delivered to the tools people already use, including Excel.**
+
+Harmonia Hall is a fictional New York concert hall with the systems a real one runs on: **Tessitura** (ticketing and CRM), **MIP Fund Accounting** (the general ledger), **Diese** (hall bookings), plus spreadsheets and marketing exports. This repository builds, end to end, the platform such an organization needs to replace scattered reports and server-hosted cubes, and runs it in a real Fabric tenant from development to production.
 
 ![Platform architecture](docs/diagrams/01-platform-architecture.png)
 
-## Status
+## Why it matters
 
-| Part | State |
+- **Finance can trust the numbers.** Every night, ticketing and gift revenue from Tessitura is reconciled to the general ledger by month, revenue stream and fund. Differences outside tolerance stay visible until finance records the cause. In the sample data, 278 of 300 lines tie out and the 22 planted exceptions are caught.
+- **People keep working in Excel.** The certified finance model is used live from Excel PivotTables and `CUBEVALUE` formulas, the same experience as a cube, with security applied per user.
+- **Everyone sees how fresh the data is.** Each report page and each Excel workbook can show, per source, when it was last loaded and the latest business date it holds, and whether that's within its daily or weekly service level.
+- **Changes reach production safely.** DEV, TEST and PROD are separate. Releases go through deployment pipelines, and stage-specific settings come from variable libraries, so nothing is re-pointed by hand.
+- **Access follows least privilege.** Entra groups only; builders and consumers are separated; security is enforced where each audience queries: the semantic model for Power BI and Excel, SQL rules for SQL users, OneLake security for data science.
+
+## What's in it
+
+| Area | What's built |
 |---|---|
-| Tenant setup: groups, domains, workspaces, Git, deployment pipelines | Built and running (dev) |
-| Ingestion: six source systems (Tessitura database and API, MIP ledger, Diese bookings, education, marketing) through four patterns | Built and running (dev) |
-| Bronze → Silver: config-driven loads, DQ with quarantine, identity resolution | Built and running (dev) |
-| Gold warehouse: star schema, SCD2 patron, incremental facts, RLS and masking | Built and running (dev) |
-| `pl_daily_load` orchestration with failure alerting | Built (dev) |
-| Direct Lake semantic models (`sm_audience_development`, `sm_education_impact`, `sm_finance`, `sm_operations`) and reports | Designed in [`src/semantic_model`](src/semantic_model), build in progress |
-| Promotion to test and prod | Designed, not yet run |
-| Finance spoke (MIP ledger, revenue-to-ledger reconciliation) and Operations spoke (Diese hall calendar, event bridge, hall utilisation) | Built (dev), see [ADR-009](docs/adr/ADR-009-domain-expansion-hub-and-spoke.md) and [`70_finance_and_venue_ops.sql`](src/warehouse/70_finance_and_venue_ops.sql) |
+| Sources | Six systems through four ingestion patterns: Copy jobs from on-premises SQL Server through a gateway (Tessitura, MIP), one config-driven REST API notebook (Tessitura API, Diese), Dataflow Gen2 over SharePoint (education), an ADLS shortcut (marketing) |
+| Bronze and Silver | Lakehouses: everything kept as received, reconciled to source manifests, then typed, deduplicated and checked by 43 data-quality rules written as YAML; failed rows quarantined; duplicate constituents merged into one patron |
+| Gold | A T-SQL star schema in a Fabric Warehouse: conformed dimensions, SCD2 patrons, incremental facts, ledger and budget, cash flow, reconciliation, source freshness; deployed to every stage from the repo by one script that is safe to re-run |
+| Finance product | `sm_finance` (Direct Lake, calculation group for time intelligence, DAX user-defined functions, RLS) and the `rp_finance` report: overview, statement of activities vs budget and last year, cash flow, reconciliation, detail pages; the report layout is generated from code |
+| Platform as code | Entra groups, 6 domains, 15 workspaces, 5 deployment pipelines, Git integration, OneLake security and item shares, created and checked by idempotent scripts against the Fabric REST APIs |
+| Release | Git integration on DEV, deployment pipelines DEV › TEST › PROD, variable libraries for stage values, CI on every push |
 
-## What it demonstrates
+**Status:** the data platform and the Finance product run in DEV, TEST and PROD. The Audience, Education and Operations models are designed (model specs, DAX, roles) and read the same Gold.
+
+## How it works
+
+| Layer | Item | Guarantee |
+|---|---|---|
+| Ingestion | Copy jobs, API notebook, Dataflow, shortcut | Each source arrives through the tool that fits its owner and access ([ADR-003](docs/adr/ADR-003-ingestion-tools.md)) |
+| Bronze | `lh_bronze` | Every version received; file loads reconciled to the source's row counts |
+| Silver | `lh_silver` | Typed, one row per business key, quality-gated, identity-resolved |
+| Gold | `wh_gold` | Star schema with declared grain, unknown members, business definitions, audit and freshness tables |
+| Semantic | `sm_finance` (+ designed: audience, education, operations) | Certified measures, RLS, Direct Lake: no refresh to schedule |
+| Consumption | Org apps, Excel, SQL endpoint | The only things business users touch |
+
+One pipeline, `pl_daily_load`, runs it all daily, retries transient failures and posts to Teams on failure.
+
+![CI/CD](docs/diagrams/03-cicd-flow.png)
+
+## Engineering highlights
 
 | Capability | Where |
 |---|---|
-| Microsoft **deployment Pattern 2** (multiple workspaces, single capacity: hub and spoke + domains), with a documented path to Pattern 3 | [architecture §9](docs/02-architecture.md#9-microsoft-fabric-deployment-pattern) |
-| Tenant topology as code: domains, workspaces × environments, group roles, capacity | [`config/tenant.yaml`](config/tenant.yaml), [`scripts/00–04`](scripts) |
-| Fabric REST API automation: idempotent, LRO-aware, throttle-aware, `--dry-run` | [`scripts/lib/fabric.py`](scripts/lib/fabric.py) |
-| Git integration (GitHub) and deployment pipelines Dev › Test › Prod | [`scripts/04`, `05`](scripts), [ADR-005](docs/adr/ADR-005-cicd.md) |
-| Four ingestion patterns, six source systems: incremental Copy jobs from on-premises SQL Server through a gateway (Tessitura, MIP), one config-driven REST API notebook (Tessitura, Diese), Dataflow Gen2 over SharePoint, ADLS shortcut | [`src/ingestion`](src/ingestion/README.md), [ADR-003](docs/adr/ADR-003-ingestion-tools.md) |
-| Metadata-driven Bronze load with source-to-Bronze reconciliation | [`config/sources.yaml`](config/sources.yaml), [`nb_10_bronze_ingest`](fabric/de/nb_10_bronze_ingest.Notebook/notebook-content.py) |
-| Declarative DQ with quarantine, CDC dedupe, hash-based MERGE | [`config/dq_rules.yaml`](config/dq_rules.yaml), [`nb_20_silver_transform`](fabric/de/nb_20_silver_transform.Notebook/notebook-content.py) |
-| Identity resolution: ticket buyers and donors in one golden patron | `nb_20_silver_transform` → `core.patron` |
-| T-SQL star schema: SCD2, point-in-time lookups, incremental facts, transactions | [`src/warehouse`](src/warehouse) |
-| Nonprofit KPIs: sell-through, LYBUNT/SYBUNT, donor retention, subscriber renewal, education reach | [`50_reporting_views.sql`](src/warehouse/50_reporting_views.sql), [`measures.dax`](src/semantic_model/measures.dax) |
-| Layered security: OneLake security, SQL GRANT/DDM/RLS, model RLS/OLS incl. dynamic RLS | [ADR-006](docs/adr/ADR-006-security-model.md), [`rls_roles.md`](src/semantic_model/rls_roles.md) |
-| Direct Lake on OneLake with fixed identity, calculation groups | [`model.md`](src/semantic_model/model.md) |
-| Governance standards: RACI, certification criteria, DQ SLA, tenant-settings audit | [`docs/03-governance-standards.md`](docs/03-governance-standards.md), [`scripts/08`](scripts/08_audit_tenant_settings.py) |
-| CI: lint, config validation, tests, notebook build; fabric-cicd scale-up path | [`.github/workflows`](.github/workflows) |
+| Tenant topology as config, applied through REST APIs (idempotent, long-running-operation aware, `--dry-run`) | [`config/tenant.yaml`](config/tenant.yaml), [`scripts/`](scripts), [`scripts/lib/fabric.py`](scripts/lib/fabric.py) |
+| Source contracts and data-quality rules as YAML | [`config/sources.yaml`](config/sources.yaml), [`config/dq_rules.yaml`](config/dq_rules.yaml) |
+| Bronze and Silver notebooks (manifest reconciliation, CDC dedupe, hash-based MERGE, quarantine, identity resolution) | [`fabric/de`](fabric/de) |
+| Gold in T-SQL (SCD2, point-in-time lookups, incremental facts in transactions, revenue-to-ledger reconciliation, freshness) | [`src/warehouse`](src/warehouse) |
+| Schema deployment to any stage, safe to re-run, handles the first load of a new stage | [`scripts/13_deploy_gold_sql.py`](scripts/13_deploy_gold_sql.py) |
+| Stage values from variable libraries; Direct Lake rebind after deployment | [runbook 4.6](docs/01-runbook.md#46-variable-libraries-stage-specific-values), [`scripts/bi/rebind_direct_lake.py`](scripts/bi/rebind_direct_lake.py) |
+| Report as code (PBIR generated to a layout standard) | [`scripts/bi/build_rp_finance.py`](scripts/bi/build_rp_finance.py) |
+| Layered security: OneLake security, SQL grants, masking and RLS, model RLS | [ADR-006](docs/adr/ADR-006-security-model.md), [`rls_roles.md`](src/semantic_model/rls_roles.md) |
+| Governance: ownership, certification criteria, DQ service levels, tenant-settings audit | [`docs/03-governance-standards.md`](docs/03-governance-standards.md) |
+| Capacity sizing and cost (the F64 licensing threshold) | [`docs/04-capacity-sizing.md`](docs/04-capacity-sizing.md) |
+| Synthetic data with planted defects, and its tests | [`data_generator`](data_generator), [`tests`](tests) |
 
-## Tenant topology
-
-![Tenant topology](docs/diagrams/02-tenant-topology.png)
-
-## Quick start
+## Get started
 
 ```powershell
 az login --allow-no-subscriptions
 uv sync --group dev
-uv run python main.py                                   # build order
-uv run python scripts/validate_config.py                # lint the design
+uv run python scripts/validate_config.py
 uv run python scripts/00_create_security_groups.py --dry-run
 ```
 
-Then follow the **[build runbook](docs/01-runbook.md)** (16 phases, each with a checkpoint).
+Then follow the **[operator manual](docs/01-runbook.md)**: set up the tenant, connect the sources, build DEV, promote to TEST and PROD, and run it every day.
 
 ## Repository layout
 
 ```
 config/            tenant.yaml (topology) · sources.yaml (ingestion contract) · dq_rules.yaml
-scripts/           00-11 provisioning via Fabric/Graph/OneLake APIs, Tessitura DB loader · validate_config · teardown
-data_generator/    synthetic data for four source systems (full + daily changes, with injected defects)
-src/ingestion/     Copy job and Dataflow Gen2 build specs, one page per landing pattern
-fabric/de/         Fabric Git: notebooks, pipeline, Copy job, Dataflow (synced from the DEV workspace)
-src/warehouse/     wh_gold T-SQL: schemas, dims, facts, SCD2 procs, rpt views, security
-src/semantic_model model spec, DAX measures, RLS/OLS roles
-src/pipelines/     pl_daily_load / pl_weekly_maintenance build spec
-fabric/            Git-integration folders (written by Fabric, one per DEV workspace)
-docs/              runbook · architecture · governance standards · demo script · capacity sizing · ADRs · diagrams
-tests/             generator unit tests
+scripts/           provisioning and checks against the Fabric, Graph and OneLake APIs · source DB loader · Gold deploy
+scripts/bi/        finance report generator and theme · Direct Lake rebind notebook
+data_generator/    synthetic data for all six sources (full history + daily changes, with planted defects)
+src/ingestion/     build specs for the Copy jobs and the Dataflow
+src/pipelines/     pl_daily_load build spec
+src/warehouse/     wh_gold T-SQL, in deployment order
+src/semantic_model model specs, DAX measures, security roles
+fabric/            Fabric Git folders, one per DEV workspace (written by Fabric)
+docs/              operator manual · architecture · governance · capacity sizing · ADRs · diagrams
+tests/             data generator tests
 ```
 
 ## Architecture decisions
 
 | ADR | Decision |
 |---|---|
-| [001](docs/adr/ADR-001-workspace-domain-topology.md) | 5 workspace families × 3 environments, grouped by domain (Finance and Operations added by ADR-009) |
-| [002](docs/adr/ADR-002-medallion-storage.md) | Lakehouse Bronze/Silver, **Warehouse Gold** |
-| [003](docs/adr/ADR-003-ingestion-tools.md) | Ingestion tool follows the source: Copy job, notebook, Dataflow, shortcut |
-| [004](docs/adr/ADR-004-semantic-model-mode.md) | **Direct Lake on OneLake** + fixed identity |
-| [005](docs/adr/ADR-005-cicd.md) | Git on DEV + deployment pipelines; fabric-cicd scale-up |
+| [001](docs/adr/ADR-001-workspace-domain-topology.md) | Workspace families × environments, grouped by domain |
+| [002](docs/adr/ADR-002-medallion-storage.md) | Lakehouse Bronze and Silver, **Warehouse Gold** |
+| [003](docs/adr/ADR-003-ingestion-tools.md) | The ingestion tool follows the source |
+| [004](docs/adr/ADR-004-semantic-model-mode.md) | **Direct Lake on OneLake** with a fixed identity |
+| [005](docs/adr/ADR-005-cicd.md) | Git on DEV, deployment pipelines, variable libraries; fabric-cicd as the scale-up path |
 | [006](docs/adr/ADR-006-security-model.md) | Layered security, enforced where each audience queries |
-| [007](docs/adr/ADR-007-data-quality.md) | Declarative DQ gate with quarantine |
-| [008](docs/adr/ADR-008-capacity-cost.md) | Capacity sizing and cost controls (details: [capacity sizing reference](docs/05-capacity-sizing.md)) |
+| [007](docs/adr/ADR-007-data-quality.md) | Declarative data-quality gate with quarantine |
+| [008](docs/adr/ADR-008-capacity-cost.md) | Capacity sizing and cost controls |
+| [009](docs/adr/ADR-009-domain-expansion-hub-and-spoke.md) | Hub and spoke: adding Finance and Operations without rebuilding |
 
 ---
 
-*All data is synthetic. Harmonia Hall is fictional; the design mirrors the typical needs of a large performing-arts presenter (ticketing, subscriptions, fundraising, marketing, education programs).*
+*All data is synthetic and Harmonia Hall is fictional. The design mirrors the needs of a large performing-arts presenter: ticketing, subscriptions, fundraising, finance, venue operations and education programs.*

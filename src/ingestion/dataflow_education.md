@@ -25,7 +25,8 @@ After each incremental generator run, upload the changed month's workbook again 
 4. Right-click `EducationFiles` and untick **Enable staging**. It's a helper and isn't written anywhere.
 5. For `programs`, `schools` and `enrollments`: **Add data destination › Lakehouse** › `lh_bronze`, table with the same name (it lands in schema `dbo`). Set the update method to **Replace**.
    - Dataflow Gen2 doesn't offer a schema choice for a lakehouse destination yet, so the tables land in `dbo`. `config/sources.yaml` already says `bronze_schema: dbo` for education, so Silver knows where to look.
-6. **Save & run.** The first run asks you to sign in to SharePoint. Use the account that owns the site.
+6. **Make the destination stage-aware.** The three tables share the Dataflow's *default destination* (`DefaultDestination` in `mashup.pq`). Add two helper queries with staging off, `WorkspaceId = Variable.Value("$(/**/vl_platform/workspace_id)")` and `LakehouseId = Variable.Value("$(/**/vl_platform/lh_bronze_id)")`, and point the default destination at them: `Lakehouse.Contents([EnableFolding = false]){[workspaceId = WorkspaceId]}[Data]{[lakehouseId = LakehouseId]}[Data]`. The editor doesn't show the default destination, so this one line is edited in Git. Each stage then writes to its own `lh_bronze`.
+7. **Save & run** as the tier's service account, bound to that tier's SharePoint and Lakehouse connections (runbook 3.4).
 
 ### EducationFiles (helper)
 

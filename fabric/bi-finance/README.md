@@ -13,3 +13,4 @@ Deployment pipelines promote from the DEV workspace to TEST and PROD.
   Change the script, run `python scripts/bi/build_rp_finance.py fabric/bi-finance/rp_finance.Report`, commit, then **Update all** in the workspace.
   Edits made in the Fabric UI are overwritten the next time the script runs, so make them in the script.
 - `rp_finance.pbip` opens the report and `sm_finance.SemanticModel` together in Power BI Desktop. Fabric doesn't create it.
+- `nb_rebind_sm_finance` (from `scripts/bi/rebind_direct_lake.py`) and `vl_finance` travel with the model: after each deployment, the notebook points `sm_finance` at the Gold named by the stage's active `vl_finance` value set.
