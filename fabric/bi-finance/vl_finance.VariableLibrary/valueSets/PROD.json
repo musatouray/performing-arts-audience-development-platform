@@ -1,0 +1,14 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
+  "name": "PROD",
+  "variableOverrides": [
+    {
+      "name": "gold_workspace_id",
+      "value": "82ce542e-4972-4751-bd5a-6fccd5e6729f"
+    },
+    {
+      "name": "gold_warehouse_id",
+      "value": "08b797a6-1946-47a4-9578-2d82233dfa6a"
+    }
+  ]
+}

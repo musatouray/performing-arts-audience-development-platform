@@ -1,20 +1,25 @@
 /// Layout of the Statement of Activities: one row per line, in order. Finance owns the layout; the measures in the 'Statement of Activities' folder fill it.
 table 'Statement Line'
+	lineageTag: d8a189a6-1064-498a-a042-e2f16b921a8b
 
 	column 'Line Order'
+		lineageTag: f177e6bc-c0a8-4f5a-8925-1200c6730e1d
 		isNameInferred
 		sourceColumn: [Line Order]
 
 	column Line
+		lineageTag: c904a2a8-bca4-4b0b-af48-f8ffd2c4077e
 		isNameInferred
 		sourceColumn: [Line]
 		sortByColumn: 'Line Order'
 
 	column 'Line Type'
+		lineageTag: 22728f0b-ac23-430b-9851-d218ff0255f6
 		isNameInferred
 		sourceColumn: [Line Type]
 
 	column 'Account Code'
+		lineageTag: 79915c20-ce82-47c2-8d71-5b9eb2c5b7be
 		isNameInferred
 		sourceColumn: [Account Code]
 

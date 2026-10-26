@@ -58,3 +58,5 @@ table dim_fund
 			schemaName: dim
 			expressionSource: 'DirectLake - wh_gold'
 
+	changedProperty = Name
+

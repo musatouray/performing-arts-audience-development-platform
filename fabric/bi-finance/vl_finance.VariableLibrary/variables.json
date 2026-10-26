@@ -1,0 +1,17 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
+  "variables": [
+    {
+      "name": "gold_workspace_id",
+      "note": "",
+      "type": "String",
+      "value": "9f9f5fa0-6a89-4f39-987e-240311772371"
+    },
+    {
+      "name": "gold_warehouse_id",
+      "note": "",
+      "type": "String",
+      "value": "e45efcd0-5641-4ad6-96ac-d5a11ee809a8"
+    }
+  ]
+}

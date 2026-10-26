@@ -12,7 +12,7 @@ annotation __PBI_TimeIntelligenceEnabled = 1
 
 annotation PBI_QueryOrder = ["DirectLake - wh_gold"]
 
-annotation PBI_ProTooling = ["DirectLakeOnOneLakeInWeb","MCP-PBIModeling","RemoteModeling"]
+annotation PBI_ProTooling = ["RemoteModeling", "DirectLakeOnOneLakeInWeb", "SLL", "MCP-PBIModeling"]
 
 ref table dim_date
 ref table dim_fund

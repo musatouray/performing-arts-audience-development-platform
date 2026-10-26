@@ -153,3 +153,5 @@ table dim_date
 			schemaName: dim
 			expressionSource: 'DirectLake - wh_gold'
 
+	changedProperty = Name
+
