@@ -1,4 +1,4 @@
-"""Step 02: create the nine workspaces.
+"""Step 02: create the workspaces (one per family and environment, from tenant.yaml).
 
 For each workspace: create it, put it on the capacity, add it to its domain and
 give the security groups their roles.

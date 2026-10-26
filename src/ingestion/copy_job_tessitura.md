@@ -4,7 +4,7 @@ Copies new and changed Tessitura rows from the on-premises SQL Server into Bronz
 
 ## Before you start
 
-Runbook Phase 8.1: the data loaded with `scripts/11_load_source_db.py --source tessitura_db`, the read-only login `svc_fabric_reader`, and a SQL Server connection through your gateway.
+Runbook 3.2: the data loaded with `scripts/11_load_source_db.py --source tessitura_db`, the read-only login `svc_fabric_reader`, and a SQL Server connection through your gateway.
 
 ## Build it
 

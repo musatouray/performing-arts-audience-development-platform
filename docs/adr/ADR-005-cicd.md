@@ -17,6 +17,7 @@ How work flows:
 - Developers work in feature workspaces ("Branch out"), open a PR (CI validates config, tests and notebook build), and merge to `main`.
 - DEV then syncs from Git and is promoted to TEST (UAT) and then PROD (approval).
 - PROD is never edited directly: builders are Viewers there (ADR-001).
+- **Stage-specific values** (which warehouse, lakehouse and connection each item uses) come from **variable libraries** (`vl_platform`, `vl_finance`) with one active value set per stage, not from deployment rules. Gold's schema is deployed from the repo by `scripts/13_deploy_gold_sql.py`, the same files in every stage.
 
 > [!NOTE]
 > *"Git is the source of truth for development, and deployment pipelines are the only way into production. I'd start with the lowest-overhead option a four-person team will actually use, and move to fabric-cicd when deploy frequency justifies it."*

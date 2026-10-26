@@ -20,7 +20,7 @@ Enterprise models (`sm_audience_development`, `sm_education_impact`) use **Direc
 
 - There's no refresh schedule. Reports reflect Gold as soon as `usp_load_gold` commits (the model reframes).
 - The security design is explicit about layers. See ADR-006.
-- **Promotion gotcha:** the models live in BI workspaces but read `wh_gold` in the Data Platform workspace. After deploying to TEST or PROD, rebind the model to that environment's `wh_gold`, using a deployment rule where the UI offers one or the rebind notebook step in the runbook (semantic-link-labs).
+- **Promotion gotcha:** the models live in BI workspaces but read `wh_gold` in the Data Platform workspace. A deployment copies the model's source as is, so after deploying to TEST or PROD it still reads DEV's Gold. `nb_rebind_sm_finance` (deployed with the model) reads that stage's Gold IDs from the `vl_finance` variable library and rewrites the source; semantic models can't read a variable library themselves. See the runbook, 4.6 and 5.4.
 
 > [!NOTE]
 > *"Direct Lake on OneLake gives us import-like speed with no refresh to babysit and no silent fallback to DirectQuery. The trade-off is that security moves into the model, which is where report users are anyway."*

@@ -33,8 +33,8 @@ A semantic model is **Certified** only when all of these are true:
 | Error-rule pass rate per entity | ≥ 99.5% | `rpt.vw_dq_latest` |
 | Unknown-member facts | < 0.5% of rows | `rpt.vw_gold_integrity` |
 | Quarantine triage | Within 2 business days, by the data owner | `lh_silver.dq.quarantine` |
-| Revenue vs ledger, by fund and month (planned, ADR-009) | Variance within tolerance agreed with finance; over it blocks certification of that month's finance model | `rpt.vw_recon_revenue_to_gl` |
-| Public events matched to a ticketed performance (planned, ADR-009) | 100%, unmatched confirmed by venue operations | `rpt.vw_gold_integrity` |
+| Revenue vs ledger, by fund and month (ADR-009) | Variance within tolerance agreed with finance; over it blocks certification of that month's finance model | `fin.recon_revenue_to_gl` |
+| Public events matched to a ticketed performance (ADR-009) | 100%, unmatched confirmed by venue operations | `rpt.vw_gold_integrity` |
 
 ## 4. Access model
 

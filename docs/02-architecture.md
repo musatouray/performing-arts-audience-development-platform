@@ -46,7 +46,7 @@ The tables that record each step, and which gates stop a run, are described in [
 - **Role-playing date.** `fact_ticket_sales` has both `performance_date_key` (the active relationship: what season or show) and `order_date_key` (inactive, used for sales pacing).
 - **SCD2 patron.** `patron_key` identifies a *version* and `patron_id` identifies a *person*. Always count people with `patron_id`.
 - **Point-in-time lookups.** Each fact joins the patron version that was valid when the transaction happened.
-- **Planned (ADR-009):** `dim.event` bridges a booking-system event to a ticketing performance (optional, since rentals and rehearsals aren't ticketed); `fact.venue_booking` adds hall utilisation; `fin.fact_gl_entry` adds the ledger; `rpt.vw_recon_revenue_to_gl` reconciles ticket and gift revenue to it by fund and month. Shown as planned in the diagram.
+- **Finance and operations (ADR-009):** `dim.event` bridges a booking-system event to a ticketing performance (optional, since rentals and rehearsals aren't ticketed); `fact.venue_booking` adds hall utilisation; `fin.fact_gl_entry` adds the ledger and `fin.fact_budget` the adopted budget (spread to days); `fin.recon_revenue_to_gl` reconciles ticket and gift revenue to the ledger by month, stream and fund.
 
 ## 5. CI/CD
 
@@ -103,9 +103,9 @@ Bronze and Silver keep the **source system's own names**, so a Tessitura admin o
 
 | Pattern characteristic | This platform |
 |---|---|
-| Multiple workspaces | 9 workspaces: 3 families × dev/test/prod (`config/tenant.yaml`) |
-| One shared capacity | All 9 on the Fabric Trial capacity (F64-equivalent) |
-| Full DevOps (Git, deployment pipelines) | GitHub on the DEV workspaces, plus 3 deployment pipelines (ADR-005) |
+| Multiple workspaces | 15 workspaces: 5 families × dev/test/prod (`config/tenant.yaml`) |
+| One shared capacity | All 15 on the Fabric Trial capacity (F64-equivalent) |
+| Full DevOps (Git, deployment pipelines) | GitHub on the DEV workspaces, 5 deployment pipelines, variable libraries for stage values (ADR-005) |
 | Separate workspaces for development, test and production | Dev › Test › Prod per family; builders are Viewers in PROD |
 | Single region; no per-team chargeback or strict performance targets | Single-region nonprofit; one central BI budget |
 
@@ -134,7 +134,7 @@ Bronze and Silver keep the **source system's own names**, so a Tessitura admin o
 | A department wants to fund its own analytics | Per-business-unit capacities | A capacity per BI family |
 | Data residency or a second region | Multi-geographic | Capacities per region, with shortcuts across them |
 
-For which SKU to buy at each step, see the [capacity sizing reference](05-capacity-sizing.md).
+For which SKU to buy at each step, see the [capacity sizing reference](04-capacity-sizing.md).
 
 Pattern 1 (a single workspace) was rejected because it rules out deployment pipelines and separation of duties. Pattern 4 (multiple tenants) applies only after an acquisition or with a legally separate subsidiary.
 

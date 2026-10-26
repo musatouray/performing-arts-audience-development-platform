@@ -16,7 +16,7 @@ Roles are mapped to **Entra groups**, not to people.
 
 Use the **Test as role** option: Model › Security › pick a role, optionally "as user".
 
-Screenshot these for your portfolio:
+Check these before certifying the model:
 
 1. **Audience** role: donor pages show blank or hidden fields.
 2. **Venue Manager** as your own user: only Recital Hall (V02) shows up.
