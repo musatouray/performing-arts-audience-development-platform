@@ -64,23 +64,27 @@ table source_freshness
 	/// Short name, e.g. MIP.
 	column source_label
 		dataType: string
+		lineageTag: 00e00e33-6e04-42d6-b19e-1a1081a8050d
 		sourceColumn: source_label
 
 	/// Last load in Eastern time.
 	column last_loaded_et
 		dataType: dateTime
 		formatString: mmm d, yyyy h:nn AM/PM
+		lineageTag: 6d29db96-230f-4eb4-a1f8-a848d0b24ee9
 		sourceColumn: last_loaded_et
 
 	/// daily or weekly, from sources.yaml.
 	column expected_refresh
 		dataType: string
+		lineageTag: 5448c85e-7630-4693-91c2-9a8c2c183728
 		sourceColumn: expected_refresh
 
 	/// Hours before the source counts as Stale.
 	column sla_hours
 		dataType: int64
 		isHidden
+		lineageTag: 342ae6c7-0804-4ed5-a838-741a747032dd
 		summarizeBy: none
 		sourceColumn: sla_hours
 

@@ -1,42 +1,50 @@
 /// Adopted budget from MIP, one row per budget line per day (monthly budget spread evenly), so FYTD and prior-year logic works the same as for actuals.
 table fact_budget
+	lineageTag: 57319ac2-1e1a-46a2-b5b0-34b619ca038a
 
 	column budget_line_id
 		dataType: string
 		isHidden
+		lineageTag: 6aba6a25-ca31-4bcd-9bcd-f87dbeacd074
 		sourceColumn: budget_line_id
 
 	column date_key
 		dataType: int64
 		isHidden
+		lineageTag: de811fe0-6a9b-4de3-8f50-76622467a38f
 		summarizeBy: none
 		sourceColumn: date_key
 
 	column fiscal_year
 		dataType: int64
 		isHidden
+		lineageTag: 1d455298-a0e6-47a0-8f71-a69adbd03103
 		summarizeBy: none
 		sourceColumn: fiscal_year
 
 	column budget_version
 		dataType: string
+		lineageTag: 429db73d-116d-4519-b3a1-aa3e8306ae9c
 		sourceColumn: budget_version
 
 	column account_key
 		dataType: int64
 		isHidden
+		lineageTag: 37797a1b-bb5b-4cdd-9e2a-53e64a7bcde6
 		summarizeBy: none
 		sourceColumn: account_key
 
 	column fund_key
 		dataType: int64
 		isHidden
+		lineageTag: 58eb82d4-f3d5-4473-8a40-546bde631ee4
 		summarizeBy: none
 		sourceColumn: fund_key
 
 	column department_key
 		dataType: int64
 		isHidden
+		lineageTag: 408ab581-3b23-4eda-a71b-6285870adfd0
 		summarizeBy: none
 		sourceColumn: department_key
 
@@ -44,6 +52,7 @@ table fact_budget
 		dataType: decimal
 		isHidden
 		formatString: $#,0
+		lineageTag: 53502a30-2a53-4adc-bbaf-172db6563ffe
 		sourceColumn: budget_amount
 
 	partition fact_budget = entity

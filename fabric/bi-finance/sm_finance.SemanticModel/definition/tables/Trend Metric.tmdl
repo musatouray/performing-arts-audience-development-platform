@@ -1,7 +1,9 @@
 /// Field parameter: pick the measure the monthly trend chart shows.
 table 'Trend Metric'
+	lineageTag: 53820d0b-5670-4c29-812f-8c972363bfa4
 
 	column 'Trend Metric'
+		lineageTag: 6d7af3fb-c341-4495-aa20-66509091f3e7
 		isNameInferred
 		sourceColumn: [Trend Metric]
 		sortByColumn: 'Trend Metric Order'
@@ -11,6 +13,7 @@ table 'Trend Metric'
 
 	column 'Trend Metric Fields'
 		isHidden
+		lineageTag: 8d1649c4-58d9-4c9e-9a8c-2eea8ba2e51f
 		isNameInferred
 		sourceColumn: [Trend Metric Fields]
 
@@ -22,6 +25,7 @@ table 'Trend Metric'
 
 	column 'Trend Metric Order'
 		isHidden
+		lineageTag: 9939976d-c378-4f1f-81e4-101b125549ce
 		summarizeBy: none
 		isNameInferred
 		sourceColumn: [Trend Metric Order]

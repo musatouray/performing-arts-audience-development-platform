@@ -1,28 +1,34 @@
 /// Ledger posting modules and where their cash lands on the cash flow.
 table dim_source_module
+	lineageTag: e82e4732-d446-43d2-86b3-47fca9965a2c
 
 	column sort_order
 		dataType: int64
 		isHidden
+		lineageTag: 797017a3-a6e5-486b-b6e0-5edba75bd083
 		summarizeBy: none
 		sourceColumn: sort_order
 
 	column source_module
 		dataType: string
 		isHidden
+		lineageTag: 67ad5ac2-3242-4b52-99a6-a81757910632
 		sourceColumn: source_module
 
 	column module_name
 		dataType: string
+		lineageTag: 935f8413-9ef3-4361-a342-34e7c28c1d7f
 		sourceColumn: module_name
 
 	column cash_flow_line
 		dataType: string
+		lineageTag: 5ed47251-6c2a-4c4e-aff1-a3134350cbaa
 		sourceColumn: cash_flow_line
 		sortByColumn: sort_order
 
 	column cash_direction
 		dataType: string
+		lineageTag: f3dc5a91-6fb7-494d-8248-1c1690bf7f52
 		sourceColumn: cash_direction
 
 	partition dim_source_module = entity
