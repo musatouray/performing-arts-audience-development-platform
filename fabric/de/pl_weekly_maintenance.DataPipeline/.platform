@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "pl_weekly_maintenance",
+    "description": "Weekly OPTIMIZE and VACUUM for Bronze and Silver"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "c7c019bb-47c7-49d3-8c22-fff6096f71eb"
+  }
+}
