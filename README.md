@@ -25,7 +25,7 @@ Harmonia Hall is a fictional New York concert hall with the systems a real one r
 | Platform as code | Entra groups, 6 domains, 15 workspaces, 5 deployment pipelines, Git integration, OneLake security and item shares, created and checked by idempotent scripts against the Fabric REST APIs |
 | Release | Git integration on DEV, deployment pipelines DEV › TEST › PROD, variable libraries for stage values, CI on every push |
 
-**Status:** the data platform and the Finance product run in DEV, TEST and PROD. The Audience, Education and Operations models are designed (model specs, DAX, roles) and read the same Gold.
+**Status:** the data platform and the Finance product run in DEV, TEST and PROD. The Audience, Education and Operations models are designed (model specs, DAX, roles) and read the same Gold. Open items and the AI roadmap (data agent, Fabric IQ ontology, Fabric Apps) are in [TODO.md](TODO.md).
 
 ## How it works
 
