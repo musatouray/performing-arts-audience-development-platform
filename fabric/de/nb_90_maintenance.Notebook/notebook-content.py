@@ -84,6 +84,7 @@ inventory = {
                  + [("core", "patron"), ("core", "patron_xref"), ("dq", "dq_results"), ("dq", "quarantine"),
                     ("audit", "run_log"), ("audit", "watermarks")],
 }
+failed = []
 for lh in [x.strip() for x in lakehouses.split(",")]:
     for schema, table in inventory.get(lh, []):
         name = tbl(lh, schema, table)
@@ -97,6 +98,11 @@ for lh in [x.strip() for x in lakehouses.split(",")]:
         except Exception as e:  # noqa: BLE001 - log the failure and move on to the next table
             log_run("nb_90_maintenance", f"{lh}.{schema}.{table}", "maintenance", 0, 0,
                     status="Failed", message=str(e), started=started, lakehouse=lh)
+            failed.append(f"{lh}.{schema}.{table}")
+
+# Every table was attempted; now fail the run if any table failed, so the pipeline alerts.
+if failed:
+    raise RuntimeError(f"Maintenance failed for {len(failed)} table(s): {', '.join(failed)}")
 
 # METADATA ********************
 

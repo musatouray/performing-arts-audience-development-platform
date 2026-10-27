@@ -379,7 +379,7 @@ In a **new** stage, run the notebook (or one manual refresh of `sm_finance`) onc
 
 ## 6. Run it every day
 
-- **Schedule:** `pl_daily_load` daily before the working day (DEV and TEST can run less often to save capacity). Weekly maintenance (`OPTIMIZE`, `VACUUM`) runs `nb_90_maintenance` on Sunday night.
+- **Schedule:** `pl_daily_load` daily before the working day (DEV and TEST can run less often to save capacity). `pl_weekly_maintenance` runs `nb_90_maintenance` (`OPTIMIZE` with V-Order and `VACUUM`, keeping 7 days, on every Bronze and Silver table) on Sunday at 03:00 ET, before the daily load. It finishes every table, then fails and alerts in Teams if any table failed. Schedules don't travel with deployments: set them in each stage.
 - **Morning check (2 minutes):**
 
   ```sql

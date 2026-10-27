@@ -1,0 +1,95 @@
+{
+  "properties": {
+    "description": "Weekly table maintenance for Bronze and Silver: compact small files and remove files older than the retention period. Scheduled Sunday 03:00 ET, before the daily load.",
+    "activities": [
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "32136bc2-969f-b75f-4c0b-1fda35b3ccbd",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "retain_hours": {
+              "value": {
+                "value": "@pipeline().parameters.retain_hours",
+                "type": "Expression"
+              },
+              "type": "int"
+            },
+            "lakehouses": {
+              "value": {
+                "value": "@pipeline().parameters.lakehouses",
+                "type": "Expression"
+              },
+              "type": "string"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.02:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 300,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "nb_maintenance",
+        "description": "OPTIMIZE (V-Order) and VACUUM every Delta table in Bronze and Silver. Gold is a Warehouse, which compacts itself.",
+        "dependsOn": []
+      },
+      {
+        "type": "MicrosoftTeams",
+        "typeProperties": {
+          "content": "<p>Pipeline Run Details</p>\n<p><b>pl_weekly_maintenance failed</b></p>\n<p>Run ID: @{pipeline().RunId}</p>\n<p>Triggered: @{pipeline().TriggerTime}</p>\n<p>Tables weren't compacted or vacuumed this week. Open the run in the Monitoring hub to see which lakehouse failed.</p>",
+          "teamId": "0c22d99b-0cea-4b42-9c3c-01e7579ae53a",
+          "channelId": "19:MZNvXPAMbK9Sjx3z5WLtsMw0NcAJgEMIMm1Od4zhh8Y1@thread.tacv2",
+          "operationType": "SendMessageInChannel",
+          "subject": "pl_weekly_maintenance Failed"
+        },
+        "externalReferences": {
+          "connection": "19f611ab-c054-4ef0-af9d-ac423aeab3a5"
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "notify_failure",
+        "dependsOn": [
+          {
+            "activity": "nb_maintenance",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Fail",
+        "typeProperties": {
+          "message": "pl_weekly_maintenance failed, see the activity runs",
+          "errorCode": "500"
+        },
+        "name": "fail_run",
+        "dependsOn": [
+          {
+            "activity": "notify_failure",
+            "dependencyConditions": [
+              "Completed"
+            ]
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "retain_hours": {
+        "type": "int",
+        "defaultValue": 168
+      },
+      "lakehouses": {
+        "type": "string",
+        "defaultValue": "lh_bronze,lh_silver"
+      }
+    }
+  }
+}
