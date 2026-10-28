@@ -25,6 +25,18 @@
     {
       "name": "wh_gold_connection",
       "value": "d32e8a3f-c28a-46d4-a146-92bb671bcd53"
+    },
+    {
+      "name": "finance_workspace_id",
+      "value": "b1fc0970-fea4-4782-8bab-36d2dd1e17c8"
+    },
+    {
+      "name": "sm_finance_id",
+      "value": "c85de4a5-2621-4492-a7b3-1be08009ecba"
+    },
+    {
+      "name": "sm_finance_connection",
+      "value": "12265fa0-a631-4c1a-98fb-5992ac830925"
     }
   ]
 }

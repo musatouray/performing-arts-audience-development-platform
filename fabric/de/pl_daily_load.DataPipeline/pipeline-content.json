@@ -232,10 +232,10 @@
         "name": "notify_failure",
         "dependsOn": [
           {
-            "activity": "sp_load_gold",
+            "activity": "refresh_sm_finance",
             "dependencyConditions": [
-              "Failed",
-              "Skipped"
+              "Skipped",
+              "Failed"
             ]
           }
         ]
@@ -274,6 +274,42 @@
         },
         "name": "cj_mip",
         "dependsOn": []
+      },
+      {
+        "type": "PBISemanticModelRefresh",
+        "typeProperties": {
+          "method": "POST",
+          "groupId": {
+            "value": "@pipeline().libraryVariables.vl_platform_finance_workspace_id",
+            "type": "Expression"
+          },
+          "datasetId": {
+            "value": "@pipeline().libraryVariables.vl_platform_sm_finance_id",
+            "type": "Expression"
+          },
+          "commitMode": "Transactional",
+          "waitOnCompletion": true,
+          "operationType": "SemanticModelRefresh"
+        },
+        "externalReferences": {
+          "connection": "@pipeline().libraryVariables.vl_platform_sm_finance_connection"
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 300,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "refresh_sm_finance",
+        "dependsOn": [
+          {
+            "activity": "sp_load_gold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       }
     ],
     "parameters": {
@@ -300,6 +336,21 @@
       "vl_platform_wh_gold_connection": {
         "type": "String",
         "variableName": "wh_gold_connection",
+        "libraryName": "vl_platform"
+      },
+      "vl_platform_finance_workspace_id": {
+        "type": "String",
+        "variableName": "finance_workspace_id",
+        "libraryName": "vl_platform"
+      },
+      "vl_platform_sm_finance_id": {
+        "type": "String",
+        "variableName": "sm_finance_id",
+        "libraryName": "vl_platform"
+      },
+      "vl_platform_sm_finance_connection": {
+        "type": "String",
+        "variableName": "sm_finance_connection",
         "libraryName": "vl_platform"
       }
     }

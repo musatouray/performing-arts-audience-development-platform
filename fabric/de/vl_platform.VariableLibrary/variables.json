@@ -36,6 +36,24 @@
       "note": "",
       "type": "String",
       "value": "d32e8a3f-c28a-46d4-a146-92bb671bcd53"
+    },
+    {
+      "name": "finance_workspace_id",
+      "note": "",
+      "type": "String",
+      "value": "465c662d-97c6-4f1b-85f5-32560cc753b3"
+    },
+    {
+      "name": "sm_finance_id",
+      "note": "",
+      "type": "String",
+      "value": "f798870a-340d-40c9-b7fa-4bc331b1e61a"
+    },
+    {
+      "name": "sm_finance_connection",
+      "note": "",
+      "type": "String",
+      "value": "12265fa0-a631-4c1a-98fb-5992ac830925"
     }
   ]
 }
