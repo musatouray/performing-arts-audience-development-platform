@@ -348,9 +348,9 @@
         "variableName": "sm_finance_id",
         "libraryName": "vl_platform"
       },
-      "vl_platform_sm_finance_connection": {
+      "vl_platform_semantic_model_connection": {
         "type": "String",
-        "variableName": "sm_finance_connection",
+        "variableName": "semantic_model_connection",
         "libraryName": "vl_platform"
       }
     }
