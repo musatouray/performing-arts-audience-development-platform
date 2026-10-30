@@ -50,7 +50,7 @@
       "value": "f798870a-340d-40c9-b7fa-4bc331b1e61a"
     },
     {
-      "name": "sm_finance_connection",
+      "name": "semantic_model_connection",
       "note": "",
       "type": "String",
       "value": "12265fa0-a631-4c1a-98fb-5992ac830925"
