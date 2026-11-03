@@ -1,6 +1,5 @@
 {
   "properties": {
-    "description": "Weekly table maintenance for Bronze and Silver: compact small files and remove files older than the retention period. Scheduled Sunday 03:00 ET, before the daily load.",
     "activities": [
       {
         "type": "TridentNotebook",
@@ -23,6 +22,9 @@
               "type": "string"
             }
           }
+        },
+        "externalReferences": {
+          "connection": "2fbaadaf-3d6e-44b6-b0ce-a7c8777ab548"
         },
         "policy": {
           "timeout": "0.02:00:00",
