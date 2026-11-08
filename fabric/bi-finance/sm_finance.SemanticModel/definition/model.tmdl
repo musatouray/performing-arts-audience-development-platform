@@ -27,6 +27,9 @@ ref table 'Trend Metric'
 ref table fact_budget
 ref table dim_source_module
 ref table 'Statement Line'
+ref table dim_room
+ref table dim_event
+ref table fact_venue_booking
 
 ref role Finance
 

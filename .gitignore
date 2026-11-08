@@ -27,3 +27,15 @@ Thumbs.db
 # Power BI Desktop local files (per user, never committed)
 **/.pbi/localSettings.json
 **/.pbi/cache.abf
+
+# Claude Code: local settings and generated reports (query results, never commit)
+.claude/settings.local.json
+.claude/reports/
+
+# Node / Fabric Apps (Rayfin) projects: dependencies, builds, local settings and deployment IDs
+node_modules/
+dist/
+**/rayfin/.env
+**/rayfin/.temp/
+.env.fabric*
+.env.local

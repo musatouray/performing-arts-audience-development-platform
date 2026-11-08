@@ -1,0 +1,3 @@
+{
+  "query": "EVALUATE SUMMARIZECOLUMNS(dim_date[fiscal_year], dim_room[room_name], dim_room[capacity], TREATAS({\"Hall\"}, dim_room[room_type]), \"Utilization\", [Hall Utilization %], \"HoursBooked\", [Hours Booked], \"HoursAvailable\", [Hours Available], \"BookedDays\", [Booked Days], \"EventsBooked\", [Events Booked], \"Cancelled\", [Cancelled Events], \"RentalFees\", [Rental Fees]) ORDER BY dim_date[fiscal_year], dim_room[room_name]"
+}

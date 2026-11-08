@@ -51,3 +51,14 @@ relationship fact_gl_entry_source_module_dim_source_module_source_module
 	fromColumn: fact_gl_entry.source_module
 	toColumn: dim_source_module.source_module
 
+relationship fact_venue_booking_event_key_dim_event_event_key
+	fromColumn: fact_venue_booking.event_key
+	toColumn: dim_event.event_key
+
+relationship fact_venue_booking_room_key_dim_room_room_key
+	fromColumn: fact_venue_booking.room_key
+	toColumn: dim_room.room_key
+
+relationship fact_venue_booking_booking_date_key_dim_date_date_key
+	fromColumn: fact_venue_booking.booking_date_key
+	toColumn: dim_date.date_key

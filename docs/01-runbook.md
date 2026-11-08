@@ -284,7 +284,7 @@ SELECT * FROM rpt.vw_source_freshness;                        -- every source Fr
 ### 4.5 Semantic model and report (Finance)
 
 1. `sm_finance` lives in `hh-finance-dev` (Direct Lake on OneLake, reading `wh_gold`). Definitions: [`model.md`](../src/semantic_model/model.md), [`finance_measures.dax`](../src/semantic_model/finance_measures.dax), roles in [`rls_roles.md`](../src/semantic_model/rls_roles.md).
-2. Bind it to a **fixed-identity cloud connection** (Settings › Gateway and cloud connections).
+2. Bind it to a **fixed-identity cloud connection** (Settings › Gateway and cloud connections): one per stage, `harmonia-hall-onelake-gold-{dev|test|prod}`, OAuth2, with **single sign-on off**. Without it, the model reads Gold as each viewer, and viewers (who have only *Read* on `wh_gold`) see errors; Fabric also warns when RLS is combined with single sign-on.
 3. The report `rp_finance` is generated from code. To change it, edit the script and regenerate (see [7.2](#72-change-the-finance-report)).
 4. Endorse the model as *Promoted*; label it *Confidential*.
 
@@ -297,6 +297,7 @@ A deployment copies definitions as they are, so anything that names a specific i
 | Consumer | Reads | From |
 |---|---|---|
 | `pl_daily_load` › `sp_load_gold` | connection, workspace, warehouse ID, SQL endpoint | `vl_platform` (`wh_gold_connection`, `workspace_id`, `wh_gold_id`, `wh_gold_endpoint`) |
+| `pl_daily_load` › `refresh_sm_finance` | connection, finance workspace, model ID | `vl_platform` (`sm_finance_connection`, `finance_workspace_id`, `sm_finance_id`) |
 | Notebooks (first cell, `%%configure`) | default lakehouse | `vl_platform` (`lh_bronze_id` or `lh_silver_id`, `workspace_id`) |
 | `df_education_sharepoint` (`DefaultDestination`) | destination lakehouse | `vl_platform` (`workspace_id`, `lh_bronze_id`) |
 | `sm_finance` | which Gold it reads | `vl_finance` (`gold_workspace_id`, `gold_warehouse_id`), applied by `nb_rebind_sm_finance` |
@@ -352,7 +353,7 @@ Three views read Silver tables that only exist after the first run, so a new sta
 1. `dp-hh-finance` › deploy `vl_finance`, `sm_finance`, `rp_finance` and `nb_rebind_sm_finance`.
 2. `vl_finance` › set the stage's value set as **active**.
 3. Run `nb_rebind_sm_finance`. The `now:` line must show the stage's own `hh-dataplatform-*` workspace and `wh_gold` IDs.
-4. `sm_finance` › Settings: bind the fixed-identity connection.
+4. `sm_finance` › Settings: bind the stage's fixed-identity connection (single sign-on off), and turn **off** *Keep your Direct Lake data up to date*: `pl_daily_load` refreshes the model as its last step.
 
 In a **new** stage, run the notebook (or one manual refresh of `sm_finance`) once more **after** the first green `pl_daily_load`. Its first refresh fails while Gold is still empty, and a failed refresh suspends the model's automatic updates until a refresh succeeds. After that, no refresh schedule is needed: *Keep your Direct Lake data up to date* reframes the model whenever Gold changes.
 

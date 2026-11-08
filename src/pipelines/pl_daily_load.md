@@ -4,7 +4,7 @@ Pipelines are built in the **DEV Data Platform workspace** UI, then Git-synced i
 
 ## pl_daily_load (runs the whole daily flow)
 
-**Schedule:** daily at 05:00 America/New_York, so data is ready before the 9am stand-up.
+**Schedule:** PROD only, daily at 07:00 America/New_York (the gateway's computer is always on); DEV and TEST run on demand. Schedules don't travel with deployments.
 **Parameter:** `load_date` (String, default empty = everything pending).
 
 The sources load side by side, because none of them depends on another. Silver waits for all of them.
@@ -22,12 +22,12 @@ The sources load side by side, because none of them depends on another. Silver w
 └──────────┬───────────┘      └──────────┬───────────┘
            │ all ✔                        │ ✔
            ▼                              ▼
-    ┌────────────────────────┐    ┌──────────────────────────┐
-    │ nb_silver               │──▶│ sp_load_gold              │
-    │ nb_20_silver_transform  │ ✔ │ wh_gold.etl.usp_load_gold │
-    └────────────────────────┘    └──────────────────────────┘
+    ┌────────────────────────┐    ┌──────────────────────────┐    ┌────────────────────┐
+    │ nb_silver               │──▶│ sp_load_gold              │──▶│ refresh_sm_finance  │
+    │ nb_20_silver_transform  │ ✔ │ wh_gold.etl.usp_load_gold │ ✔ │ semantic model      │
+    └────────────────────────┘    └──────────────────────────┘    └────────────────────┘
 
-    sp_load_gold ✖ or skipped ──▶ notify_failure (Teams or Outlook) ──▶ fail_run (Fail)
+    refresh_sm_finance ✖ or skipped ──▶ notify_failure (Teams or Outlook) ──▶ fail_run (Fail)
     (if any earlier step fails, everything after it is skipped, so this one check covers the whole run)
 ```
 
@@ -40,10 +40,11 @@ The sources load side by side, because none of them depends on another. Silver w
 | 4 | `nb_bronze` | Notebook | Notebook: `nb_10_bronze_ingest`. Depends on 3 = **Succeeded**. Base parameter `load_date` as above. Retry 2. Timeout 1h. |
 | 5 | `nb_silver` | Notebook | Notebook: `nb_20_silver_transform`. Depends on 1, 2 and 4 = **Succeeded**. Retry 1. |
 | 6 | `sp_load_gold` | Stored procedure | Connection: dynamic, from the library variables `vl_platform_wh_gold_connection`, `vl_platform_workspace_id`, `vl_platform_wh_gold_id` and `vl_platform_wh_gold_endpoint`, so each stage loads its own `wh_gold`. Proc: `[etl].[usp_load_gold]` (typed in). Param `@run_id` (String) = `@pipeline().RunId`. Retry 2, every 180 s (Silver's SQL endpoint can briefly report error 952 after a new table). Depends on 5 = **Succeeded**. |
-| 7 | `notify_failure` | Teams (or Office 365 Outlook) | One arrow from 6, with **two** conditions ticked on it: **Failed** and **Skipped**. Message: `@concat('pl_daily_load failed. Run ID: ', pipeline().RunId)`. |
-| 8 | `fail_run` | Fail | Depends on 7 = **Completed**. Message: `pl_daily_load failed, see the activity runs`. Error code: `500`. |
+| 7 | `refresh_sm_finance` | Semantic model refresh | Connection, workspace and model: dynamic, from `vl_platform_sm_finance_connection`, `vl_platform_finance_workspace_id` and `vl_platform_sm_finance_id`, so each stage refreshes its own `sm_finance`. Wait on completion; refresh type Full (re-points Direct Lake at the new data and recalculates the calculated tables). Retry 1, after 300 s. Depends on 6 = **Succeeded**. |
+| 8 | `notify_failure` | Teams (or Office 365 Outlook) | One arrow from 7, with **two** conditions ticked on it: **Failed** and **Skipped**. Message: `@concat('pl_daily_load failed. Run ID: ', pipeline().RunId)`. |
+| 9 | `fail_run` | Fail | Depends on 8 = **Completed**. Message: `pl_daily_load failed, see the activity runs`. Error code: `500`. |
 
-**Why the alert hangs off the last step, not every step.** When an activity has arrows from several activities, it waits for *all* of them (AND, not OR). So "one Failed arrow from each step" would only alert when every step failed at once, which never happens. Instead: a failure anywhere makes the steps after it *skip*, so `sp_load_gold` always ends up Failed or Skipped when something went wrong. Two conditions on one arrow work as OR.
+**Why the alert hangs off the last step, not every step.** When an activity has arrows from several activities, it waits for *all* of them (AND, not OR). So "one Failed arrow from each step" would only alert when every step failed at once, which never happens. Instead: a failure anywhere makes the steps after it *skip*, so `refresh_sm_finance`, the last step, always ends up Failed or Skipped when something went wrong. Two conditions on one arrow work as OR.
 
 **Why the Fail activity.** Once `notify_failure` has run fine, the pipeline would report **Succeeded**, because its last activity succeeded. `fail_run` sets the run back to Failed, so the Monitoring hub and anyone watching run history see the truth.
 
@@ -51,7 +52,7 @@ The marketing shortcut needs no activity: the files are already visible in `File
 
 **Why this shape?** Each tool does what it's best at, and the pipeline stays thin: it only orders the steps, retries and alerts. There's no business logic in it. Running the four sources side by side keeps the whole load short, and one slow source doesn't hold up the others' Bronze steps.
 
-**Why no semantic-model refresh step?** Direct Lake picks up new Delta data automatically. With Import you'd add a *Semantic model refresh* activity here.
+**Why a semantic-model refresh step, when Direct Lake updates itself?** In TEST and PROD, *Keep your Direct Lake data up to date* is **off**, and the pipeline refreshes the model once, after Gold has fully loaded. Users never see a load half-way (Gold commits in several steps), and a failed refresh fails the run and alerts, where automatic updates would quietly suspend. DEV keeps automatic updates on, so changes show immediately. Each new model (audience, operations) gets its own refresh activity in parallel after `sp_load_gold`, with its own workspace and model variables.
 
 **Production variants to mention:**
 

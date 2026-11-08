@@ -1,0 +1,3 @@
+{
+  "query": "EVALUATE SUMMARIZECOLUMNS(dim_date[fiscal_year], dim_date[fiscal_year_label], \"Revenue\", [Revenue], \"Expenses\", [Expenses], \"RevenueBudget\", [Revenue Budget], \"ExpenseBudget\", [Expense Budget], \"HoursBooked\", [Hours Booked], \"EventsBooked\", [Events Booked]) ORDER BY dim_date[fiscal_year]"
+}

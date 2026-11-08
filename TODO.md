@@ -14,8 +14,9 @@ What's built, and what's left. Ticked items run in the tenant today; unticked it
 - [x] Five deployment pipelines `dp-hh-*`
 - [x] Git integration on the DEV workspaces; CI on every push (lint, config validation, tests)
 - [x] Workspace identities per stage, each with *Storage Blob Data Reader* on the marketing container
-- [ ] Run the tenant-settings audit (`scripts/08_audit_tenant_settings.py`) and commit the result
-- [ ] Install the Capacity Metrics app and record the daily load's CU cost
+- [x] Tenant-settings audit with exact names and group-scope checks (`docs/tenant-settings-audit.md`)
+- [ ] Clear the audit's remaining items: turn off *Publish to web*; limit *Allow users to apply sensitivity labels* to the builder groups
+- [x] Capacity Metrics app installed; 14 days of measurements recorded in `docs/04-capacity-sizing.md`
 
 ## 2. Ingestion (six sources, four patterns)
 
@@ -23,6 +24,7 @@ What's built, and what's left. Ticked items run in the tenant today; unticked it
 - [x] Tessitura API and Diese API: one config-driven notebook (`nb_05_api_ingest`)
 - [x] Education: Dataflow Gen2 owned by the tier's service account, one connection set per tier
 - [x] Marketing: OneLake shortcut to ADLS Gen2 with workspace-identity access
+- [ ] Replace the education Dataflow with a notebook or Copy job: it uses more capacity than either Copy job for the smallest source (see `docs/04-capacity-sizing.md`)
 - [ ] Move the gateway off a personal laptop (an always-on VM or a VNet data gateway), so loads don't depend on one computer being awake
 
 ## 3. Bronze and Silver
@@ -31,7 +33,7 @@ What's built, and what's left. Ticked items run in the tenant today; unticked it
 - [x] 43 data-quality rules in YAML (28 error, 15 warn), quarantine with the rule broken, pass rates per run
 - [x] Deduplication, hash-based MERGE, identity resolution into `core.patron`
 - [x] OneLake security on Silver: one role, *DataScienceReaders*
-- [ ] Build `pl_weekly_maintenance` (runs `nb_90_maintenance`: `OPTIMIZE` and `VACUUM`) and schedule it for Sunday night
+- [x] `pl_weekly_maintenance` (runs `nb_90_maintenance`: `OPTIMIZE` with V-Order and `VACUUM`), deployed to PROD and scheduled Sunday 03:00 ET; fails and alerts if any table fails
 
 ## 4. Gold warehouse
 
@@ -51,7 +53,8 @@ What's built, and what's left. Ticked items run in the tenant today; unticked it
 - [x] Excel live connection tested as a finance user (PivotTable and `CUBEVALUE`)
 - [x] Endorsement in PROD: `wh_gold` Certified, `lh_silver` Promoted
 - [ ] Endorse `sm_finance` Certified; remove the *Master data* badge from `lh_bronze` (raw data stays unendorsed)
-- [ ] Refresh `sm_finance` as the last step of `pl_daily_load` and turn off automatic updates, so users never see a half-finished load
+- [x] `refresh_sm_finance` as the last step of `pl_daily_load` (TEST and PROD have automatic updates off); a failed refresh fails the run and alerts
+- [ ] Bind DEV's `sm_finance` to a fixed-identity connection with single sign-on off (TEST and PROD are done)
 - [ ] Bind the fixed-identity connection to a **service principal** instead of a personal account
 - [ ] Remove obsolete measures (`Statement FYTD`, `Statement PY FYTD`, `Statement vs PY`, `Statement vs PY %`); move the older "vs PY" pills onto the UDFs
 - [ ] Add descriptions to every table, column and measure (also needed by the AI items in section 9)

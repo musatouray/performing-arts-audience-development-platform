@@ -1,0 +1,71 @@
+/// Rooms that can be booked (from Diese). Halls are room_type = "Hall"; capacity is seats.
+table dim_room
+	lineageTag: 0dc608af-d0c9-4f5a-9c30-1f94a1a36abc
+	sourceLineageTag: [dim].[room]
+
+	column room_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: c9e2b2a3-e138-4e05-8199-58c4efce49d0
+		sourceLineageTag: room_key
+		summarizeBy: none
+		sourceColumn: room_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column room_id
+		dataType: string
+		lineageTag: 3f4818ff-4826-49b0-9ac6-c5cfcdd757c2
+		sourceLineageTag: room_id
+		summarizeBy: none
+		sourceColumn: room_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column room_name
+		dataType: string
+		lineageTag: 317c5784-10d2-427e-acaf-d96cbcf7b726
+		sourceLineageTag: room_name
+		summarizeBy: none
+		sourceColumn: room_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column room_type
+		dataType: string
+		lineageTag: ca0fa78f-6ed0-45bc-9b6c-4a8875f7d1bb
+		sourceLineageTag: room_type
+		summarizeBy: none
+		sourceColumn: room_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column capacity
+		dataType: int64
+		formatString: #,0
+		lineageTag: 3469e5fe-b947-4f30-aae2-7781c172d990
+		sourceLineageTag: capacity
+		summarizeBy: none
+		sourceColumn: capacity
+
+		annotation SummarizationSetBy = Automatic
+
+	column hourly_rate
+		dataType: decimal
+		formatString: $#,0
+		lineageTag: 4ab0de8f-8d7f-485d-b7d6-f4f4475bdd05
+		sourceLineageTag: hourly_rate
+		summarizeBy: none
+		sourceColumn: hourly_rate
+
+		annotation SummarizationSetBy = Automatic
+
+	partition room = entity
+		mode: directLake
+		source
+			entityName: room
+			schemaName: dim
+			expressionSource: 'DirectLake - wh_gold'
+
+	changedProperty = Name

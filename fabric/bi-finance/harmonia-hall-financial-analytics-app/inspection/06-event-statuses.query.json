@@ -1,0 +1,3 @@
+{
+  "query": "EVALUATE SUMMARIZECOLUMNS(dim_event[status], dim_event[event_type], dim_event[client_type], \"Bookings\", COUNTROWS(fact_venue_booking), \"Hours\", SUM(fact_venue_booking[hours_booked]), \"Fees\", SUM(fact_venue_booking[rental_fee]))"
+}

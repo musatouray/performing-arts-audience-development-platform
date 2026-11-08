@@ -1,0 +1,3 @@
+{
+  "query": "EVALUATE ROW(\"Revenue\", [Revenue], \"Expenses\", [Expenses])"
+}
