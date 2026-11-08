@@ -1,0 +1,110 @@
+/// Booked events (from Diese): concerts by Harmonia Hall Presents, rentals and rehearsals. status: Completed, Confirmed, Tentative (a hold) or Cancelled. client_name is finance-only.
+table dim_event
+	lineageTag: 7e4bfca0-9297-4f5a-bc43-f764521aa75b
+	sourceLineageTag: [dim].[event]
+
+	column event_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 61e58fe4-b445-4bf1-b22e-732c0f525577
+		sourceLineageTag: event_key
+		summarizeBy: none
+		sourceColumn: event_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column event_id
+		dataType: string
+		lineageTag: ac4ea29b-5d89-4719-8aaa-b27a1b1244aa
+		sourceLineageTag: event_id
+		summarizeBy: none
+		sourceColumn: event_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column event_name
+		dataType: string
+		lineageTag: 5f9b7681-7429-459b-9f08-828663eca7a2
+		sourceLineageTag: event_name
+		summarizeBy: none
+		sourceColumn: event_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column event_type
+		dataType: string
+		lineageTag: a5be2cb7-d8cd-486a-9a52-ec92c4f7f734
+		sourceLineageTag: event_type
+		summarizeBy: none
+		sourceColumn: event_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column client_name
+		dataType: string
+		lineageTag: 7c9b0660-c0db-4021-95a0-9c9e748136a5
+		sourceLineageTag: client_name
+		summarizeBy: none
+		sourceColumn: client_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column client_type
+		dataType: string
+		lineageTag: 38d2f30e-65d4-46b0-9175-db1d19c00597
+		sourceLineageTag: client_type
+		summarizeBy: none
+		sourceColumn: client_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: a085f07e-0a42-4e82-8e15-c242c029ac5b
+		sourceLineageTag: status
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column event_date_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: ad6a293a-f08c-4283-92ed-9db6daec6928
+		sourceLineageTag: event_date_key
+		summarizeBy: none
+		sourceColumn: event_date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column performance_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 9c2661c9-f82b-4389-9168-a07e6c81bdb8
+		sourceLineageTag: performance_key
+		summarizeBy: none
+		sourceColumn: performance_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_linked
+		dataType: boolean
+		isHidden
+		lineageTag: 55f504c0-00ab-46fb-812b-a1f6ac06c687
+		sourceLineageTag: is_linked
+		summarizeBy: none
+		sourceColumn: is_linked
+
+		annotation SummarizationSetBy = Automatic
+
+	partition event = entity
+		mode: directLake
+		source
+			entityName: event
+			schemaName: dim
+			expressionSource: 'DirectLake - wh_gold'
+
+	changedProperty = Name

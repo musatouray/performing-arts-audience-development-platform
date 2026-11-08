@@ -72,6 +72,33 @@ Assumed profile: a nonprofit, a four-person BI team, probably a few hundred staf
 | **Seasonal peaks** | **Temporarily scale PROD up on PAYG** | Reservations cover the baseline CUs. Extra CUs during renewal week or the gala are billed PAYG only for those days, then you scale back. |
 | **Spark-heavy spikes** | Consider **Spark Autoscale Billing** (pay-per-use Spark outside the capacity) | Keeps large backfills from using up the reserved capacity's compute. |
 
+### Measured in the lab (Capacity Metrics app, 14 days to 27 October 2026)
+
+Trial capacity (F64-equivalent) shared by this platform and two other lab projects; DEV ran the daily load and many test runs.
+
+| Measure | Value |
+|---|---|
+| Average utilisation | 0.56% of F64 |
+| Peak utilisation (smoothed) | 3.87% of F64, about **2.5 CU** |
+| Total, all workspaces | 435,697 CU-seconds |
+
+Largest consumers in `hh-dataplatform-dev` (CU-seconds over the 14 days):
+
+| Item | CU-seconds | Note |
+|---|---|---|
+| `df_education_sharepoint` (Dataflow Gen2) | 51,131 | The most expensive item, for the smallest source (a few thousand rows) |
+| `cj_tessitura` (Copy job) | 41,187 | Includes the initial full snapshots |
+| `cj_mip` (Copy job) | 24,586 | Includes the budget backfill |
+| `lh_silver`, `lh_bronze` (Spark and table operations) | 11,401 and 10,727 | |
+| `pl_daily_load` (orchestration) | 2,642 | |
+| `nb_05_api_ingest` | 1,409 | |
+
+**What it means:**
+
+- At lab volumes, the whole platform peaks at about 2.5 CU: an **F4** covers DEV and TEST with headroom; an F2 would be throttled at peak.
+- PROD sizing still follows section 5. Real Tessitura history and hundreds of report users add interactive load the lab doesn't have, so start PROD smaller only with a pilot and these metrics as evidence.
+- **Cost lever:** the education Dataflow costs more than either Copy job. Replacing it with a notebook (or a Copy job from SharePoint) is the cheapest saving available.
+
 ---
 
 ## 6. When to scale up or down

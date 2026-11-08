@@ -1,0 +1,3 @@
+{
+  "query": "EVALUATE ROW(\"ReconciledPct\", [Reconciled %], \"LinesToInvestigate\", [Lines to Investigate], \"FreshnessStatus\", [Freshness Status], \"LastLoadedUTC\", [Last Loaded (UTC)])"
+}

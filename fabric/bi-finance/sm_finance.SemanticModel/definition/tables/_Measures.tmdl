@@ -756,6 +756,41 @@ table _Measures
 		formatString: $#,0;($#,0)
 		displayFolder: Report\Trend
 
+	/// Booked hours in the rooms in context, cancelled events excluded. Same rule as rpt.vw_room_utilisation.
+	measure 'Hours Booked' = CALCULATE ( SUM ( fact_venue_booking[hours_booked] ), KEEPFILTERS ( dim_event[status] <> "Cancelled" ) )
+		formatString: #,0
+		displayFolder: Venue
+
+	/// Bookable hours: 14 a day (9 a.m. to 11 p.m.) for each room in context, over the dates in context.
+	measure 'Hours Available' = SUMX ( FILTER ( VALUES ( dim_room[room_key] ), dim_room[room_key] > 0 ), 14 * COUNTROWS ( dim_date ) )
+		formatString: #,0
+		displayFolder: Venue
+
+	/// Booked hours as a share of bookable hours.
+	measure 'Hall Utilization %' = DIVIDE ( [Hours Booked], [Hours Available] )
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: Venue
+
+	/// Room-days with at least one booking that isn't cancelled.
+	measure 'Booked Days' = SUMX ( FILTER ( VALUES ( dim_room[room_key] ), dim_room[room_key] > 0 ), CALCULATE ( DISTINCTCOUNT ( fact_venue_booking[booking_date_key] ), KEEPFILTERS ( dim_event[status] <> "Cancelled" ) ) )
+		formatString: #,0
+		displayFolder: Venue
+
+	/// Events with at least one booking, cancelled events excluded.
+	measure 'Events Booked' = CALCULATE ( DISTINCTCOUNT ( fact_venue_booking[event_key] ), KEEPFILTERS ( dim_event[status] <> "Cancelled" ) )
+		formatString: #,0
+		displayFolder: Venue
+
+	/// Events that were cancelled.
+	measure 'Cancelled Events' = CALCULATE ( DISTINCTCOUNT ( fact_venue_booking[event_key] ), KEEPFILTERS ( dim_event[status] = "Cancelled" ) )
+		formatString: #,0
+		displayFolder: Venue
+
+	/// Rental fees on bookings that aren't cancelled (booking system amount; the ledger amount is in Revenue).
+	measure 'Rental Fees' = CALCULATE ( SUM ( fact_venue_booking[rental_fee] ), KEEPFILTERS ( dim_event[status] <> "Cancelled" ) )
+		formatString: $#,0;($#,0)
+		displayFolder: Venue
+
 	column placeholder
 		isHidden
 		lineageTag: 8334bced-3def-4ea3-8740-4cb06f12a963

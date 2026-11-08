@@ -1,0 +1,128 @@
+/// One row per room booking (rehearsal, performance or event). Grain: booking_id.
+table fact_venue_booking
+	lineageTag: c4411576-d5f3-49f8-9acf-8fbc853c6d13
+	sourceLineageTag: [fact].[venue_booking]
+
+	column booking_id
+		dataType: string
+		lineageTag: a900d698-02aa-44ee-bc20-f90b94b6c04a
+		sourceLineageTag: booking_id
+		summarizeBy: none
+		sourceColumn: booking_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column event_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 0b2796af-7e87-4040-b61d-4771c181b8b5
+		sourceLineageTag: event_key
+		summarizeBy: none
+		sourceColumn: event_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column room_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: ab114c11-5144-4812-9376-6795230fce17
+		sourceLineageTag: room_key
+		summarizeBy: none
+		sourceColumn: room_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column venue_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: cc342668-dcdd-4525-9556-699667b8c3ec
+		sourceLineageTag: venue_key
+		summarizeBy: none
+		sourceColumn: venue_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column booking_date_key
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: af823329-4555-4797-a9c7-36a01fedfd58
+		sourceLineageTag: booking_date_key
+		summarizeBy: none
+		sourceColumn: booking_date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column booking_type
+		dataType: string
+		lineageTag: 9ae070a0-ffc7-4e42-ab79-cd53ba0ad2e0
+		sourceLineageTag: booking_type
+		summarizeBy: none
+		sourceColumn: booking_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column start_datetime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 5fb21e86-5557-465d-9a8f-e4f7c609daa1
+		sourceLineageTag: start_datetime
+		summarizeBy: none
+		sourceColumn: start_datetime
+
+		annotation SummarizationSetBy = Automatic
+
+	column end_datetime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 4db57d1e-ad8e-42bd-8f4c-bd80fdd1045c
+		sourceLineageTag: end_datetime
+		summarizeBy: none
+		sourceColumn: end_datetime
+
+		annotation SummarizationSetBy = Automatic
+
+	column hours_booked
+		dataType: decimal
+		isHidden
+		formatString: #,0.00
+		lineageTag: b408c79e-c66c-4809-b343-201a872a5ab0
+		sourceLineageTag: hours_booked
+		summarizeBy: sum
+		sourceColumn: hours_booked
+
+		annotation SummarizationSetBy = Automatic
+
+	column rental_fee
+		dataType: decimal
+		isHidden
+		formatString: $#,0
+		lineageTag: b78ec316-be12-46d2-a019-968dc60348a4
+		sourceLineageTag: rental_fee
+		summarizeBy: sum
+		sourceColumn: rental_fee
+
+		annotation SummarizationSetBy = Automatic
+
+	column loaded_at
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		lineageTag: 4195b309-225b-40f2-8fe7-e3f9d57e8fba
+		sourceLineageTag: loaded_at
+		summarizeBy: none
+		sourceColumn: loaded_at
+
+		annotation SummarizationSetBy = Automatic
+
+	partition venue_booking = entity
+		mode: directLake
+		source
+			entityName: venue_booking
+			schemaName: fact
+			expressionSource: 'DirectLake - wh_gold'
+
+	changedProperty = Name

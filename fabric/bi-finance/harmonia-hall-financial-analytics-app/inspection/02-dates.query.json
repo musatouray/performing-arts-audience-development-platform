@@ -1,0 +1,3 @@
+{
+  "query": "EVALUATE ROW(\"MinDate\", MIN(dim_date[date]), \"MaxDate\", MAX(dim_date[date]), \"AsOfDate\", [As Of Date], \"DataThrough\", [Data Through], \"RevenueBudgetFullYear\", [Revenue Budget Full Year])"
+}

@@ -1,0 +1,3 @@
+{
+  "query": "EVALUATE SUMMARIZECOLUMNS(dim_source_module[module_name], dim_account[account_type], dim_account[account_group], \"Amount\", SUM(fact_gl_entry[net_amount]), \"Revenue\", [Revenue], \"Expenses\", [Expenses])"
+}
